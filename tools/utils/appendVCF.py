@@ -20,4 +20,7 @@ def appendVCF(file, clinvar_output):
 
                 line.replace('\n', '\t.....\n'
 
+    with open(file, "w") as file:
+        file.writelines(lines)
+
 
