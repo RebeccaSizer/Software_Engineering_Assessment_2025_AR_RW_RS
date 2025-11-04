@@ -2,7 +2,7 @@ def parseVCF(filepath_filename):
 
     variant_list = []
 
-    file = open(filename, 'r')
+    file = open(filepath_filename, 'r')
 
     for line in file:
 
@@ -17,7 +17,7 @@ def parseVCF(filepath_filename):
             ref = line.split('\t')[3]
             alt = line.split('\t')[4]
 
-            variant = f'{chromosome}-{position}-{ref}-{alt}'
+            variant = f'{chromosome}%3A{position}%3A{ref}%3A{alt}'
 
         variant_list.append(variant.split('\n')[0])
 
