@@ -1,0 +1,10 @@
+name: sea_venv
+
+channels:
+  - defaults
+  - conda-forge
+  - bioconda
+
+dependencies:
+  - python=3.13
+  - pip
