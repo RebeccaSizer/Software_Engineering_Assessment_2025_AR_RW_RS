@@ -16,7 +16,7 @@ if not clinvar_ids:
     exit()
 
 # 2. Fetch the ClinVar record in XML
-fetch_handle = Entrez.efetch(db="clinvar", id=clinvar_ids[0], rettype="xml")
+fetch_handle = Entrez.efetch(db="clinvar", id=clinvar_ids[0], rettype="text")
 xml_data = fetch_handle.read()
 fetch_handle.close()
 
