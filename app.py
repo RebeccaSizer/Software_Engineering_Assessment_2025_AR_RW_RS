@@ -1,3 +1,4 @@
+from tools.utils.appendVCF import appendVCF
 from tools.utils.parseVCF import parseVCF
 from tools.modules.HGVS_convertion import HGVS_converter
 from tools.modules.detailed_request import get_clinvar_full_info
@@ -20,8 +21,9 @@ if __name__ == '__main__':
         clinvar_annotation.append(clinVar_response['review_status'])
 
         vv_dict[key] = clinvar_annotation
+        print(vv_dict)
 
-    print(vv_dict)
+    appendVCF(file, vv_dict)
 
 
 
