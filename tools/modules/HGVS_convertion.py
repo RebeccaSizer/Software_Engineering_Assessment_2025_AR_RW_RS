@@ -73,7 +73,7 @@ def HGVS_converter(variants: list):
                     hgvs_desc = build_info.get('hgvs_genomic_description', '')
                     # Keep only accessions that start with "NC_"
                     if hgvs_desc.startswith('NC_'):
-                        nc = hgvs_desc.split(':')[0]  # Keep only "NC_..." part
+                        nc = hgvs_desc
 
             # Once both identifiers are found, add them to the output dictionary.
             # Example: {'NC_000017.11': 'NM_001377265.1'}
