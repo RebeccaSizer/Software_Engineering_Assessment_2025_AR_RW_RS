@@ -7,6 +7,7 @@ import sys
 if __name__ == '__main__':
     file = sys.argv[1]
     variant_list = parseVCF(file)
+
     vv_dict = HGVS_converter(variant_list)
 
     for key, value in vv_dict.items():
@@ -21,7 +22,6 @@ if __name__ == '__main__':
         clinvar_annotation.append(clinVar_response['review_status'])
 
         vv_dict[key] = clinvar_annotation
-        print(vv_dict)
 
     appendVCF(file, vv_dict)
 
