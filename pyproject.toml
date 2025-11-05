@@ -1,0 +1,39 @@
+[project]
+name = "SoftwareEngineeringAssessment" #(S.E.A.)
+version = "0.0.1"
+description = "Tool that annotates .VCFs with information from ClinVar."
+#license = {file = "LICENSE.txt"}
+authors = [{name = "S.E.A. Contributors", email = "admin@variantvalidator.org"}]
+readme = "README.md"
+keywords = [
+    "bioinformatics",
+    "annotate",
+    "clinvar"
+]
+requires-python = "3.13"
+
+#classifiers = [
+    #"Development Status :: 5 - Production/Stable",
+    #"Intended Audience :: Clinical Researchers",
+    #"Topic :: Software Development :: Build Tools",
+    #"License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    #"Programming Language :: Python :: 3.13"
+]
+
+# Load dependencies
+dependencies = [
+    "requests==2.32.5"
+]
+
+# Infers the version number from Git tags
+[tool.setuptools_scm]
+
+# Defines from which parent directory subsequent modules, functions and packages can be imported from
+[tool.setuptools.packages.find]
+where = ["."]  # Look for packages in the 'root' directory
+include = ["tools*"] # Look for packages in the 'tools' directory
+
+# Ensures that setuptools and wheel are installed before the package is built to ensure they are available to build the project.
+[build-system]
+requires = ["setuptools", "setuptools_scm[toml]", "wheel"]
+build-backend = "setuptools.build_meta"
