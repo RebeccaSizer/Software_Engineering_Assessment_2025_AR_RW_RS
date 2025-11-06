@@ -36,7 +36,7 @@ def upload():
         # Get the absolute path for use in your scripts
         abs_file_path = os.path.abspath(file_path)
 
-        return f"File uploaded successfully! Absolute path: {abs_file_path}"
+        return render_template('success.html', file_path=abs_file_path)
 
     # GET request: show the upload form
     return render_template('uploads.html')
