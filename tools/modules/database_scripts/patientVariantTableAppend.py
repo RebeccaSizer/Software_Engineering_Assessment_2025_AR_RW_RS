@@ -35,7 +35,7 @@ for path in vcf_paths:
     """)
 
     # Insert example data
-    for key, value in HGVS_converter(vcf[1]).items():
+    for key, value in HGVS_converter(vcf[1])[0].items():
 
         cursor.execute("INSERT INTO patient_variant (patient_ID, variant) VALUES (?, ?)", (vcf[0], key))
 
