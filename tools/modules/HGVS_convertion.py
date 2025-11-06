@@ -52,6 +52,8 @@ def HGVS_converter(variants: list):
 
             # Parse the API response into a Python dictionary.
             data = response.json()
+            nm_transcript = list(data.keys())[0]
+            np_change = data[nm_transcript]['hgvs_predicted_protein_consequence']['tlr']
 
             # Initialize variables to store identifiers.
             nm = None  # Transcript-level identifier (RefSeq NM_ accession)
@@ -88,7 +90,7 @@ def HGVS_converter(variants: list):
             print(f"Request failed for {var}: {e}\n")
 
     # Return the final dictionary mapping genomic (NC_) → transcript (NM_) accessions.
-    return HGVS_dict
+    return HGVS_dict, nm_transcript, np_change
 
 
 # Example usage
