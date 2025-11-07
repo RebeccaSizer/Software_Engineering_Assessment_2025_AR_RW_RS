@@ -5,56 +5,64 @@ from ...modules.HGVS_convertion import HGVS_converter
 from ...modules.detailed_request import get_clinvar_full_info
 from ...modules.Entrez import Entrez_fetch_transcript_record
 
-vcf_paths = ['/home/ubuntu/Desktop/Software_Engineering_Assessment_2025_AR_RW_RS/Patient1.vcf']
+def variantAnnotationsTable(filepath):
 
-for path in vcf_paths:
+    vcf_paths = []
 
-    vcf = parseVCF(path)
+    for file in os.listdir(filepath):
+        if file.endswith('.vcf'):
+            vcf_paths.append(f'{filepath}/{file}')
+        else:
+            continue
 
-    # Create (or connect to) a database file
-    conn = sqlite3.connect('/home/ubuntu/Desktop/Software_Engineering_Assessment_2025_AR_RW_RS/database/sea.db')
+    for path in vcf_paths:
 
-    # Create a cursor to run SQL commands
-    cursor = conn.cursor()
+        vcf = parseVCF(path)
 
-    # Create a table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS variant_annotations (
-        No INTEGER PRIMARY KEY AUTOINCREMENT,
-        variant_NC TEXT NOT NULL,
-        variant_NM TEXT NOT NULL,
-        variant_NP TEXT NOT NULL,
-        gene TEXT NOT NULL,
-        HGNC_ID INTEGER NOT NULL,
-        Classification TEXT NOT NULL,
-        Conditions TEXT NOT NULL,
-        Stars,
-        Review_status TEXT NOT NULL,
-        UNIQUE(variant_NC, variant_NM, variant_NP)
-    )
-    """)
+        # Create (or connect to) a database file
+        conn = sqlite3.connect('database/sea.db')
 
-    # Insert example data
+        # Create a cursor to run SQL commands
+        cursor = conn.cursor()
 
-    hgvs_dict, transcript, np_change = HGVS_converter(vcf[1])
+        # Create a table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS variant_annotations (
+            No INTEGER PRIMARY KEY AUTOINCREMENT,
+            variant_NC TEXT NOT NULL,
+            variant_NM TEXT NOT NULL,
+            variant_NP TEXT NOT NULL,
+            gene TEXT NOT NULL,
+            HGNC_ID INTEGER NOT NULL,
+            Classification TEXT NOT NULL,
+            Conditions TEXT NOT NULL,
+            Stars,
+            Review_status TEXT NOT NULL,
+            UNIQUE(variant_NC, variant_NM, variant_NP)
+        )
+        """)
 
-    for key, value in hgvs_dict.items():
+        # Insert example data
 
-        transcript_dict = Entrez_fetch_transcript_record('A.N.Other@example.com', value)
-        gene = transcript_dict['Gene_symbol']
-        HGNC_ID = transcript_dict['HGNC_ID']
+        hgvs_dict, transcript, np_change = HGVS_converter(vcf[1])
 
-        clinVar_response = get_clinvar_full_info(value)
-        classification = clinVar_response['classification']
-        conditions = clinVar_response['conditions']
-        stars = clinVar_response['stars']
-        review_status = clinVar_response['review_status']
+        for key, value in hgvs_dict.items():
 
-        cursor.execute("""INSERT INTO variant_annotations (variant_NC, variant_NM, variant_NP, gene, HGNC_ID, classification, conditions, stars, review_status)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""", (key, transcript, np_change, gene, HGNC_ID, classification, conditions, stars, review_status))
+            transcript_dict = Entrez_fetch_transcript_record('A.N.Other@example.com', value)
+            gene = transcript_dict['Gene_symbol']
+            HGNC_ID = transcript_dict['HGNC_ID']
 
-    # Save (commit) changes and close connection
-    conn.commit()
-    conn.close()
+            clinVar_response = get_clinvar_full_info(value)
+            classification = clinVar_response['classification']
+            conditions = clinVar_response['conditions']
+            stars = clinVar_response['stars']
+            review_status = clinVar_response['review_status']
 
-print("variant_annotations created/updated successfully!")
+            cursor.execute("""INSERT INTO variant_annotations (variant_NC, variant_NM, variant_NP, gene, HGNC_ID, classification, conditions, stars, review_status)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""", (key, transcript, np_change, gene, HGNC_ID, classification, conditions, stars, review_status))
+
+        # Save (commit) changes and close connection
+        conn.commit()
+        conn.close()
+
+    print("variant_annotations created/updated successfully!")
