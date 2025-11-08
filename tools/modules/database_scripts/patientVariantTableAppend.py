@@ -29,17 +29,20 @@ def patientVariantTable(filepath):
         CREATE TABLE IF NOT EXISTS patient_variant (
             No INTEGER PRIMARY KEY AUTOINCREMENT,
             patient_ID TEXT NOT NULL,
-            variant TEXT NOT NULL
+            variant TEXT NOT NULL,
+            UNIQUE(patient_ID, variant)
         )
         """)
 
         # Insert example data
 
+        patient_name = path.split('/')[-1].split('.')[0]
+
         hgvs_dict, transcript, np_change = HGVS_converter(vcf[1])
 
         for key, value in hgvs_dict.items():
 
-            cursor.execute("INSERT INTO patient_variant (patient_ID, variant) VALUES (?, ?)", (vcf[0], key))
+            cursor.execute("INSERT OR IGNORE INTO patient_variant (patient_ID, variant) VALUES (?, ?)", (patient_name, key))
 
         # Save (commit) changes and close connection
         conn.commit()
