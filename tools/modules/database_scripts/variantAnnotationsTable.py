@@ -39,26 +39,29 @@ def variantAnnotationsTable(filepath):
               To view table: SELECT * FROM variant_annotations;
     '''
 
-    # create a list of the filepath to all of the .vcf files in the data subdirectory
+    # Create a list of the filepaths to all of the .vcf files in the 'data' subdirectory.
     vcf_paths = []
 
+    # Iterate through the files in the filepath provided by the user and add the files with a .vcf extension to the vcf_paths list.
     for file in os.listdir(filepath):
         if file.endswith('.vcf'):
             vcf_paths.append(f'{filepath}/{file}')
         else:
             continue
 
+    # Iterate through the absolute filepaths to the .vcf files.
     for path in vcf_paths:
 
+        # Apply the parseVCF function to extract the mutations listed in the files.
         vcf = parseVCF(path)
 
-        # Create (or connect to) a database file
+        # Create (or connect to) the sea.db database file.
         conn = sqlite3.connect('database/sea.db')
 
-        # Create a cursor to run SQL commands
+        # Create a cursor to run SQL commands.
         cursor = conn.cursor()
 
-        # Create a table
+        # Create the variant_annotations table if it does not already exist.
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS variant_annotations (
             No INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,30 +74,46 @@ def variantAnnotationsTable(filepath):
             Conditions TEXT NOT NULL,
             Stars,
             Review_status TEXT NOT NULL,
+            
+            /* 
+             The NC_, NM_, and NP_, accession numbers are collectively treated as unique. 
+             If any of them are different while the others are the same, a new entry will be made in the table.
+             */
             UNIQUE(variant_NC, variant_NM, variant_NP)
         )
         """)
 
-        # Insert example data
+        # Data is then assigned to each header:
 
+        # VariantValidator is queried through HGVS_converter to retrieve the input to ClinVar,
+        # the variant in the NM_ transcript and the variant in the corresponding NP_ sequence, both in HGVS
+        # nomenclature.
         hgvs_dict, transcript, np_change = HGVS_converter(vcf[1])
 
+        # The 'value' in hgvs_dict is the input to ClinVar and Genbank.
         for key, value in hgvs_dict.items():
 
+            # Genbank is queried via Entrez to retrieve the gene symbol and HGNC ID.
             transcript_dict = Entrez_fetch_transcript_record('A.N.Other@example.com', value)
             gene = transcript_dict['Gene_symbol']
             HGNC_ID = transcript_dict['HGNC_ID']
 
+            # CliVar is queried to retrieve the variant classification, associated conditions, the star-ratings
+            # and the review statuses.
             clinVar_response = get_clinvar_full_info(value)
             classification = clinVar_response['classification']
             conditions = clinVar_response['conditions']
             stars = clinVar_response['stars']
             review_status = clinVar_response['review_status']
 
+            # The HGVS nomenclatures, gene symbol, HGNC ID and ClinVar annotations for each variant are added to
+            # the variant_annotations table.
             cursor.execute("""
                            INSERT INTO variant_annotations 
                            (variant_NC, variant_NM, variant_NP, gene, HGNC_ID, classification, conditions, stars, review_status)
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                           
+                           -- If a variant already exists in the table, the table is updated with the latest annotations. 
                            ON CONFLICT(variant_NC, variant_NM, variant_NP)
                            DO UPDATE SET
                                gene = excluded.gene,
@@ -109,4 +128,5 @@ def variantAnnotationsTable(filepath):
         conn.commit()
         conn.close()
 
+    # A message is printed in the back-end to indicate that the table was successfully created or updated.
     print("variant_annotations created/updated successfully!")
