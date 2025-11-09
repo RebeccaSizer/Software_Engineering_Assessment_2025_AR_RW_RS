@@ -8,8 +8,8 @@ from ...modules.Entrez import Entrez_fetch_transcript_record
 def variantAnnotationsTable(filepath):
     '''
     This function creates the sea.db database, if it doesn't already exist.
-    It then creates or updates a table in the database that is populated by variants extracted from .vcf files uploaded
-    by the user on our flask website.
+    It then creates or updates a table in the database called 'variant_annotations', which is populated by variants
+    extracted from .vcf files uploaded by the user on our flask website.
 
     :params: filepath: This leads to the subdirectory where the .vcf files uploaded by the user are stored.
                        The subdirectory is called 'data' and is located in the base-directory of this software package.
@@ -21,7 +21,7 @@ def variantAnnotationsTable(filepath):
     :output: sea.db database: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/sea.db'
 
              variant_annotations table:
-             No|HGVS NC_ nomenclature|HGVS NM_ nomenclature|HGVS NP_ nomenclature|Gene symbol|HGNC ID|Classification|Conditions|Star-Rating|Review status
+             No.|HGVS NC_ nomenclature|HGVS NM_ nomenclature|HGVS NP_ nomenclature|Gene symbol|HGNC ID|Classification|Conditions|Star-Rating|Review status
 
              E.g.:
 
