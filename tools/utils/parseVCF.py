@@ -1,8 +1,10 @@
-def parseVCF(filepath_filename):
+def parseVCF(file):
+
+    patient_name = file.split('.')[0].split('/')[-1]
 
     variant_list = []
 
-    file = open(filepath_filename, 'r')
+    file = open(file, 'r')
 
     for line in file:
 
@@ -21,4 +23,4 @@ def parseVCF(filepath_filename):
 
         variant_list.append(variant.split('\n')[0])
 
-    return variant_list
+    return patient_name, variant_list
