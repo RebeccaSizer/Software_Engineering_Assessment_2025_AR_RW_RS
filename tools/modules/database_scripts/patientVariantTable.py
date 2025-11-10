@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from ...utils.parseVCF import parseVCF
+from ...utils.parser import variantParser
 from ...modules.HGVS_convertion import HGVS_converter
 
 def patientVariantTable(filepath):
@@ -51,8 +51,8 @@ def patientVariantTable(filepath):
     # Iterate through the absolute filepaths to the .vcf files.
     for path in vcf_paths:
 
-        # Apply the parseVCF function to extract the mutations listed in the files.
-        vcf = parseVCF(path)
+        # Apply the variantParser function to extract the mutations listed in the files.
+        vcf = variantParser(path)
 
         # Create (or connect to) the sea.db database file.
         conn = sqlite3.connect('database/sea.db')
