@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from ...utils.parseVCF import parseVCF
+from ...utils.parser import variantParser
 from ...modules.HGVS_convertion import HGVS_converter
 from ...modules.detailed_request import get_clinvar_full_info
 from ...modules.Entrez import Entrez_fetch_transcript_record
@@ -52,8 +52,8 @@ def variantAnnotationsTable(filepath):
     # Iterate through the absolute filepaths to the .vcf files.
     for path in vcf_paths:
 
-        # Apply the parseVCF function to extract the mutations listed in the files.
-        vcf = parseVCF(path)
+        # Apply the variantParser function to extract the mutations listed in the files.
+        vcf = variantParser(path)
 
         # Create (or connect to) the sea.db database file.
         conn = sqlite3.connect('database/sea.db')
