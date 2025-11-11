@@ -42,9 +42,9 @@ def variantAnnotationsTable(filepath):
     # Create a list of the filepaths to all of the .vcf files in the 'data' subdirectory.
     vcf_paths = []
 
-    # Iterate through the files in the filepath provided by the user and add the files with a .vcf extension to the vcf_paths list.
+    # Iterate through the files in the filepath provided by the user and add the files with a .vcf or .csv extension to the vcf_paths list.
     for file in os.listdir(filepath):
-        if file.endswith('.vcf'):
+        if file.endswith('.vcf') or file.endswith('.csv'):
             vcf_paths.append(f'{filepath}/{file}')
         else:
             continue
@@ -64,7 +64,7 @@ def variantAnnotationsTable(filepath):
         # Create the variant_annotations table if it does not already exist.
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS variant_annotations (
-            No INTEGER PRIMARY KEY AUTOINCREMENT,
+            No INTEGER PRIMARY KEY,
             variant_NC TEXT NOT NULL,
             variant_NM TEXT NOT NULL,
             variant_NP TEXT NOT NULL,
