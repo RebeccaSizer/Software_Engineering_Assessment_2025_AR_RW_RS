@@ -3,7 +3,7 @@ import sqlite3
 from ...utils.parser import variantParser
 from ...modules.HGVS_convertion import HGVS_converter
 from ...modules.detailed_request import get_clinvar_full_info
-from ...modules.Entrez import Entrez_fetch_transcript_record
+from ...modules.Entrez import entrezFetchTranscriptRecord
 
 def variantAnnotationsTable(filepath):
     '''
@@ -94,7 +94,7 @@ def variantAnnotationsTable(filepath):
         for key, value in hgvs_dict.items():
 
             # Genbank is queried via Entrez to retrieve the gene symbol and HGNC ID.
-            transcript_dict = Entrez_fetch_transcript_record('A.N.Other@example.com', value)
+            transcript_dict = entrezFetchTranscriptRecord('A.N.Other@example.com', value)
             gene = transcript_dict['Gene_symbol']
             HGNC_ID = transcript_dict['HGNC_ID']
 
