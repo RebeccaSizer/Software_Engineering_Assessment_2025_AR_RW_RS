@@ -34,7 +34,10 @@ def HGVS_converter(variants: list):
     base_url_VV = "https://rest.variantvalidator.org/VariantValidator/variantvalidator/hg38/"
 
     # Initialize an empty dictionary to store NC_ → NM_ mappings.
-    HGVS_dict = {}
+    #nc_list = []
+    nm_list = []
+    np_list = []
+    clinvar_list = []
 
     # Loop through each variant in the provided list.
     for var in variants:
@@ -52,45 +55,70 @@ def HGVS_converter(variants: list):
 
             # Parse the API response into a Python dictionary.
             data = response.json()
-            nm_transcript = list(data.keys())[0]
-            np_change = data[nm_transcript]['hgvs_predicted_protein_consequence']['tlr']
+            print(data)
 
-            # Initialize variables to store identifiers.
-            nm = None  # Transcript-level identifier (RefSeq NM_ accession)
-            nc = None  # Genomic-level identifier (RefSeq NC_ accession)
+            if data['flag'] == 'empty_result':
 
-            # The API response is a nested JSON object, so we loop over its items.
-            for k, v in data.items():
+                print(f'{var} returned an empty result from Variant Validator.')
+                continue
 
-                # Extract NM_ identifier from the 'hgvs_transcript_variant' field, if present.
-                # This field has values like: "NM_001377265.1:c.841G>T"
-                if 'hgvs_transcript_variant' in v:
-                    nm = v['hgvs_transcript_variant'].split(':')[0]  # Keep only "NM_..." part
-
-                # Extract NC_ identifier from 'primary_assembly_loci', focusing on GRCh38 assembly.
-                if 'primary_assembly_loci' in v:
-                    # Get only the GRCh38 locus entry (ignore GRCh37, alt haplotypes, etc.)
-                    build_info = v['primary_assembly_loci'].get('grch38', {})
-                    # Retrieve the HGVS genomic description (e.g. "NC_000017.11:g.45983420G>T")
-                    hgvs_desc = build_info.get('hgvs_genomic_description', '')
-                    # Keep only accessions that start with "NC_"
-                    if hgvs_desc.startswith('NC_'):
-                        nc = hgvs_desc
-
-            # Once both identifiers are found, add them to the output dictionary.
-            # Example: {'NC_000017.11': 'NM_001377265.1'}
-            if nc and nm:
-                HGVS_dict[nc] = nm
             else:
-                # If either identifier is missing, print a message for debugging.
-                print(f"No HGVS identifiers found for {var}. Full response:\n{data}\n")
+
+                #nc_variant =
+                nm_variant = list(data.keys())[0]
+                np_variant = data[nm_variant]['hgvs_predicted_protein_consequence']['tlr']
+                clinvar_input = nm_variant.split(':')[0]
+
+                print(nm_variant)
+                print(np_variant)
+                print(clinvar_input)
+
+
+                '''
+                # Initialize variables to store identifiers.
+                nm = None  # Transcript-level identifier (RefSeq NM_ accession)
+                nc = None  # Genomic-level identifier (RefSeq NC_ accession)
+
+                # The API response is a nested JSON object, so we loop over its items.
+                for k, v in data.items():
+
+                    # Extract NM_ identifier from the 'hgvs_transcript_variant' field, if present.
+                    # This field has values like: "NM_001377265.1:c.841G>T"
+                    if 'hgvs_transcript_variant' in v:
+                        nm = v['hgvs_transcript_variant'].split(':')[0]  # Keep only "NM_..." part
+
+                    # Extract NC_ identifier from 'primary_assembly_loci', focusing on GRCh38 assembly.
+                    if 'primary_assembly_loci' in v:
+                        # Get only the GRCh38 locus entry (ignore GRCh37, alt haplotypes, etc.)
+                        build_info = v['primary_assembly_loci'].get('grch38', {})
+                        # Retrieve the HGVS genomic description (e.g. "NC_000017.11:g.45983420G>T")
+                        hgvs_desc = build_info.get('hgvs_genomic_description', '')
+                        # Keep only accessions that start with "NC_"
+                        if hgvs_desc.startswith('NC_'):
+                            nc = hgvs_desc
+                    '''
+
+
+                # Once both identifiers are found, add them to the output dictionary.
+                # Example: {'NC_000017.11': 'NM_001377265.1'}
+                if nm_variant and np_variant:
+
+                    #nc_list = []
+                    nm_list.append(nm_variant)
+                    np_list.appemd(np_variant)
+                    clinvar_list.append(clinvar_input)
+
+                else:
+                    # If either identifier is missing, print a message for debugging.
+                    print(f"No HGVS identifiers found for {var}. Full response:\n{data}\n")
 
         # Catch any network or HTTP errors raised by 'requests'.
         except requests.exceptions.RequestException as e:
             print(f"Request failed for {var}: {e}\n")
 
-    # Return the final dictionary mapping genomic (NC_) → transcript (NM_) accessions.
-    return HGVS_dict, nm_transcript, np_change
+    return nm_list, np_list, clinvar_list
+
+
 
 
 # Example usage
