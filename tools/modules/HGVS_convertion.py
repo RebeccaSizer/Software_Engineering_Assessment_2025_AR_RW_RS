@@ -34,7 +34,7 @@ def HGVS_converter(variants: list):
     base_url_VV = "https://rest.variantvalidator.org/VariantValidator/variantvalidator/hg38/"
 
     # Initialize an empty dictionary to store NC_ → NM_ mappings.
-    #nc_list = []
+    nc_list = []
     nm_list = []
     np_list = []
     clinvar_list = []
@@ -64,11 +64,13 @@ def HGVS_converter(variants: list):
 
             else:
 
-                #nc_variant =
+
                 nm_variant = list(data.keys())[0]
+                nc_variant = data[nm_variant]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
                 np_variant = data[nm_variant]['hgvs_predicted_protein_consequence']['tlr']
                 clinvar_input = nm_variant.split(':')[0]
 
+                print(nc_variant)
                 print(nm_variant)
                 print(np_variant)
                 print(clinvar_input)
@@ -103,9 +105,9 @@ def HGVS_converter(variants: list):
                 # Example: {'NC_000017.11': 'NM_001377265.1'}
                 if nm_variant and np_variant:
 
-                    #nc_list = []
+                    nc_list.append(nc_variant)
                     nm_list.append(nm_variant)
-                    np_list.appemd(np_variant)
+                    np_list.append(np_variant)
                     clinvar_list.append(clinvar_input)
 
                 else:
@@ -116,14 +118,25 @@ def HGVS_converter(variants: list):
         except requests.exceptions.RequestException as e:
             print(f"Request failed for {var}: {e}\n")
 
-    return nm_list, np_list, clinvar_list
+    print(len(nc_list))
+    print(len(nm_list))
+    print(len(np_list))
+    print(len(clinvar_list))
+
+    for i in range(0, len(nc_list)):
+        print(nc_list[i])
+        print(nm_list[i])
+        print(np_list[i])
+        print(clinvar_list[i])
+    return nc_list, nm_list, np_list, clinvar_list
 
 
 
+HGVS_converter(['17-45983420-G-T', '4-89822305-C-G', '17-44352531-G-A', '17-45987066-G-A', '17-44352387-C-T', '19-41968837-C-G', '17-45983694-C-T', '1-7984999-T-A', '1-7984929-G-A'])
 
 # Example usage
-if __name__ == "__main__":
-    variant = ["17-45983420-G-T"]
-    output = HGVS_converter(variant)
-    print("Final Output:")
-    print(output)
+#if __name__ == "__main__":
+#    variant = ["17-45983420-G-T"]
+#    output = HGVS_converter(variant)
+#    print("Final Output:")
+#    print(output)
