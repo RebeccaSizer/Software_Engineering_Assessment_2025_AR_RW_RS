@@ -1,7 +1,7 @@
 import os
 import sqlite3
 from ...utils.parser import variantParser
-from ...modules.HGVS_convertion import HGVS_converter
+from ...modules.HGVS_fetcher import fetchVV
 
 def patientVariantTable(filepath):
     '''
@@ -51,8 +51,8 @@ def patientVariantTable(filepath):
     # Iterate through the absolute filepaths to the .vcf files.
     for path in vcf_paths:
 
-        # Apply the variantParser function to extract the mutations listed in the files.
-        vcf = variantParser(path)
+        # Apply the variantParser function to extract the variants listed in the files.
+        variant_list = variantParser(path)
 
         # Create (or connect to) the sea.db database file.
         conn = sqlite3.connect('database/sea.db')
@@ -81,15 +81,14 @@ def patientVariantTable(filepath):
         # .vcf file extension.
         patient_name = path.split('/')[-1].split('.')[0]
 
-        # VariantValidator is queried through HGVS_converter to retrieve the NC_ accession number and variant in
-        # HGVS nomenclature.
-        hgvs_dict, transcript, np_change = HGVS_converter(vcf[1])
+        # VariantValidator is queried through fetchVV to retrieve the NC_ accession number of each
+        # variant in the variant_list, in HGVS nomenclature.
+        for variant in variant_list:
 
-        # The 'key' in hgvs_dict is the NC_ accession number and variant in HGVS nomenclature..
-        for key, value in hgvs_dict.items():
+            nc_variant = fetchVV(variant)[0]
 
             # The patient ID and corresponding variant are added to the patient_variant table.
-            cursor.execute("INSERT OR IGNORE INTO patient_variant (patient_ID, variant) VALUES (?, ?)", (patient_name, key))
+            cursor.execute("INSERT OR IGNORE INTO patient_variant (patient_ID, variant) VALUES (?, ?)", (patient_name, nc_variant))
 
         # Save (commit) changes and close connection
         conn.commit()
