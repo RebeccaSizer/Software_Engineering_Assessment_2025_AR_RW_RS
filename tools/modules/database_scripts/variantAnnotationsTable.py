@@ -1,9 +1,8 @@
 import os
 import sqlite3
 from ...utils.parser import variantParser
-from ...modules.HGVS_convertion import HGVS_converter
+from ...modules.HGVS_fetcher import fetchVV
 from ...modules.detailed_request import get_clinvar_full_info
-from ...modules.Entrez import entrezFetchTranscriptRecord
 
 def variantAnnotationsTable(filepath):
     '''
@@ -52,8 +51,8 @@ def variantAnnotationsTable(filepath):
     # Iterate through the absolute filepaths to the .vcf files.
     for path in vcf_paths:
 
-        # Apply the variantParser function to extract the mutations listed in the files.
-        vcf = variantParser(path)
+        # Apply the variantParser function to extract the variants listed in the files.
+        variant_list = variantParser(path)
 
         # Create (or connect to) the sea.db database file.
         conn = sqlite3.connect('database/sea.db')
@@ -85,18 +84,11 @@ def variantAnnotationsTable(filepath):
 
         # Data is then assigned to each header:
 
-        # VariantValidator is queried through HGVS_converter to retrieve the input to ClinVar,
-        # the variant in the NM_ transcript and the variant in the corresponding NP_ sequence, both in HGVS
-        # nomenclature.
-        hgvs_dict, transcript, np_change = HGVS_converter(vcf[1])
+        # VariantValidator is queried through fetchVV to retrieve the NC_, NM_ and NP_ accession numbers of each
+        # variant in the variant_list, in HGVS nomenclature.
+        for variant in variant_list:
 
-        # The 'value' in hgvs_dict is the input to ClinVar and Genbank.
-        for key, value in hgvs_dict.items():
-
-            # Genbank is queried via Entrez to retrieve the gene symbol and HGNC ID.
-            transcript_dict = entrezFetchTranscriptRecord('A.N.Other@example.com', value)
-            gene = transcript_dict['Gene_symbol']
-            HGNC_ID = transcript_dict['HGNC_ID']
+            nc_variant, nm_variant, np_variant, gene, HGNC_ID = fetchVV(variant)
 
             # CliVar is queried to retrieve the variant classification, associated conditions, the star-ratings
             # and the review statuses.
@@ -122,7 +114,7 @@ def variantAnnotationsTable(filepath):
                                conditions = excluded.conditions,
                                stars = excluded.stars,
                                review_status = excluded.review_status
-                           """, (key, transcript, np_change, gene, HGNC_ID, classification, conditions, stars, review_status))
+                           """, (nc_variant, nm_variant, np_variant, gene, HGNC_ID, classification, conditions, stars, review_status))
 
         # Save (commit) changes and close connection
         conn.commit()
