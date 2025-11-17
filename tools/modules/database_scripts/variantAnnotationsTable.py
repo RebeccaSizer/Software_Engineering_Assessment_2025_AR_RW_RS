@@ -88,11 +88,11 @@ def variantAnnotationsTable(filepath):
         # variant in the variant_list, in HGVS nomenclature.
         for variant in variant_list:
 
-            nc_variant, nm_variant, np_variant, gene, HGNC_ID = fetchVV(variant)
+            nc_variant, nm_variant, np_variant, gene_symbol, HGNC_ID = fetchVV(variant)
 
             # CliVar is queried to retrieve the variant classification, associated conditions, the star-ratings
             # and the review statuses.
-            clinVar_response = get_clinvar_full_info(value)
+            clinVar_response = get_clinvar_full_info(variant)
             classification = clinVar_response['classification']
             conditions = clinVar_response['conditions']
             stars = clinVar_response['stars']
@@ -114,7 +114,7 @@ def variantAnnotationsTable(filepath):
                                conditions = excluded.conditions,
                                stars = excluded.stars,
                                review_status = excluded.review_status
-                           """, (nc_variant, nm_variant, np_variant, gene, HGNC_ID, classification, conditions, stars, review_status))
+                           """, (nc_variant, nm_variant, np_variant, gene_symbol, HGNC_ID, classification, conditions, stars, review_status))
 
         # Save (commit) changes and close connection
         conn.commit()
