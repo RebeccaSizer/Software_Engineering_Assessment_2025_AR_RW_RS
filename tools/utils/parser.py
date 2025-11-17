@@ -7,7 +7,7 @@ def variantParser(file):
     The variant_list is returned.
 
     :params: file: This leads to the .csv or.vcf file uploaded by the user.
-                   The files be stored in the 'data' subdirectory, located in the base-directory of this software
+                   The files are stored in the 'data' subdirectory, located in the base-directory of this software
                    package. The filepath is not hardcoded into the script because it is the absolute filepath within
                    the respective computer that this software package was loaded in.
 
@@ -121,4 +121,4 @@ def variantParser(file):
     # Returns the patient ID and the list of variants from the input file.
     return variant_list
 
-print(variantParser('/home/ubuntu/Desktop/ParkVCF/Patient1.vcf'))
+#print(variantParser('/home/ubuntu/Desktop/ParkVCF/Patient1.vcf'))
