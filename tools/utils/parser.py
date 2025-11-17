@@ -2,23 +2,18 @@ import csv
 
 def variantParser(file):
     '''
-    This function retrieves the patient ID from the filepath, as long as the file is named after the patient ID.
-    This function also extracts and parses the variants from .vcf and .csv files. It then stores the variants in a
+    This function  extracts and parses the variants from .vcf and .csv files. It then stores the variants in a
     list.
-    The patient ID and variant_list are returned.
+    The variant_list is returned.
 
     :params: file: This leads to the .csv or.vcf file uploaded by the user.
-                   They will be stored in the 'data' subdirectory, located in the base-directory of this software
+                   The files be stored in the 'data' subdirectory, located in the base-directory of this software
                    package. The filepath is not hardcoded into the script because it is the absolute filepath within
                    the respective computer that this software package was loaded in.
 
              E.g.: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/data/<Patient ID>.<vcf or csv>'
 
-    :output: patient_ID: Derived from the file name, before the extension.
-
-                   E.g.: 'Patient1'
-
-             variant_list: A list of the variants extracted from the input file. Variants are denoted as
+    :output: variant_list: A list of the variants extracted from the input file. Variants are denoted as
                            {chromosome}-{position}-{ref}-{alt}
 
                      E.g.: ['17-45983420-G-T', '4-89822305-C-G', '1-7984999-T-A', '19-41968837-C-G']
@@ -26,9 +21,6 @@ def variantParser(file):
     :command: file = '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/data/Patient1.vcf'
               variantParser(file)
     '''
-
-    # Patient ID taken from the file name, before the extension.
-    patient_ID = file.split('.')[0].split('/')[-1]
 
     # A list in which to store the variants extracted from the input file.
     variant_list = []
@@ -127,6 +119,6 @@ def variantParser(file):
             variant_list.append(variant)
 
     # Returns the patient ID and the list of variants from the input file.
-    return patient_ID, variant_list
+    return variant_list
 
 print(variantParser('/home/ubuntu/Desktop/ParkVCF/Patient1.vcf'))
