@@ -58,12 +58,14 @@ def fetchVV(variant: str):
             nm_variant = list(data.keys())[0]
             nc_variant = data[nm_variant]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
             np_variant = data[nm_variant]['hgvs_predicted_protein_consequence']['tlr']
+            gene_symbol  = data[nm_variant]['gene_symbol']
+            HGNC_ID = data[nm_variant]['gene_ids']['hgnc_id'].split(':')[1]
 
             # Once both identifiers are found, add them to the output dictionary.
             # Example: {'NC_000017.11': 'NM_001377265.1'}
             if nc_variant and nm_variant and np_variant:
 
-                return (nc_variant, nm_variant, np_variant)
+                return (nc_variant, nm_variant, np_variant, gene_symbol, HGNC_ID)
 
             else:
                 # If either identifier is missing, print a message for debugging.
@@ -73,7 +75,7 @@ def fetchVV(variant: str):
     except requests.exceptions.RequestException as e:
         print(f"Request failed for {variant}: {e}\n")
 
-# print(queryVV('17-45983420-G-T')[0])
+print(fetchVV('17-45983420-G-T'))
 
 # Example usage
 #if __name__ == "__main__":
