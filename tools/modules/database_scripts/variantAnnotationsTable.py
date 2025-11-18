@@ -2,7 +2,7 @@ import os
 import sqlite3
 from ...utils.parser import variantParser
 from ...modules.HGVS_fetcher import fetchVV
-from ...modules.detailed_request import get_clinvar_full_info
+from ...modules.variantAnnotator import clinvarAnnotations
 
 def variantAnnotationsTable(filepath):
     '''
@@ -88,33 +88,43 @@ def variantAnnotationsTable(filepath):
         # variant in the variant_list, in HGVS nomenclature.
         for variant in variant_list:
 
+            if fetchVV(variant) == 'null' or fetchVV(variant) == 'empty_result':
+
+                continue
+
             nc_variant, nm_variant, np_variant, gene_symbol, HGNC_ID = fetchVV(variant)
 
             # CliVar is queried to retrieve the variant classification, associated conditions, the star-ratings
             # and the review statuses.
-            clinVar_response = get_clinvar_full_info(variant)
-            classification = clinVar_response['classification']
-            conditions = clinVar_response['conditions']
-            stars = clinVar_response['stars']
-            review_status = clinVar_response['review_status']
+            clinVar_response = clinvarAnnotations(nc_variant, nm_variant)
 
-            # The HGVS nomenclatures, gene symbol, HGNC ID and ClinVar annotations for each variant are added to
-            # the variant_annotations table.
-            cursor.execute("""
-                           INSERT INTO variant_annotations 
-                           (variant_NC, variant_NM, variant_NP, gene, HGNC_ID, classification, conditions, stars, review_status)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                           
-                           -- If a variant already exists in the table, the table is updated with the latest annotations. 
-                           ON CONFLICT(variant_NC, variant_NM, variant_NP)
-                           DO UPDATE SET
-                               gene = excluded.gene,
-                               HGNC_ID = excluded.HGNC_ID,
-                               classification = excluded.classification,
-                               conditions = excluded.conditions,
-                               stars = excluded.stars,
-                               review_status = excluded.review_status
-                           """, (nc_variant, nm_variant, np_variant, gene_symbol, HGNC_ID, classification, conditions, stars, review_status))
+            if len(clinVar_response) > 0:
+
+                classification = clinVar_response['classification']
+                conditions = clinVar_response['conditions']
+                stars = clinVar_response['stars']
+                review_status = clinVar_response['reviewstatus']
+
+                # The HGVS nomenclatures, gene symbol, HGNC ID and ClinVar annotations for each variant are added to
+                # the variant_annotations table.
+                cursor.execute("""
+                               INSERT INTO variant_annotations 
+                               (variant_NC, variant_NM, variant_NP, gene, HGNC_ID, classification, conditions, stars, review_status)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                               
+                               -- If a variant already exists in the table, the table is updated with the latest annotations. 
+                               ON CONFLICT(variant_NC, variant_NM, variant_NP)
+                               DO UPDATE SET
+                                   gene = excluded.gene,
+                                   HGNC_ID = excluded.HGNC_ID,
+                                   classification = excluded.classification,
+                                   conditions = excluded.conditions,
+                                   stars = excluded.stars,
+                                   review_status = excluded.review_status
+                               """, (nc_variant, nm_variant, np_variant, gene_symbol, HGNC_ID, classification, conditions, stars, review_status))
+
+            else:
+                continue
 
         # Save (commit) changes and close connection
         conn.commit()
