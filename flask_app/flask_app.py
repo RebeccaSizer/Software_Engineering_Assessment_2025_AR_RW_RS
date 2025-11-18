@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request
 import os
+from tools.modules.database_scripts.patientVariantTableAppend import patientVariantTable
+from tools.modules.database_scripts.variantAnnotationsTable import variantAnnotationsTable
 
 # Create the Flask app — templates in 'templates' folder
 app = Flask(__name__, template_folder='templates')
@@ -32,9 +34,12 @@ def upload():
         # Save the file inside the uploads folder
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(file_path)
+        folder_path = os.path.dirname(file_path)
 
         # Get the absolute path for use in your scripts
         abs_file_path = os.path.abspath(file_path)
+        patientVariantTable(folder_path)
+        variantAnnotationsTable(folder_path)
 
         return render_template('success.html', file_path=abs_file_path)
 
