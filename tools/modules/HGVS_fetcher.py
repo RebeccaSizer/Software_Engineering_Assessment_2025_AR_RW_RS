@@ -2,6 +2,7 @@
 # pip install requests
 
 import requests  # Import the 'requests' library to handle HTTP requests to the VariantValidator API
+import time
 
 def fetchVV(variant: str):
     """
@@ -45,13 +46,24 @@ def fetchVV(variant: str):
         # Raise an exception if the HTTP status code is not 200 (OK).
         response.raise_for_status()
 
+        # The time module creates a 0.5s delay after each request to Variant Validator (VV), so that VV is not overloaded with requests.
+        time.sleep(0.5)
+
         # Parse the API response into a Python dictionary.
         data = response.json()
-        print(data)
+        #print(data)
 
         if data['flag'] == 'empty_result':
 
             print(f'{variant} returned an empty result from Variant Validator.')
+
+            return 'empty_result'
+
+        elif data is None:
+
+            print(f"Warning: fetchVV returned None for variant: {variant}")
+
+            return 'null'
 
         else:
 
@@ -75,7 +87,7 @@ def fetchVV(variant: str):
     except requests.exceptions.RequestException as e:
         print(f"Request failed for {variant}: {e}\n")
 
-print(fetchVV('17-45983420-G-T'))
+#print(fetchVV('17-45983420-G-T'))
 
 # Example usage
 #if __name__ == "__main__":
