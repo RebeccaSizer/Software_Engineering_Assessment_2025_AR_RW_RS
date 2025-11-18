@@ -1,3 +1,5 @@
+from tools.modules.database_scripts.patientVariantTableAppend import patientVariantTable
+from tools.modules.database_scripts.variantAnnotationsTable import variantAnnotationsTable
 from flask import Flask, render_template, request
 import os
 from tools.modules.database_scripts.patientVariantTableAppend import patientVariantTable
