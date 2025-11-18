@@ -87,8 +87,16 @@ def patientVariantTable(filepath):
 
             nc_variant = fetchVV(variant)[0]
 
-            # The patient ID and corresponding variant are added to the patient_variant table.
-            cursor.execute("INSERT OR IGNORE INTO patient_variant (patient_ID, variant) VALUES (?, ?)", (patient_name, nc_variant))
+            if nc_variant == 'empty_result':
+                continue
+
+            elif nc_variant == 'null':
+                continue
+
+            else:
+
+                # The patient ID and corresponding variant are added to the patient_variant table.
+                cursor.execute("INSERT OR IGNORE INTO patient_variant (patient_ID, variant) VALUES (?, ?)", (patient_name, nc_variant))
 
         # Save (commit) changes and close connection
         conn.commit()
