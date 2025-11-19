@@ -1,8 +1,8 @@
 import os
 import sqlite3
 from ...utils.parser import variantParser
-from ...modules.HGVS_fetcher import fetchVV
-from ...modules.variantAnnotator import clinvarAnnotations
+from ...modules.HGVS_fetcher import fetch_vv
+from ...modules.clinvar_functions import clinvar_annotations
 
 def variantAnnotationsTable(filepath):
     '''
@@ -88,15 +88,15 @@ def variantAnnotationsTable(filepath):
         # variant in the variant_list, in HGVS nomenclature.
         for variant in variant_list:
 
-            if fetchVV(variant) == 'null' or fetchVV(variant) == 'empty_result':
+            if fetch_vv(variant) == 'null' or fetch_vv(variant) == 'empty_result':
 
                 continue
 
-            nc_variant, nm_variant, np_variant, gene_symbol, HGNC_ID = fetchVV(variant)
+            nc_variant, nm_variant, np_variant, gene_symbol, HGNC_ID = fetch_vv(variant)
 
             # CliVar is queried to retrieve the variant classification, associated conditions, the star-ratings
             # and the review statuses.
-            clinVar_response = clinvarAnnotations(nc_variant, nm_variant)
+            clinVar_response = clinvar_annotations(nc_variant, nm_variant)
 
             if len(clinVar_response) > 0:
 
