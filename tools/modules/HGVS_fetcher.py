@@ -4,7 +4,7 @@
 import requests  # Import the 'requests' library to handle HTTP requests to the VariantValidator API
 import time
 
-def fetchVV(variant: str):
+def fetch_vv(variant: str):
     """
     Query the VariantValidator REST API to retrieve HGVS transcript (NM_) and genomic (NC_) identifiers 
     for a list of human variants in 'chrom-pos-ref-alt' format.
@@ -32,12 +32,12 @@ def fetchVV(variant: str):
 
     # Base URL for the VariantValidator API.
     # The endpoint specifies we’re working with the hg38 genome build.
-    base_url_VV = "https://rest.variantvalidator.org/VariantValidator/variantvalidator/hg38/"
+    base_url_vv = "https://rest.variantvalidator.org/VariantValidator/variantvalidator/hg38/"
 
     # Construct the full API request URL for each variant.
     # The 'mane' flag requests MANE transcript data if available.
     # The 'content-type' query specifies JSON output.
-    url_vv = f"{base_url_VV}{variant}/mane?content-type=application%2Fjson"
+    url_vv = f"{base_url_vv}{variant}/mane?content-type=application%2Fjson"
 
     try:
         # Send an HTTP GET request to the API.
@@ -71,13 +71,13 @@ def fetchVV(variant: str):
             nc_variant = data[nm_variant]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
             np_variant = data[nm_variant]['hgvs_predicted_protein_consequence']['tlr']
             gene_symbol  = data[nm_variant]['gene_symbol']
-            HGNC_ID = data[nm_variant]['gene_ids']['hgnc_id'].split(':')[1]
+            hgnc_id = data[nm_variant]['gene_ids']['hgnc_id'].split(':')[1]
 
             # Once both identifiers are found, add them to the output dictionary.
             # Example: {'NC_000017.11': 'NM_001377265.1'}
             if nc_variant and nm_variant and np_variant:
 
-                return (nc_variant, nm_variant, np_variant, gene_symbol, HGNC_ID)
+                return (nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id)
 
             else:
                 # If either identifier is missing, print a message for debugging.
@@ -87,7 +87,7 @@ def fetchVV(variant: str):
     except requests.exceptions.RequestException as e:
         print(f"Request failed for {variant}: {e}\n")
 
-#print(fetchVV('17-45983420-G-T'))
+#print(fetchVV('11-2164285-C-T'))
 
 # Example usage
 #if __name__ == "__main__":
