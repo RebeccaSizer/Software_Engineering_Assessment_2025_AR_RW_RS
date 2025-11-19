@@ -1,7 +1,7 @@
 import os
 import sqlite3
 from ...utils.parser import variantParser
-from ...modules.HGVS_fetcher import fetchVV
+from ...modules.HGVS_fetcher import fetch_vv
 
 def patientVariantTable(filepath):
     '''
@@ -85,9 +85,9 @@ def patientVariantTable(filepath):
         # variant in the variant_list, in HGVS nomenclature.
         for variant in variant_list:
 
-            nc_variant = fetchVV(variant)[0]
+            nc_variant = fetch_vv(variant)[0]
 
-            if fetchVV(variant) == 'null' or fetchVV(variant) == 'empty_result':
+            if fetch_vv(variant) == 'null' or fetch_vv(variant) == 'empty_result':
                 continue
 
             else:
