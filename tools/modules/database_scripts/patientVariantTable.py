@@ -87,10 +87,7 @@ def patientVariantTable(filepath):
 
             nc_variant = fetchVV(variant)[0]
 
-            if nc_variant == 'empty_result':
-                continue
-
-            elif nc_variant == 'null':
+            if fetchVV(variant) == 'null' or fetchVV(variant) == 'empty_result':
                 continue
 
             else:
