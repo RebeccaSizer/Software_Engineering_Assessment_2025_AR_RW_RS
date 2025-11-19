@@ -3,7 +3,7 @@ import csv
 import requests
 from ..utils.timer import timer
 
-def clinvar_vs_fetcher():
+def clinvar_vs_download():
     '''
     This function retrieves the most recent ClinVar variant summary records from NCBI.
 
@@ -106,8 +106,13 @@ def clinvar_annotations(nc_variant, nm_variant):
             if (vv_nc_accession == dict_nc_accession) and (nm_variant == dict_nm_hgvs):
 
                 clinvar_output['classification'] = record['ClinicalSignificance']
-                clinvar_output['conditions'] = record['PhenotypeList'].replace('not provided', '')
                 clinvar_output['reviewstatus'] = record['ReviewStatus']
+                clinvar_output['conditions'] = record['PhenotypeList'].replace('not provided', '').replace('|', ';')
+
+                # If statement stores message in database, notifying users that a Condition was not found for this
+                # variant.
+                if clinvar_output['conditions'] == '':
+                    clinvar_output['conditions'] = 'No Conditions submitted on ClinVar'
 
                 if 'practice guideline' in record['ReviewStatus']:
 
