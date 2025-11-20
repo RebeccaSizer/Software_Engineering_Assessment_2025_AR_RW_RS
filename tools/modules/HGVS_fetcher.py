@@ -97,7 +97,7 @@ def fetchVV(variant: str):
 
 # Example usage
 if __name__ == "__main__":
-    variant = "ENST00000549163.1:c.100A>G"
+    variant = "NM_000088.3:c.589G>T"
     output = fetchVV(variant)
     print("Final Output:")
     print(output)
