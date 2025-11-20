@@ -1,4 +1,5 @@
 import os
+import time
 import sqlite3
 from ...utils.parser import variantParser
 from ...modules.HGVS_fetcher import fetch_vv
@@ -85,15 +86,18 @@ def patientVariantTable(filepath):
         # variant in the variant_list, in HGVS nomenclature.
         for variant in variant_list:
 
-            nc_variant = fetch_vv(variant)[0]
+            variant_info = fetch_vv(variant)
 
-            if fetch_vv(variant) == 'null' or fetch_vv(variant) == 'empty_result':
+            # The time module creates a 0.5s delay after each request to Variant Validator (VV), so that VV is not overloaded with requests.
+            time.sleep(0.5)
+
+            if not variant_info or variant_info in ('null', 'empty_result'):
                 continue
 
             else:
 
                 # The patient ID and corresponding variant are added to the patient_variant table.
-                cursor.execute("INSERT OR IGNORE INTO patient_variant (patient_ID, variant) VALUES (?, ?)", (patient_name, nc_variant))
+                cursor.execute("INSERT OR IGNORE INTO patient_variant (patient_ID, variant) VALUES (?, ?)", (patient_name, variant_info[0]))
 
         # Save (commit) changes and close connection
         conn.commit()

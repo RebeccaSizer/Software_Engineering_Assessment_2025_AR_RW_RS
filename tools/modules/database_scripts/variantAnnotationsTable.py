@@ -1,4 +1,5 @@
 import os
+import time
 import sqlite3
 from ...utils.parser import variantParser
 from ...modules.HGVS_fetcher import fetch_vv
@@ -88,11 +89,18 @@ def variantAnnotationsTable(filepath):
         # variant in the variant_list, in HGVS nomenclature.
         for variant in variant_list:
 
-            if fetch_vv(variant) == 'null' or fetch_vv(variant) == 'empty_result':
+            variant_info = fetch_vv(variant)
+            # The time module creates a 0.5s delay after each request to Variant Validator (VV), so that VV is not overloaded with requests.
+            time.sleep(0.5)
 
+            if not variant_info or variant_info in ('null', 'empty_result') or len(variant_info) != 5:
                 continue
 
-            nc_variant, nm_variant, np_variant, gene_symbol, HGNC_ID = fetch_vv(variant)
+            try:
+                nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id = variant_info
+
+            except ValueError:
+                continue
 
             # CliVar is queried to retrieve the variant classification, associated conditions, the star-ratings
             # and the review statuses.
@@ -121,7 +129,7 @@ def variantAnnotationsTable(filepath):
                                    conditions = excluded.conditions,
                                    stars = excluded.stars,
                                    review_status = excluded.review_status
-                               """, (nc_variant, nm_variant, np_variant, gene_symbol, HGNC_ID, classification, conditions, stars, review_status))
+                               """, (nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id, classification, conditions, stars, review_status))
 
             else:
                 continue
