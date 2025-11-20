@@ -107,7 +107,7 @@ def clinvar_annotations(nc_variant, nm_variant):
 
                 clinvar_output['classification'] = record['ClinicalSignificance']
                 clinvar_output['reviewstatus'] = record['ReviewStatus']
-                clinvar_output['conditions'] = record['PhenotypeList'].replace('not provided', '').replace('|', ';')
+                clinvar_output['conditions'] = record['PhenotypeList'].replace('not provided', '').replace('|', '; ')
 
                 # If statement stores message in database, notifying users that a Condition was not found for this
                 # variant.
