@@ -39,53 +39,57 @@ def fetch_vv(variant: str):
     # The 'content-type' query specifies JSON output.
     url_vv = f"{base_url_vv}{variant}/mane?content-type=application%2Fjson"
 
-    try:
-        # Send an HTTP GET request to the API.
-        response = requests.get(url_vv)
+    for attempt in range(5):
 
-        # Raise an exception if the HTTP status code is not 200 (OK).
-        response.raise_for_status()
+        try:
+            # Send an HTTP GET request to the API.
+            response = requests.get(url_vv)
 
-        # The time module creates a 0.5s delay after each request to Variant Validator (VV), so that VV is not overloaded with requests.
-        time.sleep(0.5)
+            # Raise an exception if the HTTP status code is not 200 (OK).
+            response.raise_for_status()
 
-        # Parse the API response into a Python dictionary.
-        data = response.json()
-        #print(data)
+            # The time module creates a 0.5s delay after each request to Variant Validator (VV), so that VV is not overloaded with requests.
+            time.sleep(0.5)
 
-        if data['flag'] == 'empty_result':
+            # Parse the API response into a Python dictionary.
+            data = response.json()
+            #print(data)
 
-            print(f'{variant} returned an empty result from Variant Validator.')
+            if data['flag'] == 'empty_result':
 
-            return 'empty_result'
+                print(f'{variant} returned an empty result from Variant Validator.')
 
-        elif data is None:
+                return 'empty_result'
 
-            print(f"Warning: fetchVV returned None for variant: {variant}")
+            elif data is None:
 
-            return 'null'
+                print(f"Warning: fetchVV returned None for variant: {variant}")
 
-        else:
-
-            nm_variant = list(data.keys())[0]
-            nc_variant = data[nm_variant]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
-            np_variant = data[nm_variant]['hgvs_predicted_protein_consequence']['tlr']
-            gene_symbol  = data[nm_variant]['gene_symbol']
-            hgnc_id = data[nm_variant]['gene_ids']['hgnc_id'].split(':')[1]
-
-            # Once both identifiers are found, add them to the output dictionary.
-            # Example: {'NC_000017.11': 'NM_001377265.1'}
-            if nc_variant and nm_variant and np_variant:
-
-                return (nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id)
+                return 'null'
 
             else:
-                # If either identifier is missing, print a message for debugging.
-                print(f"No HGVS identifiers found for {variant}. Full response:\n{data}\n")
 
-    # Catch any network or HTTP errors raised by 'requests'.
-    except requests.exceptions.RequestException as e:
-        print(f"Request failed for {variant}: {e}\n")
+                nm_variant = list(data.keys())[0]
+                nc_variant = data[nm_variant]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
+                np_variant = data[nm_variant]['hgvs_predicted_protein_consequence']['tlr']
+                gene_symbol  = data[nm_variant]['gene_symbol']
+                hgnc_id = data[nm_variant]['gene_ids']['hgnc_id'].split(':')[1]
+
+                # Once both identifiers are found, add them to the output dictionary.
+                # Example: {'NC_000017.11': 'NM_001377265.1'}
+                if nc_variant and nm_variant and np_variant:
+
+                    return (nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id)
+
+                else:
+                    # If either identifier is missing, print a message for debugging.
+                    print(f"No HGVS identifiers found for {variant}. Full response:\n{data}\n")
+
+        # Catch any network or HTTP errors raised by 'requests'.
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 429:
+                time.sleep(2 ** attempt)  # exponential backoff
+                continue
 
 #print(fetchVV('11-2164285-C-T'))
 
