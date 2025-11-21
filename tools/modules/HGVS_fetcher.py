@@ -40,10 +40,12 @@ def fetchVV(variant: str):
     # The 'mane' flag requests MANE transcript data if available.
     # The 'content-type' query specifies JSON output.
     #add this to determine if input is transcript or chrom-pos-ref-alt
-    if variant.startswith(('NM_', 'XP_', 'XM_', 'ENST_')):
-        url_vv = f"{base_url_VV}{variant}/mane?content-type=application%2Fjson" #transcript
-    else:
-        url_vv = f"{base_url_VV}{variant}/mane?content-type=application%2Fjson" #chrom-post-ref-alt
+
+    #elif variant.startswith('NM_') or variant.startswith('XM_') or variant.startswith('NR_') or variant.startswith('NC_'):
+    #    variant = variant.replace(':', '%3A').replace('>', '%3E')
+    #   url_vv = f"{base_url_VV}/hg38/{variant}/mane?content-type=application%2Fjson" #NM_, XM_, NR_, NC_ - transcript
+    
+    url_vv = f"{base_url_VV}{variant}/mane?content-type=application%2Fjson" #chrom-post-ref-alt
 
     try:
         # Send an HTTP GET request to the API.
@@ -93,11 +95,32 @@ def fetchVV(variant: str):
     except requests.exceptions.RequestException as e:
         print(f"Request failed for {variant}: {e}\n")
 
-#print(fetchVV('17-45983420-G-T'))
+#create a function to convert ENST to NM using VV_fetcher
+
+def transcript_converter(ENST_trancript: str):
+    """
+    Convert an ENST transcript identifier to its corresponding NM_ transcript identifier
+    using the VariantValidator REST API.
+
+    Parameters
+    ----------
+    ENST_transcript : str
+        An ENST transcript identifier, e.g. 'ENST00000380152.7'.
+
+    Returns 
+    ------- 
+    """
+
+    if variant.startswith('ENST'):
+        ENST_variant = variant.replace(':', '%3A').replace('>', '%3E')
+        url_vv = f"{base_url_VV}_ensembl/hg38/{variant}/mane_select?content-type=application%2Fjson" #ENST - transcript  
+        nc_variant = data[variant]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
+        return nc_variant
+
 
 # Example usage
 if __name__ == "__main__":
-    variant = "NM_000088.3:c.589G>T"
+    variant = "LRG_1:g.8638G>T"
     output = fetchVV(variant)
     print("Final Output:")
     print(output)
