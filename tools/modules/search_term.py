@@ -26,7 +26,7 @@ def get_mane_nc(search_term: str):
     #first for ensenmbl transcript
     if variant.startswith('ENST'):
         ENST_variant = variant.replace(':', '%3A').replace('>', '%3E')
-        url_vv = f"variantvalidator/{base_url_VV}_ensembl/hg38/{variant}/mane_select?content-type=application%2Fjson" #ENST - transcript  
+        url_vv = f"{base_url_VV}variantvalidator_ensembl/GRCh38/{variant}/mane_select?content-type=application%2Fjson" #ENST - transcript  
 
     #search by NM or LRG Ref Seq transcript
     elif variant.startswith(('NM_', 'LRG_', 'NC_')):
@@ -57,7 +57,6 @@ def get_mane_nc(search_term: str):
 
         # Parse the API response into a Python dictionary.
         data = response.json()
-        print(data)
 
         if data.get('flag') == 'empty_result':
 
@@ -68,6 +67,16 @@ def get_mane_nc(search_term: str):
 
             print(f"Warning: fetchVV returned None for variant: {variant}")
             return 'null'
+
+        elif "validation_warning_1" in data:
+            warning_block = data["validation_warning_1"]
+
+            warnings = warning_block.get("validation_warnings", [])
+
+            if warnings:
+                print("Validation warnings:")
+                for w in warnings:
+                    print(f" - {w}")
         
         elif variant.startswith(('ENS', 'NM_', 'LRG_', 'NC_')):
             nm_variant = list(data.keys())[0]
@@ -83,8 +92,7 @@ def get_mane_nc(search_term: str):
             
             nc_number = [k for k in transcripts.keys() if k.endswith(".11")][0]
             return f"{nc_number}:{genetic_change}"
-            
-        
+
         else:
             print(f"Error: Unrecognized variant format after data retrieval: {variant}")
             return 'error_unrecognized_format_after_retrieval'
@@ -95,11 +103,10 @@ def get_mane_nc(search_term: str):
 
 #example use case
 if __name__ == "__main__":
-    variant = "NM_000527.3:c.301G>A"
+    variant = "ENST00000558518:c.301G>A"
     output = get_mane_nc(variant)
     print("Final Output:")
     print(output)
-
 
 """
 I have created 2 functions, the first takes transcript variants (ENST, NM_, LRG_) and converts them to NC_ genomic variants using the VariantValidator API.
