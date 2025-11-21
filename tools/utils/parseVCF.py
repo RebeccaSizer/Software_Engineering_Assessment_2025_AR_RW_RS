@@ -1,8 +1,10 @@
-def parseVCF(filepath_filename):
+def parseVCF(file):
+
+    patient_name = file.split('.')[0].split('/')[-1]
 
     variant_list = []
 
-    file = open(filepath_filename, 'r')
+    file = open(file, 'r')
 
     for line in file:
 
@@ -17,8 +19,8 @@ def parseVCF(filepath_filename):
             ref = line.split('\t')[3]
             alt = line.split('\t')[4]
 
-            variant = f'{chromosome}%3A{position}%3A{ref}%3A{alt}'
+            variant = f'{chromosome}-{position}-{ref}-{alt}'
 
         variant_list.append(variant.split('\n')[0])
 
-    return variant_list
+    return patient_name, variant_list
