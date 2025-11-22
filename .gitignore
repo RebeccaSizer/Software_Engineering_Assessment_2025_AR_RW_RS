@@ -27,7 +27,8 @@ share/python-wheels/
 MANIFEST
 Patient1.vcf
 data/
-database/
+databases/
+tools/flask_search_database/clinvar_db_summary.txt.gz
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

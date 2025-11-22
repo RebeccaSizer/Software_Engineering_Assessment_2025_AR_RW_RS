@@ -26,7 +26,6 @@ def clinvar_vs_download():
     clinvar_db.raise_for_status()
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    print("Script directory:", script_dir)
     clinvar_file_path = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar_db_summary.txt.gz"))
 
     # Save the variant summary records to a file (from ChatGPT).
