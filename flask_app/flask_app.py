@@ -1,12 +1,13 @@
+
+from tools.modules.clinvar_functions import clinvar_vs_download
 from tools.modules.database_scripts.patientVariantTable import patientVariantTable
 from tools.modules.database_scripts.variantAnnotationsTable import variantAnnotationsTable
 from flask import Flask, render_template, request
 import os
-from tools.modules.database_scripts.patientVariantTableAppend import patientVariantTable
-from tools.modules.database_scripts.variantAnnotationsTable import variantAnnotationsTable
 
 # Create the Flask app — templates in 'templates' folder
 app = Flask(__name__, template_folder='templates')
+clinvar_vs_download()
 
 # Get the directory of the current script
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -35,6 +36,8 @@ def upload():
 
         # Save the file inside the uploads folder
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        print("Saving file to:", file_path)
+
         file.save(file_path)
         folder_path = os.path.dirname(file_path)
 

@@ -54,9 +54,12 @@ def variantAnnotationsTable(filepath):
 
         # Apply the variantParser function to extract the variants listed in the files.
         variant_list = variantParser(path)
+        script_dir = os.path.dirname(os.path.abspath(__file__)) #RS
 
+        # Absolute path to sea.db
+        db_path = os.path.abspath(os.path.join(script_dir, '..', '..', '..', 'flask_search_database', 'sea.db')) #RS
         # Create (or connect to) the sea.db database file.
-        conn = sqlite3.connect('database/sea.db')
+        conn = sqlite3.connect(db_path)
 
         # Create a cursor to run SQL commands.
         cursor = conn.cursor()

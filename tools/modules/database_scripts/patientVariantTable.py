@@ -56,7 +56,18 @@ def patientVariantTable(filepath):
         variant_list = variantParser(path)
 
         # Create (or connect to) the sea.db database file.
-        conn = sqlite3.connect('database/sea.db')
+        # Get the directory of this script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Build absolute path to the database
+        db_path = os.path.abspath(
+        os.path.join(script_dir, '..', '..', '..', 'flask_search_database', 'sea.db'))
+
+# Ensure the folder exists (optional)
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+
+# Connect to the database
+        conn = sqlite3.connect(db_path)
 
         # Create a cursor to run SQL commands
         cursor = conn.cursor()
