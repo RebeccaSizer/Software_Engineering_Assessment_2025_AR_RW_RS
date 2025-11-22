@@ -1,15 +1,15 @@
 import os
+import time
 import sqlite3
-from ...utils.parseVCF import parseVCF
-from ...modules.HGVS_convertion import HGVS_converter
-from ...modules.detailed_request import get_clinvar_full_info
-from ...modules.Entrez import Entrez_fetch_transcript_record
+from ...utils.parser import variantParser
+from ...modules.HGVS_fetcher import fetch_vv
+from ...modules.clinvar_functions import clinvar_annotations
 
 def variantAnnotationsTable(filepath):
     '''
     This function creates the sea.db database, if it doesn't already exist.
-    It then creates or updates a table in the database that is populated by variants extracted from .vcf files uploaded
-    by the user on our flask website.
+    It then creates or updates a table in the database called 'variant_annotations', which is populated by variants
+    extracted from .vcf files uploaded by the user on our flask website.
 
     :params: filepath: This leads to the subdirectory where the .vcf files uploaded by the user are stored.
                        The subdirectory is called 'data' and is located in the base-directory of this software package.
@@ -21,7 +21,7 @@ def variantAnnotationsTable(filepath):
     :output: sea.db database: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/sea.db'
 
              variant_annotations table:
-             No|HGVS NC_ nomenclature|HGVS NM_ nomenclature|HGVS NP_ nomenclature|Gene symbol|HGNC ID|Classification|Conditions|Star-Rating|Review status
+             No.|HGVS NC_ nomenclature|HGVS NM_ nomenclature|HGVS NP_ nomenclature|Gene symbol|HGNC ID|Classification|Conditions|Star-Rating|Review status
 
              E.g.:
 
@@ -39,29 +39,35 @@ def variantAnnotationsTable(filepath):
               To view table: SELECT * FROM variant_annotations;
     '''
 
-    # create a list of the filepath to all of the .vcf files in the data subdirectory
+    # Create a list of the filepaths to all of the .vcf files in the 'data' subdirectory.
     vcf_paths = []
 
+    # Iterate through the files in the filepath provided by the user and add the files with a .vcf or .csv extension to the vcf_paths list.
     for file in os.listdir(filepath):
-        if file.endswith('.vcf'):
+        if file.endswith('.vcf') or file.endswith('.csv'):
             vcf_paths.append(f'{filepath}/{file}')
         else:
             continue
 
+    # Iterate through the absolute filepaths to the .vcf files.
     for path in vcf_paths:
 
-        vcf = parseVCF(path)
+        # Apply the variantParser function to extract the variants listed in the files.
+        variant_list = variantParser(path)
+        script_dir = os.path.dirname(os.path.abspath(__file__)) #RS
 
-        # Create (or connect to) a database file
-        conn = sqlite3.connect('database/sea.db')
+        # Absolute path to sea.db
+        db_path = os.path.abspath(os.path.join(script_dir, '..', '..', '..', 'flask_search_database', 'sea.db')) #RS
+        # Create (or connect to) the sea.db database file.
+        conn = sqlite3.connect(db_path)
 
-        # Create a cursor to run SQL commands
+        # Create a cursor to run SQL commands.
         cursor = conn.cursor()
 
-        # Create a table
+        # Create the variant_annotations table if it does not already exist.
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS variant_annotations (
-            No INTEGER PRIMARY KEY AUTOINCREMENT,
+            No INTEGER PRIMARY KEY,
             variant_NC TEXT NOT NULL,
             variant_NM TEXT NOT NULL,
             variant_NP TEXT NOT NULL,
@@ -71,42 +77,69 @@ def variantAnnotationsTable(filepath):
             Conditions TEXT NOT NULL,
             Stars,
             Review_status TEXT NOT NULL,
+            
+            /* 
+             The NC_, NM_, and NP_, accession numbers are collectively treated as unique. 
+             If any of them are different while the others are the same, a new entry will be made in the table.
+             */
             UNIQUE(variant_NC, variant_NM, variant_NP)
         )
         """)
 
-        # Insert example data
+        # Data is then assigned to each header:
 
-        hgvs_dict, transcript, np_change = HGVS_converter(vcf[1])
+        # VariantValidator is queried through fetchVV to retrieve the NC_, NM_ and NP_ accession numbers of each
+        # variant in the variant_list, in HGVS nomenclature.
+        for variant in variant_list:
 
-        for key, value in hgvs_dict.items():
+            variant_info = fetch_vv(variant)
+            # The time module creates a 0.5s delay after each request to Variant Validator (VV), so that VV is not overloaded with requests.
+            time.sleep(0.5)
 
-            transcript_dict = Entrez_fetch_transcript_record('A.N.Other@example.com', value)
-            gene = transcript_dict['Gene_symbol']
-            HGNC_ID = transcript_dict['HGNC_ID']
+            if not variant_info or variant_info in ('null', 'empty_result') or len(variant_info) != 5:
+                continue
 
-            clinVar_response = get_clinvar_full_info(value)
-            classification = clinVar_response['classification']
-            conditions = clinVar_response['conditions']
-            stars = clinVar_response['stars']
-            review_status = clinVar_response['review_status']
+            try:
+                nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id = variant_info
 
-            cursor.execute("""
-                           INSERT INTO variant_annotations 
-                           (variant_NC, variant_NM, variant_NP, gene, HGNC_ID, classification, conditions, stars, review_status)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                           ON CONFLICT(variant_NC, variant_NM, variant_NP)
-                           DO UPDATE SET
-                               gene = excluded.gene,
-                               HGNC_ID = excluded.HGNC_ID,
-                               classification = excluded.classification,
-                               conditions = excluded.conditions,
-                               stars = excluded.stars,
-                               review_status = excluded.review_status
-                           """, (key, transcript, np_change, gene, HGNC_ID, classification, conditions, stars, review_status))
+            except ValueError:
+                continue
+
+            # CliVar is queried to retrieve the variant classification, associated conditions, the star-ratings
+            # and the review statuses.
+            clinVar_response = clinvar_annotations(nc_variant, nm_variant)
+
+            if len(clinVar_response) > 0:
+
+                classification = clinVar_response['classification']
+                conditions = clinVar_response['conditions']
+                stars = clinVar_response['stars']
+                review_status = clinVar_response['reviewstatus']
+
+                # The HGVS nomenclatures, gene symbol, HGNC ID and ClinVar annotations for each variant are added to
+                # the variant_annotations table.
+                cursor.execute("""
+                               INSERT INTO variant_annotations 
+                               (variant_NC, variant_NM, variant_NP, gene, HGNC_ID, classification, conditions, stars, review_status)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                               
+                               -- If a variant already exists in the table, the table is updated with the latest annotations. 
+                               ON CONFLICT(variant_NC, variant_NM, variant_NP)
+                               DO UPDATE SET
+                                   gene = excluded.gene,
+                                   HGNC_ID = excluded.HGNC_ID,
+                                   classification = excluded.classification,
+                                   conditions = excluded.conditions,
+                                   stars = excluded.stars,
+                                   review_status = excluded.review_status
+                               """, (nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id, classification, conditions, stars, review_status))
+
+            else:
+                continue
 
         # Save (commit) changes and close connection
         conn.commit()
         conn.close()
 
+    # A message is printed in the back-end to indicate that the table was successfully created or updated.
     print("variant_annotations created/updated successfully!")
