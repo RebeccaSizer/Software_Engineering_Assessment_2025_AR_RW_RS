@@ -1,4 +1,5 @@
 import gzip
+import os
 import csv
 import requests
 from ..utils.timer import timer
@@ -24,11 +25,15 @@ def clinvar_vs_download():
     # Raise an error if download failed.
     clinvar_db.raise_for_status()
 
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    print("Script directory:", script_dir)
+    clinvar_file_path = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar_db_summary.txt.gz"))
+
     # Save the variant summary records to a file (from ChatGPT).
     # Consider changing chunk_size to chunk_size=8192 is band-width is low.
     # Consider changing chunk_size to chunk_size=65536 is band-width is high.
     # or let the requests module decide by using: clinvar_db.iter_content(chunk_size=None)
-    with open("clinvar_db_summary.txt.gz", "wb") as f:
+    with open(clinvar_file_path, "wb") as f:
         for chunk in clinvar_db.iter_content(chunk_size=65536):
             if chunk:
                 f.write(chunk)
@@ -40,7 +45,7 @@ def clinvar_vs_download():
         print("No Last-Modified header present")
 
 
-
+#/tools/flask_search_database/
 
 @timer
 def clinvar_annotations(nc_variant, nm_variant):
@@ -78,9 +83,18 @@ def clinvar_annotations(nc_variant, nm_variant):
     # Message to indicate that variant is being searched for in the downloaded ClinVar variant summary records.
     print(f'Searching ClinVar summary file for {nc_variant} ...')
 
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    clinvar_file_path = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar_db_summary.txt.gz"))
+
+
+    # Check file exists
+    if not os.path.exists(clinvar_file_path):
+        raise FileNotFoundError(f"ClinVar database file not found: {clinvar_file_path}")
+
+
     # Opens ClinVar variant_summary records to search for the record which contains the NC_ accession number and
     # NM_ HGVS nomenclature (ClinVar variant_summary records do not contain the NC_ HGVS nomenclature).
-    with gzip.open("clinvar_db_summary.txt.gz", "rt") as gz:
+    with gzip.open(clinvar_file_path, "rt") as gz:
         reader = csv.DictReader(gz, delimiter="\t")
         for record in reader:
 
