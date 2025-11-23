@@ -30,15 +30,44 @@
       {% endif %}
     {% endwith %}
 
-    <h2>Upload a New Database (.db)</h2>
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="database_file" accept=".db" required>
-        <button type="submit">Upload Database</button>
+    <h2>Create or Add to a Database</h2>
+
+    <form id="make_database" method="POST" enctype="multipart/form-data">
+
+        <label for="vcf">Select a variant file:</label>
+        <input type="file" name="vcf" id="vcf" accept=".vcf" required>
+
+        <label for="db_file">Choose or enter a database file name:</label>
+        <input list="existing_db" name="db_file" id="db_file" class="form-control">
+        {% if databases %}
+        <datalist id="existing_db">
+            {% for db in databases %}
+            <option value="{{ db }}">{{ db }}</option>
+            {% endfor %}
+        </datalist>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary mt-3">Create Database</button>
     </form>
+
+    <!-- Spinner (hidden by default) -->
+    <div id="loadingSpinner" class="spinner-border text-primary" role="status" style="display:none; margin-top: 20px;">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+
+    <!-- Optional: JavaScript to show spinner on submit -->
+    <script>
+        const form = document.getElementById("make_database");
+        const spinner = document.getElementById("loadingSpinner");
+
+        form.addEventListener("submit", () => {
+            spinner.style.display = "inline-block"; // show spinner
+        });
+    </script>
 
     <hr>
 
-    <h2>Or Select an Existing Database</h2>
+    <h2>Query an Existing Database</h2>
     {% if databases %}
         <form method="POST">
             <select name="existing_db">
@@ -51,5 +80,14 @@
     {% else %}
         <p><em>No databases found yet. Upload one above!</em></p>
     {% endif %}
+
+    <hr>
+
+    <h2>Query a New Database</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="database_file" accept=".db" required>
+        <button type="submit">Upload Database</button>
+    </form>
+
 </body>
 </html>

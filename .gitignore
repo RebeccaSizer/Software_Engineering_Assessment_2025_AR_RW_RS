@@ -25,9 +25,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-Patient1.vcf
-data/
-databases/
+*.vcf
+*.db*
 tools/flask_search_database/clinvar_db_summary.txt.gz
 
 # PyInstaller
