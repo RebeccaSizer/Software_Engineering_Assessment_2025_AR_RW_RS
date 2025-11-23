@@ -5,12 +5,12 @@ from ..utils.parser import variantParser
 from .HGVS_fetcher import fetch_vv
 from .clinvar_functions import clinvar_annotations
 
-def patient_variant_table(filepath):
+def patient_variant_table(filepath, db_name):
     '''
-    This function creates the sea.db database, if it doesn't already exist.
-    It then creates or updates a table in the database called 'patient_variant', which is populated by patients
-    and their respective variants. The patients' IDs are taken from the name of the .vcf files uploaded by the user
-    on our flask website, while the variants are extracted from each patient's .vcf file.
+    This function creates a database, if it doesn't already exist.
+    It creates or updates a table in the database called 'patient_variant', which is populated by patients and their
+    respective variants. The patients' IDs are taken from the name of the .vcf files uploaded by the user on our flask
+    website, while the variants are extracted from each patient's .vcf file.
 
     :params: filepath: This leads to the subdirectory where the .vcf files uploaded by the user are stored.
                        The subdirectory is called 'data' and is located in the base-directory of this software package.
@@ -19,7 +19,11 @@ def patient_variant_table(filepath):
 
                  E.g.: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/data/'
 
-    :output: sea.db database: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/sea.db'
+              db_name: The user-specified name of the database.
+
+                 E.g.: 'my_database'
+
+    :output: my_database.db database: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/my_database.db'
 
              patient_variant table:
              No.|patient_ID|HGVS NC_ nomenclature
@@ -35,7 +39,7 @@ def patient_variant_table(filepath):
     :command: filepath = '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/data/'
               patientVariantTable(filepath)
 
-              To access database: sqlite3 /<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/sea.db
+              To access database: sqlite3 /<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/my_database.db
 
               To view table: SELECT * FROM patientVariantTable;
     '''
@@ -56,13 +60,13 @@ def patient_variant_table(filepath):
         # Apply the variantParser function to extract the variants listed in the files.
         variant_list = variantParser(path)
 
-        # Create (or connect to) the sea.db database file.
+        # Create (or connect to) the database file.
         # Get the directory of this script
         script_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Build absolute path to the database
         db_path = os.path.abspath(
-            os.path.join(script_dir, '..', '..', 'databases', 'sea.db'))
+            os.path.join(script_dir, '..', '..', 'databases', f'{db_name}.db'))
 
         # Ensure the folder exists (optional)
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
@@ -120,9 +124,9 @@ def patient_variant_table(filepath):
 
 
 
-def variant_annotations_table(filepath):
+def variant_annotations_table(filepath, db_name):
     '''
-    This function creates the sea.db database, if it doesn't already exist.
+    This function creates a database, if it doesn't already exist.
     It then creates or updates a table in the database called 'variant_annotations', which is populated by variants
     extracted from .vcf files uploaded by the user on our flask website.
 
@@ -133,7 +137,11 @@ def variant_annotations_table(filepath):
 
                  E.g.: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/data/'
 
-    :output: sea.db database: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/sea.db'
+              db_name: The user-specified name of the database.
+
+                 E.g.: 'my_database'
+
+    :output: my_database.db database: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/my_database.db'
 
              variant_annotations table:
              No.|HGVS NC_ nomenclature|HGVS NM_ nomenclature|HGVS NP_ nomenclature|Gene symbol|HGNC ID|Classification|Conditions|Star-Rating|Review status
@@ -149,7 +157,7 @@ def variant_annotations_table(filepath):
     :command: filepath = '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/data/'
               variantAnnotationsTable(filepath)
 
-              To access database: sqlite3 /<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/sea.db
+              To access database: sqlite3 /<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/my_database.db
 
               To view table: SELECT * FROM variant_annotations;
     '''
@@ -171,9 +179,9 @@ def variant_annotations_table(filepath):
         variant_list = variantParser(path)
         script_dir = os.path.dirname(os.path.abspath(__file__)) #RS
 
-        # Absolute path to sea.db
-        db_path = os.path.abspath(os.path.join(script_dir, '..', '..', 'databases', 'sea.db')) #RS
-        # Create (or connect to) the sea.db database file.
+        # Absolute path to database
+        db_path = os.path.abspath(os.path.join(script_dir, '..', '..', 'databases', f'{db_name}.db')) #RS
+        # Create (or connect to) the database file.
         conn = sqlite3.connect(db_path)
 
         # Create a cursor to run SQL commands.
@@ -296,3 +304,12 @@ def validate_database(db_path):
         return True
     except Exception:
         return False
+
+
+def query_db(db_path, query, args=(), one=False):
+    """Execute SQL query on a database and return results as sqlite3.Row objects."""
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.execute(query, args)
+        rv = cur.fetchall()
+        return (rv[0] if rv else None) if one else rv
