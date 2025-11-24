@@ -98,6 +98,11 @@ def variantParser(file):
                 print(f'Variant in line {line_number} from {file.split('/')[-1]} is irregular and was not parsed.')
                 continue
 
+            # Ignores NoneType entities in the file.
+            elif not row:
+
+                continue
+
             else:
 
                 # Extracts the chromosome from the variant row.
