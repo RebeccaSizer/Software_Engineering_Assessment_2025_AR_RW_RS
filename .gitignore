@@ -25,6 +25,9 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*.vcf
+*.db*
+app/clinvar/clinvar_db_summary.txt.gz
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
