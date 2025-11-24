@@ -89,6 +89,9 @@ def fetch_vv(variant: str):
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 429:
                 time.sleep(2 ** attempt)  # exponential backoff
+                print(e)
+                print('Trying again...')
+                print('Attempt:', attempt + 2)
                 continue
 
 #print(fetchVV('11-2164285-C-T'))
