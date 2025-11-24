@@ -126,4 +126,4 @@ def variantParser(file):
     # Returns the patient ID and the list of variants from the input file.
     return variant_list
 
-print(variantParser('/home/ubuntu/Desktop/ParkVCF/Patient1.vcf'))
+#print(variantParser('/home/ubuntu/Desktop/ParkVCF/Patient1.vcf'))
