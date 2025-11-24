@@ -232,7 +232,10 @@ def variant_annotations_table(filepath, db_name):
             # and the review statuses.
             clinVar_response = clinvar_annotations(nc_variant, nm_variant)
 
-            if len(clinVar_response) > 0:
+            if not clinVar_response or len(clinVar_response) == 0:
+                continue
+
+            elif len(clinVar_response) > 0:
 
                 classification = clinVar_response['classification']
                 conditions = clinVar_response['conditions']

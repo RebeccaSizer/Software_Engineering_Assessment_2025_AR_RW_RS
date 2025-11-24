@@ -1,4 +1,5 @@
 import os
+import sys
 import io
 import csv
 import json
@@ -17,15 +18,18 @@ from flask import (
     session
 )
 
+# Add the project root to sys.path so Python can find 'tools'
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from tools.modules.database_functions import patient_variant_table, variant_annotations_table, validate_database, query_db
-from tools.modules.clinvar_functions import clinvar_vs_download
+#from tools.modules.clinvar_functions import clinvar_vs_download
 
 # ---------------------------------------------------------------
 # Flask setup
 # ---------------------------------------------------------------
 app = Flask(__name__, template_folder='templates')
 app.secret_key = 'supersecretkey'
-clinvar_vs_download()
+#clinvar_vs_download()
 
 # Get the filepath to the base directory.
 base_dir = f'{os.path.dirname(os.path.abspath(__file__))}/../'
@@ -114,11 +118,11 @@ def query_page(db_name):
     """Main query interface for a specific database."""
     # Get list of uploaded databases
     databases = [
-        f for f in os.listdir(app.config["UPLOAD_FOLDER"]) if f.endswith(".db")
+        f for f in os.listdir(app.config["db_upload_folder"]) if f.endswith(".db")
     ]
     databases.sort()
 
-    db_path = os.path.join(app.config["UPLOAD_FOLDER"], db_name)
+    db_path = os.path.join(app.config["db_upload_folder"], db_name)
     if not os.path.exists(db_path):
         flash("Database not found.")
         return redirect(url_for("upload_db"))
@@ -479,4 +483,4 @@ def export_excel():
 
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(host='127.0.0.1', port=5000)
