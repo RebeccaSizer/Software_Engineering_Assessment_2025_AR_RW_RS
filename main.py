@@ -3,9 +3,8 @@ import subprocess
 from tools.modules.clinvar_functions import clinvar_vs_download
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-print(script_dir)
-clinvar_db_path = os.path.join(script_dir, "tools", "flask_search_database", "clinvar.db")
-clinvar_gz_path = os.path.join(script_dir, "tools", "flask_search_database", "clinvar_db_summary.txt.gz")
+clinvar_db_path = os.path.join(script_dir, "app", "clinvar", "clinvar.db")
+clinvar_gz_path = os.path.join(script_dir, "app", "clinvar", "clinvar_db_summary.txt.gz")
 
 # Run download only if DB is missing
 if not os.path.exists(clinvar_db_path):
@@ -17,4 +16,4 @@ elif not os.path.exists(clinvar_gz_path):
 else:
     print("ClinVar database available. No download needed.")
 
-subprocess.run(["python", "variant_db_query_app/app.py"])
+subprocess.run(["python", "app/app.py"])

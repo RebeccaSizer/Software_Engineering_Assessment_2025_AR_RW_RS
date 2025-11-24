@@ -28,8 +28,8 @@ def clinvar_vs_download():
     clinvar_db.raise_for_status()
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    clinvar_file_path = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar_db_summary.txt.gz"))
-    clinvar_records = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar.db"))
+    clinvar_file_path = os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar", "clinvar_db_summary.txt.gz"))
+    clinvar_records = os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar", "clinvar.db"))
 
     # Save the variant summary records to a file (from ChatGPT).
     # Consider changing chunk_size to chunk_size=8192 is band-width is low.
@@ -152,7 +152,7 @@ def clinvar_annotations(nc_variant, nm_variant):
     clinvar_output = {}
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    clinvar_db = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar.db"))
+    clinvar_db = os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar", "clinvar.db"))
 
     # Message to indicate that variant is being searched for in the downloaded ClinVar variant summary records.
     print(f'Searching ClinVar database for {nc_variant} ...')

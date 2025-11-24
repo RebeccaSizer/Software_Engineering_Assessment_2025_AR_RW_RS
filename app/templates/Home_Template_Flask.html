@@ -34,6 +34,8 @@
 
     <form id="make_database" method="POST" enctype="multipart/form-data">
 
+        <input type="hidden" name="form_type" value="add_variant">
+
         <label for="vcf">Select a variant file:</label>
         <input type="file" name="vcf" id="vcf" accept=".vcf" required>
 
@@ -70,6 +72,9 @@
     <h2>Query an Existing Database</h2>
     {% if databases %}
         <form method="POST">
+
+            <input type="hidden" name="form_type" value="open_db">
+
             <select name="existing_db">
                 {% for db in databases %}
                 <option value="{{ db }}">{{ db }}</option>
@@ -85,6 +90,9 @@
 
     <h2>Query a New Database</h2>
     <form method="POST" enctype="multipart/form-data">
+
+        <input type="hidden" name="form_type" value="upload_db">
+
         <input type="file" name="database_file" accept=".db" required>
         <button type="submit">Upload Database</button>
     </form>
