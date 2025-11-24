@@ -1,8 +1,10 @@
 import os
-import sqlite3
-import json
-import csv
+import sys
 import io
+import csv
+import json
+import sqlite3
+from openpyxl import Workbook
 
 from flask import (
     Flask,
@@ -13,113 +15,102 @@ from flask import (
     flash,
     jsonify,
     send_file,
+    session
 )
-from openpyxl import Workbook
+
+# Add the project root to sys.path so Python can find 'tools'
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from tools.modules.database_functions import patient_variant_table, variant_annotations_table, validate_database, query_db
+
 
 # ---------------------------------------------------------------
 # Flask setup
 # ---------------------------------------------------------------
-app = Flask(__name__)
-app.secret_key = "supersecretkey"
-app.config["UPLOAD_FOLDER"] = "uploads"
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+app = Flask(__name__, template_folder='templates')
+app.secret_key = 'supersecretkey'
 
-# ---------------------------------------------------------------
-# Expected database schema
-# ---------------------------------------------------------------
-EXPECTED_SCHEMA = {
-    "patient_variant": {"No", "patient_ID", "variant"},
-    "variant_annotations": {
-        "No",
-        "variant_NC",
-        "variant_NM",
-        "variant_NP",
-        "gene",
-        "HGNC_ID",
-        "Classification",
-        "Conditions",
-        "Stars",
-        "Review_status",
-    },
-}
+# Get the filepath to the base directory.
+base_dir = f'{os.path.dirname(os.path.abspath(__file__))}/../'
+app.config['db_upload_folder'] = f'{base_dir}databases'
+os.makedirs(app.config['db_upload_folder'], exist_ok=True)
+app.config['variant_files_upload_folder'] = f'{base_dir}temp'
+os.makedirs(app.config['variant_files_upload_folder'], exist_ok=True)
 
 
 # ---------------------------------------------------------------
-# Utility: validate database schema
-# ---------------------------------------------------------------
-def validate_database(db_path):
-    """Check whether the uploaded database matches expected tables and columns."""
-    try:
-        with sqlite3.connect(db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-            tables = {row[0] for row in cur.fetchall()}
-
-            if not EXPECTED_SCHEMA.keys() <= tables:
-                return False
-
-            for table, expected_cols in EXPECTED_SCHEMA.items():
-                cur.execute(f"PRAGMA table_info({table});")
-                cols = {row[1] for row in cur.fetchall()}
-                if not expected_cols <= cols:
-                    return False
-        return True
-    except Exception:
-        return False
-
-
-# ---------------------------------------------------------------
-# Utility: execute queries and return results
-# ---------------------------------------------------------------
-def query_db(db_path, query, args=(), one=False):
-    """Execute SQL query on a database and return results as sqlite3.Row objects."""
-    with sqlite3.connect(db_path) as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.execute(query, args)
-        rv = cur.fetchall()
-        return (rv[0] if rv else None) if one else rv
-
-
-# ---------------------------------------------------------------
-# Route: Home page - upload or select a database
+# Route: Home page - create, upload or select a database
 # ---------------------------------------------------------------
 @app.route("/", methods=["GET", "POST"])
-def upload_db():
-    """Allow user to upload a new database or select an existing one."""
-    databases = [
-        f for f in os.listdir(app.config["UPLOAD_FOLDER"]) if f.endswith(".db")
-    ]
+def choose_create_or_add():
+
+    databases = []
+
+    for f in os.listdir(app.config['db_upload_folder']):
+        if f.endswith(".db"):
+            databases.append(f)
+
     databases.sort()
 
-    # Selecting existing database
-    if request.form.get("existing_db"):
-        selected_db = request.form.get("existing_db")
-        return redirect(url_for("query_page", db_name=selected_db))
+    if request.method == "POST":
+        form_type = request.form.get("form_type")
+
+        # Creating or adding to a database
+        if form_type == "add_variant":
+            file = request.files.get('vcf')
+            database_name = os.path.splitext(request.form["db_file"])[0]
+
+            if not file:
+                flash("No file uploaded")
+                return render_template("Home_Template_Flask.html", databases=databases)
+
+            if not file.filename.endswith('.vcf'):
+                flash("❌ Invalid file type. Please upload a VCF file.")
+                return render_template("Home_Template_Flask.html", databases=databases)
+
+            # Save the file inside the uploads folder
+            variant_file_path = os.path.join(app.config['variant_files_upload_folder'], file.filename)
+            file.save(variant_file_path)
+
+            # Get the absolute path for use in your scripts
+            patient_variant_table(app.config['variant_files_upload_folder'], database_name)
+            variant_annotations_table(app.config['variant_files_upload_folder'], database_name)
+            os.remove(variant_file_path)
+
+            flash(f"{file.filename} added to database.")
+            return render_template("Home_Template_Flask.html", databases=databases)
+
+        # Selecting existing database
+        elif form_type == "open_db":
+            selected_db = request.form.get("existing_db")
+            return redirect(url_for("query_page", db_name=selected_db))
 
     # Uploading new database
-    if request.method == "POST" and "database_file" in request.files:
-        file = request.files.get("database_file")
-        if not file or file.filename == "":
-            flash("No file selected.")
-            return render_template("Home_Template_Flask.html", databases=databases)
+        elif form_type == "upload_db":
 
-        filename = file.filename
-        if not filename.endswith(".db"):
-            flash("Please upload a .db SQLite file.")
-            return render_template("Home_Template_Flask.html", databases=databases)
+            file = request.files.get("database_file")
 
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(filepath)
+            if not file or file.filename == "":
+                flash("No file selected.")
+                return render_template("Home_Template_Flask.html", databases=databases)
 
-        if not validate_database(filepath):
-            flash("❌ File is not a database in correct form.")
-            os.remove(filepath)
-        else:
-            flash("✅ Database uploaded and validated successfully.")
-            return redirect(url_for("query_page", db_name=filename))
+            filename = file.filename
+
+            if not filename.endswith(".db"):
+                flash("❌ Invalid file type. Please upload a .db file.")
+                return render_template("Home_Template_Flask.html", databases=databases)
+
+            filepath = os.path.join(app.config['db_upload_folder'], filename)
+            file.save(filepath)
+
+            if not validate_database(filepath):
+                flash("❌ Inappropriate headers in database.")
+                os.remove(filepath)
+            else:
+                flash("✅ Database uploaded and validated successfully.")
+                return redirect(url_for("query_page", db_name=filename))
 
     return render_template("Home_Template_Flask.html", databases=databases)
-
 
 # ---------------------------------------------------------------
 # Route: Query page - patient, variant_NC, or gene searches
@@ -129,11 +120,11 @@ def query_page(db_name):
     """Main query interface for a specific database."""
     # Get list of uploaded databases
     databases = [
-        f for f in os.listdir(app.config["UPLOAD_FOLDER"]) if f.endswith(".db")
+        f for f in os.listdir(app.config["db_upload_folder"]) if f.endswith(".db")
     ]
     databases.sort()
 
-    db_path = os.path.join(app.config["UPLOAD_FOLDER"], db_name)
+    db_path = os.path.join(app.config["db_upload_folder"], db_name)
     if not os.path.exists(db_path):
         flash("Database not found.")
         return redirect(url_for("upload_db"))
@@ -291,7 +282,7 @@ def display_database(db_name):
     patient_ID + all variant annotation fields,
     with optional sort & filter, plus export.
     """
-    db_path = os.path.join(app.config["UPLOAD_FOLDER"], db_name)
+    db_path = os.path.join(app.config["db_upload_folder"], db_name)
     if not os.path.exists(db_path):
         flash("Database not found.")
         return redirect(url_for("upload_db"))
@@ -403,7 +394,7 @@ def display_database(db_name):
 @app.route("/api/dropdown/<db_name>")
 def dropdown_data(db_name):
     """Return JSON lists of patients, variants, and genes for the current database."""
-    db_path = os.path.join(app.config["UPLOAD_FOLDER"], db_name)
+    db_path = os.path.join(app.config["db_upload_folder"], db_name)
     if not os.path.exists(db_path):
         return jsonify({"error": "Database not found"}), 404
 
@@ -493,8 +484,5 @@ def export_excel():
     )
 
 
-# ---------------------------------------------------------------
-# Run the app
-# ---------------------------------------------------------------
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5009, debug=True)
+if __name__ == '__main__':
+    app.run(host='127.0.0.1', port=5000, debug=True)
