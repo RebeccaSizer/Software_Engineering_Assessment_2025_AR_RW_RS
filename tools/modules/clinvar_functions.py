@@ -1,9 +1,11 @@
-import gzip
+import sqlite3
 import os
+import gzip
 import csv
 import requests
 from ..utils.timer import timer
 
+@timer
 def clinvar_vs_download():
     '''
     This function retrieves the most recent ClinVar variant summary records from NCBI.
@@ -27,6 +29,7 @@ def clinvar_vs_download():
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     clinvar_file_path = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar_db_summary.txt.gz"))
+    clinvar_db = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar_db.db"))
 
     # Save the variant summary records to a file (from ChatGPT).
     # Consider changing chunk_size to chunk_size=8192 is band-width is low.
@@ -43,8 +46,81 @@ def clinvar_vs_download():
     else:
         print("No Last-Modified header present")
 
+    conn = sqlite3.connect(clinvar_db)
+    cur = conn.cursor()
 
-#/tools/flask_search_database/
+    cur.execute("""
+            CREATE TABLE IF NOT EXISTS clinvar_db (
+                nc_accession TEXT,
+                nc_hgvs TEXT,
+                clinical_significance TEXT,
+                conditions TEXT
+                review_status TEXT,
+                stars
+            );
+        """)
+
+    cur.execute("DELETE FROM clinvar;")
+
+    with gzip.open("clinvar_db_summary.txt.gz", "rt") as gz:
+        reader = csv.DictReader(gz, delimiter="\t")
+        records = []
+        dict_nm_hgvs = ''
+        stars = ''
+
+        for record in reader:
+
+            # Some records include the gene symbol and the consequence on the protein.
+            # E.g. NM_000360.4(TH):c.1442G>A (Gly481Asp)
+            # This removes the gene symbol and protein consequence from the nomenclature if a '(' exists in the
+            # name.
+            # Not all records are named after the RefSeq NM_ accession number so this specifies the ones that are.
+            if record['Name'].startswith('NM'):
+
+                if '(' in record['Name']:
+                    dict_nm_hgvs = f'{record['Name'].split('(')[0]}{record['Name'].split(')')[1].split(' ')[0]}'
+
+                else:
+                    dict_nm_hgvs = record['Name']
+
+            if 'practice guideline' in record['ReviewStatus']:
+
+                stars = '★★★★'
+
+            elif 'reviewed by expert panel' in record['ReviewStatus']:
+
+                stars = '★★★'
+
+            elif 'multiple submitters' in record['ReviewStatus']:
+
+                stars = '★★'
+
+            elif 'single submitter' in record['ReviewStatus']:
+
+                stars = '★'
+
+            else:
+
+                stars = '0★'
+
+            records.append((record['ChromosomeAccession'],
+                            dict_nm_hgvs,
+                            record['ClinicalSignificance'],
+                            record['ReviewStatus'],
+                            record['PhenotypeList'].replace('not provided', '').replace('|', '; '),
+                            stars
+                            )
+            )
+
+    cur.executemany("""
+            INSERT INTO clinvar_db VALUES (?, ?, ?, ?, ?, ?)
+        """, records)
+
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_clinvar ON clinvar (ChromosomeAccession, Name);")
+    conn.commit()
+    conn.close()
+
+
 
 @timer
 def clinvar_annotations(nc_variant, nm_variant):
@@ -66,8 +142,8 @@ def clinvar_annotations(nc_variant, nm_variant):
                        E.g.: {
                                 'classification': 'Conflicting classifications of pathogenicity',
                                 'conditions': 'Autosomal recessive DOPA responsive dystonia|Inborn genetic diseases',
-                                'reviewstatus': 'criteria provided, conflicting classifications',
-                                'stars': '0★'
+                                'stars': '0★',
+                                'reviewstatus': 'criteria provided, conflicting classifications'
                              }
 
     :command: clinvarAnnotations('NC_000011.10:g.2164285C>T', 'NM_000360.4:c.1442G>A')
@@ -79,77 +155,36 @@ def clinvar_annotations(nc_variant, nm_variant):
     # Creates a python dictionary to store the required information from ClinVar
     clinvar_output = {}
 
-    # Message to indicate that variant is being searched for in the downloaded ClinVar variant summary records.
-    print(f'Searching ClinVar summary file for {nc_variant} ...')
-
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    clinvar_file_path = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar_db_summary.txt.gz"))
-
-
-    # Check file exists
-    if not os.path.exists(clinvar_file_path):
-        raise FileNotFoundError(f"ClinVar database file not found: {clinvar_file_path}")
-
-
-    # Opens ClinVar variant_summary records to search for the record which contains the NC_ accession number and
-    # NM_ HGVS nomenclature (ClinVar variant_summary records do not contain the NC_ HGVS nomenclature).
-    with gzip.open(clinvar_file_path, "rt") as gz:
-        reader = csv.DictReader(gz, delimiter="\t")
-        for record in reader:
-
-            # Extracts the NC_ accession number from the current ClinVar variant_summary record.
-            dict_nc_accession = record['ChromosomeAccession']
-
-            # Not all records are named after the RefSeq NM_ accession number so this specifies the ones that are.
-            if record['Name'].startswith('NM'):
-
-                # Some records include the gene symbol and the consequence on the protein.
-                # E.g. NM_000360.4(TH):c.1442G>A (Gly481Asp)
-                # This removes the gene symbol and protein consequence from the nomenclature if a '(' exists in the
-                # name.
-                if '(' in record['Name']:
-                    dict_nm_hgvs = f'{record['Name'].split('(')[0]}{record['Name'].split(')')[1].split(' ')[0]}'
-
-                else:
-                    dict_nm_hgvs = record['Name']
-
-            # When the input RefSeq NC_ accession number and NM_ HGVS nomenclature matches a record, the clinvar_output
-            # dictionary is populated with the variant classification, associated conditions, star-rating and Review
-            # status from that record.
-            if (vv_nc_accession == dict_nc_accession) and (nm_variant == dict_nm_hgvs):
-
-                clinvar_output['classification'] = record['ClinicalSignificance']
-                clinvar_output['reviewstatus'] = record['ReviewStatus']
-                clinvar_output['conditions'] = record['PhenotypeList'].replace('not provided', '').replace('|', '; ')
-
-                # If statement stores message in database, notifying users that a Condition was not found for this
-                # variant.
-                if clinvar_output['conditions'] == '':
-                    clinvar_output['conditions'] = 'No Conditions submitted on ClinVar'
-
-                if 'practice guideline' in record['ReviewStatus']:
-
-                    clinvar_output['stars'] = '★★★★'
-
-                elif 'reviewed by expert panel' in record['ReviewStatus']:
-
-                    clinvar_output['stars'] = '★★★'
-
-                elif 'multiple submitters' in record['ReviewStatus']:
-
-                    clinvar_output['stars'] = '★★'
-
-                elif 'single submitter' in record['ReviewStatus']:
-
-                    clinvar_output['stars'] = '★'
-
-                else:
-
-                    clinvar_output['stars'] = '0★'
+    clinvar_db = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar_db.db"))
 
     # Message to indicate that variant is being searched for in the downloaded ClinVar variant summary records.
-    if len(clinvar_output) == 0:
+    print(f'Searching ClinVar database for {nc_variant} ...')
+
+    conn = sqlite3.connect(clinvar_db)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+                   SELECT clinical_significance, conditions, stars, review_status
+                   FROM clinvar
+                   WHERE ChromosomeAccession = ?
+                     AND Name LIKE ? 
+                     LIMIT 1
+                   """, (vv_nc_accession, nm_variant + '%'))
+
+    record = cursor.fetchone()
+    conn.close()
+
+    clinical_significance, conditions, stars, review_status = record
+
+    # Message to indicate that variant is being searched for in the downloaded ClinVar variant summary records.
+    if not record or len(record) == 0:
         print(f'Could not find {nc_variant} in ClinVar summary file!')
+
+    clinvar_output['classification'] = clinical_significance
+    clinvar_output['conditions'] = conditions
+    clinvar_output['stars'] = stars
+    clinvar_output['reviewstatus'] = review_status
 
     # Returns the clinvar_output dictionary, even if length is 0.
     return clinvar_output
