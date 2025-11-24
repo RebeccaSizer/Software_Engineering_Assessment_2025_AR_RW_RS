@@ -3,6 +3,7 @@ import subprocess
 from tools.modules.clinvar_functions import clinvar_vs_download
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
+os.makedirs(os.path.join(script_dir, "app", "clinvar"), exist_ok=True)
 clinvar_db_path = os.path.join(script_dir, "app", "clinvar", "clinvar.db")
 clinvar_gz_path = os.path.join(script_dir, "app", "clinvar", "clinvar_db_summary.txt.gz")
 
