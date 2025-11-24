@@ -29,7 +29,7 @@ def clinvar_vs_download():
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     clinvar_file_path = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar_db_summary.txt.gz"))
-    clinvar_db = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar_db.db"))
+    clinvar_records = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar.db"))
 
     # Save the variant summary records to a file (from ChatGPT).
     # Consider changing chunk_size to chunk_size=8192 is band-width is low.
@@ -40,33 +40,30 @@ def clinvar_vs_download():
             if chunk:
                 f.write(chunk)
 
-    # Condition to retrieve the date when the ClinVar variant_summary records were last modified.
-    if 'Last-Modified' in requests.head(url).headers:
-        print("ClinVar database last modified:", requests.head(url).headers['Last-Modified'])
-    else:
-        print("No Last-Modified header present")
+    # Print the date when the ClinVar variant_summary records were last modified.
+    print("ClinVar database last modified:", requests.head(url).headers['Last-Modified'])
 
-    conn = sqlite3.connect(clinvar_db)
+    conn = sqlite3.connect(clinvar_records)
     cur = conn.cursor()
 
     cur.execute("""
-            CREATE TABLE IF NOT EXISTS clinvar_db (
+            CREATE TABLE IF NOT EXISTS clinvar (
                 nc_accession TEXT,
-                nc_hgvs TEXT,
+                nm_hgvs TEXT,
                 clinical_significance TEXT,
-                conditions TEXT
-                review_status TEXT,
-                stars
+                conditions TEXT,
+                stars TEXT,
+                review_status TEXT             
             );
         """)
 
     cur.execute("DELETE FROM clinvar;")
 
-    with gzip.open("clinvar_db_summary.txt.gz", "rt") as gz:
+    variant_info = []
+
+    with gzip.open(clinvar_file_path, "rt") as gz:
+
         reader = csv.DictReader(gz, delimiter="\t")
-        records = []
-        dict_nm_hgvs = ''
-        stars = ''
 
         for record in reader:
 
@@ -83,40 +80,39 @@ def clinvar_vs_download():
                 else:
                     dict_nm_hgvs = record['Name']
 
-            if 'practice guideline' in record['ReviewStatus']:
+                if 'practice guideline' in record['ReviewStatus']:
 
-                stars = '★★★★'
+                    stars = '★★★★'
 
-            elif 'reviewed by expert panel' in record['ReviewStatus']:
+                elif 'reviewed by expert panel' in record['ReviewStatus']:
 
-                stars = '★★★'
+                    stars = '★★★'
 
-            elif 'multiple submitters' in record['ReviewStatus']:
+                elif 'multiple submitters' in record['ReviewStatus']:
 
-                stars = '★★'
+                    stars = '★★'
 
-            elif 'single submitter' in record['ReviewStatus']:
+                elif 'single submitter' in record['ReviewStatus']:
 
-                stars = '★'
+                    stars = '★'
 
-            else:
+                else:
 
-                stars = '0★'
+                    stars = '0★'
 
-            records.append((record['ChromosomeAccession'],
-                            dict_nm_hgvs,
-                            record['ClinicalSignificance'],
-                            record['ReviewStatus'],
-                            record['PhenotypeList'].replace('not provided', '').replace('|', '; '),
-                            stars
-                            )
-            )
+                variant_info.append((record['ChromosomeAccession'],
+                                dict_nm_hgvs,
+                                record['ClinicalSignificance'],
+                                record['PhenotypeList'].replace('not provided', '').replace('|', '; '),
+                                stars,
+                                record['ReviewStatus']
+                ))
 
     cur.executemany("""
-            INSERT INTO clinvar_db VALUES (?, ?, ?, ?, ?, ?)
-        """, records)
+            INSERT INTO clinvar VALUES (?, ?, ?, ?, ?, ?)
+        """, variant_info)
 
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_clinvar ON clinvar (ChromosomeAccession, Name);")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_clinvar ON clinvar (nc_accession, nm_hgvs);")
     conn.commit()
     conn.close()
 
@@ -156,7 +152,7 @@ def clinvar_annotations(nc_variant, nm_variant):
     clinvar_output = {}
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    clinvar_db = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar_db.db"))
+    clinvar_db = os.path.abspath(os.path.join(script_dir, "..", "flask_search_database", "clinvar.db"))
 
     # Message to indicate that variant is being searched for in the downloaded ClinVar variant summary records.
     print(f'Searching ClinVar database for {nc_variant} ...')
@@ -167,27 +163,29 @@ def clinvar_annotations(nc_variant, nm_variant):
     cursor.execute("""
                    SELECT clinical_significance, conditions, stars, review_status
                    FROM clinvar
-                   WHERE ChromosomeAccession = ?
-                     AND Name LIKE ? 
+                   WHERE nc_accession = ?
+                     AND nm_hgvs LIKE ? 
                      LIMIT 1
                    """, (vv_nc_accession, nm_variant + '%'))
 
     record = cursor.fetchone()
     conn.close()
 
-    clinical_significance, conditions, stars, review_status = record
-
     # Message to indicate that variant is being searched for in the downloaded ClinVar variant summary records.
     if not record or len(record) == 0:
         print(f'Could not find {nc_variant} in ClinVar summary file!')
 
-    clinvar_output['classification'] = clinical_significance
-    clinvar_output['conditions'] = conditions
-    clinvar_output['stars'] = stars
-    clinvar_output['reviewstatus'] = review_status
+    else:
 
-    # Returns the clinvar_output dictionary, even if length is 0.
-    return clinvar_output
+        clinical_significance, conditions, stars, review_status = record
+
+        clinvar_output['classification'] = clinical_significance
+        clinvar_output['conditions'] = conditions
+        clinvar_output['stars'] = stars
+        clinvar_output['reviewstatus'] = review_status
+
+        # Returns the clinvar_output dictionary, even if length is 0.
+        return clinvar_output
 '''
 # Example
 if __name__ == "__main__":
