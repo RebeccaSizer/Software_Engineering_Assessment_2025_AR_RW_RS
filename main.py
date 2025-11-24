@@ -2,9 +2,9 @@ import os
 import subprocess
 from tools.modules.clinvar_functions import clinvar_vs_download
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-clinvar_db_path = os.path.join(script_dir, "app", "clinvar", "clinvar.db")
-clinvar_gz_path = os.path.join(script_dir, "app", "clinvar", "clinvar_db_summary.txt.gz")
+base_dir = os.path.dirname(os.path.abspath(__file__))
+clinvar_db_path = os.path.join(base_dir, "app", "clinvar", "clinvar.db")
+clinvar_gz_path = os.path.join(base_dir, "app", "clinvar", "clinvar_db_summary.txt.gz")
 
 # Run download only if DB is missing
 if not os.path.exists(clinvar_db_path):

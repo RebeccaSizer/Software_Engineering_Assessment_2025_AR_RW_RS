@@ -26,7 +26,8 @@ share/python-wheels/
 *.egg
 MANIFEST
 *.vcf
-*.db*
+*.csv
+*.db
 app/clinvar/clinvar_db_summary.txt.gz
 
 # PyInstaller
