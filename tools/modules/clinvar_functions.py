@@ -28,6 +28,7 @@ def clinvar_vs_download():
     clinvar_db.raise_for_status()
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    os.makedirs(os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar")), exist_ok=True)
     clinvar_file_path = os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar", "clinvar_db_summary.txt.gz"))
     clinvar_records = os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar", "clinvar.db"))
 
