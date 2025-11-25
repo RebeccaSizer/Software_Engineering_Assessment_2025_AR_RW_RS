@@ -22,8 +22,7 @@ from flask import (
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from tools.modules.database_functions import patient_variant_table, variant_annotations_table, validate_database, query_db
-
-
+from tools.modules.search_term import get_mane_nc
 # ---------------------------------------------------------------
 # Flask setup
 # ---------------------------------------------------------------
@@ -152,6 +151,7 @@ def query_page(db_name):
     if request.method == "POST":
         patient_ID = request.form.get("patient_ID")
         variant_nc = request.form.get("variant_NC")
+        variant_search_term = get_mane_nc(variant_nc)
         gene = request.form.get("gene")
 
         if patient_ID:
@@ -204,7 +204,7 @@ def query_page(db_name):
                 v.Stars,
                 v.Review_status
             """
-            data = query_db(db_path, query, (variant_nc,))
+            data = query_db(db_path, query, (variant_search_term,))
             result_type = "variant_NC"
 
         elif gene:
