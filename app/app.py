@@ -22,7 +22,7 @@ from flask import (
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from tools.modules.database_functions import patient_variant_table, variant_annotations_table, validate_database, query_db
-
+from tools.modules.vv_functions import get_mane_nc
 
 # ---------------------------------------------------------------
 # Flask setup
@@ -78,14 +78,14 @@ def choose_create_or_add():
             os.remove(variant_file_path)
 
             flash(f"{file.filename} added to database.")
-            return render_template("Home_Template_Flask.html", databases=databases)
+            return redirect(url_for("choose_create_or_add"))
 
         # Selecting existing database
         elif form_type == "open_db":
             selected_db = request.form.get("existing_db")
             return redirect(url_for("query_page", db_name=selected_db))
 
-    # Uploading new database
+        # Uploading new database
         elif form_type == "upload_db":
 
             file = request.files.get("database_file")
@@ -152,6 +152,7 @@ def query_page(db_name):
     if request.method == "POST":
         patient_ID = request.form.get("patient_ID")
         variant_nc = request.form.get("variant_NC")
+        variant_search_term = get_mane_nc(variant_nc)
         gene = request.form.get("gene")
 
         if patient_ID:
@@ -204,7 +205,7 @@ def query_page(db_name):
                 v.Stars,
                 v.Review_status
             """
-            data = query_db(db_path, query, (variant_nc,))
+            data = query_db(db_path, query, (variant_search_term,))
             result_type = "variant_NC"
 
         elif gene:

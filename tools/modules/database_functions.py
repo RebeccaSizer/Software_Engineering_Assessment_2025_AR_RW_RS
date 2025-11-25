@@ -2,7 +2,7 @@ import os
 import time
 import sqlite3
 from ..utils.parser import variantParser
-from .HGVS_fetcher import fetch_vv
+from .vv_functions import fetch_vv
 from .clinvar_functions import clinvar_annotations
 
 def patient_variant_table(filepath, db_name):
