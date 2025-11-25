@@ -2,7 +2,7 @@ import requests
 import time
 import re
 
-def get_mane_nc(search_term: str):
+def get_mane_nc(variant: str):
     """
     Convert a search term identifier to its corresponding NC_ identifier
     using the VariantValidator REST API.
