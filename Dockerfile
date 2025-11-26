@@ -1,29 +1,30 @@
 # syntax=docker/dockerfile:1
 
-# runs buildx within the container, important for building steps
-FROM docker
-COPY --from=docker/buildx-bin /buildx /usr/libexec/docker/cli-plugins/docker-buildx
-
-
 # Comments are provided throughout this file to help you get started.
 # If you need more help, visit the Dockerfile reference guide at
 # https://docs.docker.com/engine/reference/builder/
 
-#ARG PYTHON_VERSION=3.10
-#FROM python:${PYTHON_VERSION}-slim as base
 
-FROM python:3.10-slim as base
+#define the build argument for python version
+ARG PYTHON_VERSION=3.13
+#specify the base image
+FROM python:${PYTHON_VERSION}-slim AS base
+#Specify the port number the container will listen on
+EXPOSE 5000
 
-# Prevents Python from writing pyc files.
+# Prevents Python from writing .pyc files.
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Keeps Python from buffering stdout and stderr to avoid situations where the application crashes without emitting any logs due to buffering.
+# Prevents Python from buffering stdout and stderr. This ensures that logs are outputted in real-time.
 ENV PYTHONUNBUFFERED=1
 
-# Set the working directory to /app
-WORKDIR /app
+# Set the working directory to the top level of the project
+WORKDIR /Software_Engineering_Assessment_2025_AR_RW_RS
 
+#25/11/2025
 # Mount the current host directory to the container's /app directory
+# This allows for easy development and testing without rebuilding the image.
+#CHECK THIS IS CORRECT 
 VOLUME /app
 
 # Create a non-privileged user that the app will run under.
@@ -55,12 +56,9 @@ USER appuser
 # Copy the source code into the container.
 COPY . .
 
-# Expose the port that the application listens on.
-EXPOSE 8000
-
 # Start the container by running a specific Python script. The "tail", "-f", "/dev/null" command allows the container to keep running in detached mode untill it it killed manually
 
 # Set the working directory to /app
-WORKDIR ./PanelSearch
+WORKDIR ./app
 
 CMD ["python", "main.py", "tail", "-f", "/dev/null"]
