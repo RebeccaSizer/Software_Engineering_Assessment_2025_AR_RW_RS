@@ -3,6 +3,31 @@
 <head>
     <title>Upload or Select Database</title>
     <style>
+        /* Tiny 10px spinner */
+        .spinner-tiny {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #24bf96;  /* SAME as background */
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            animation: spin 0.6s linear infinite;
+            display: none;
+        }
+
+        /* Subtle loading message */
+        .loading-message {
+            display: none;
+            margin-top: 10px;
+            color: white;
+            font-size: 14px;
+            font-style: italic;
+            opacity: 0.9;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         body {
             background-color: #24bf96;
             color: white;
@@ -17,6 +42,7 @@
         }
     </style>
 </head>
+
 <body>
     <h1>🧬 Variant Database Query Tool</h1>
 
@@ -49,23 +75,16 @@
         </datalist>
         {% endif %}
 
-        <button type="submit" class="btn btn-primary mt-3">Create Database</button>
+        <button type="submit" class="btn btn-primary mt-3">
+            Create Database
+            <span id="tinySpinner" class="spinner-tiny"></span>
+        </button>
     </form>
 
-    <!-- Spinner (hidden by default) -->
-    <div id="loadingSpinner" class="spinner-border text-primary" role="status" style="display:none; margin-top: 20px;">
-        <span class="visually-hidden">Loading...</span>
+    <div id="loadingArea" style="margin-top: 10px;">
+        <div id="tinySpinner" class="spinner-tiny"></div>
+        <div id="loadingMsg" class="loading-message">Loading database. Please wait...</div>
     </div>
-
-    <!-- Optional: JavaScript to show spinner on submit -->
-    <script>
-        const form = document.getElementById("make_database");
-        const spinner = document.getElementById("loadingSpinner");
-
-        form.addEventListener("submit", () => {
-            spinner.style.display = "inline-block"; // show spinner
-        });
-    </script>
 
     <hr>
 
@@ -96,6 +115,17 @@
         <input type="file" name="database_file" accept=".db" required>
         <button type="submit">Upload Database</button>
     </form>
+
+    <script>
+        const form = document.getElementById("make_database");
+        const spinner = document.getElementById("tinySpinner");
+        const msg = document.getElementById("loadingMsg");
+
+        form.addEventListener("submit", () => {
+            spinner.style.display = "inline-block";  // show tiny spinner
+            msg.style.display = "block";            // show loading text
+        });
+    </script>
 
 </body>
 </html>
