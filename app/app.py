@@ -62,14 +62,14 @@ def choose_create_or_add():
 
             if not files or files[0].filename == '':
                 flash("No file uploaded")
-                return render_template("Home_Template_Flask.html", databases=databases)
+                return render_template("homepage.html", databases=databases)
 
             # Save the files inside the temp folder
             for file in files:
 
                 if not file.filename.endswith('.vcf'):
                     flash("❌ Invalid file type. Please upload VCF files only.")
-                    return render_template("Home_Template_Flask.html", databases=databases)
+                    return render_template("homepage.html", databases=databases)
 
                 variant_file_path = os.path.join(app.config['variant_files_upload_folder'], file.filename)
                 file.save(variant_file_path)
@@ -100,13 +100,13 @@ def choose_create_or_add():
 
             if not file or file.filename == "":
                 flash("No file selected.")
-                return render_template("Home_Template_Flask.html", databases=databases)
+                return render_template("homepage.html", databases=databases)
 
             filename = file.filename
 
             if not filename.endswith(".db"):
                 flash("❌ Invalid file type. Please upload a .db file.")
-                return render_template("Home_Template_Flask.html", databases=databases)
+                return render_template("homepage.html", databases=databases)
 
             filepath = os.path.join(app.config['db_upload_folder'], filename)
             file.save(filepath)
@@ -118,7 +118,7 @@ def choose_create_or_add():
                 flash("✅ Database uploaded and validated successfully.")
                 return redirect(url_for("query_page", db_name=filename))
 
-    return render_template("Home_Template_Flask.html", databases=databases)
+    return render_template("homepage.html", databases=databases)
 
 # ---------------------------------------------------------------
 # Route: Query page - patient, variant_NC, or gene searches
@@ -135,7 +135,7 @@ def query_page(db_name):
     db_path = os.path.join(app.config["db_upload_folder"], db_name)
     if not os.path.exists(db_path):
         flash("Database not found.")
-        return redirect(url_for("upload_db"))
+        return redirect(url_for("homepage.html"))
 
     data = None
     result_type = None
@@ -268,7 +268,7 @@ def query_page(db_name):
         export_rows_json = json.dumps(rows_for_export)
 
     return render_template(
-        "Database_Query_Flask.html",
+        "db_query_page.html",
         db_name=db_name,
         databases=databases,
         data=data,
@@ -294,7 +294,7 @@ def display_database(db_name):
     db_path = os.path.join(app.config["db_upload_folder"], db_name)
     if not os.path.exists(db_path):
         flash("Database not found.")
-        return redirect(url_for("upload_db"))
+        return redirect(url_for("homepage.html"))
 
     # Columns we show (no duplicate 'variant', we show variant_NC)
     all_columns = [
@@ -383,7 +383,7 @@ def display_database(db_name):
         export_rows_json = json.dumps(rows_for_export)
 
     return render_template(
-        "Display_All_Flask.html",
+        "db_display_page.html",
         db_name=db_name,
         data=data,
         all_columns=all_columns,
@@ -437,7 +437,7 @@ def switch_db():
     if db_name:
         return redirect(url_for("query_page", db_name=db_name))
     flash("No database selected.")
-    return redirect(url_for("upload_db"))
+    return redirect(url_for("homepage.html"))
 
 
 # ---------------------------------------------------------------

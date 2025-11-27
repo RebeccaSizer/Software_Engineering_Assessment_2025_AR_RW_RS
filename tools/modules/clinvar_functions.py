@@ -81,7 +81,7 @@ def clinvar_vs_download():
                 else:
                     record_nm_hgvs = record['Name']
 
-                record_condition = record['PhenotypeList'].replace('not provided; ', '').replace('not specified; ', '').replace('|', '; ').strip()
+                record_condition = record['PhenotypeList'].replace('not provided| ', '').replace('not specified| ', '').replace('not provided|', '').replace('not specified|', '').replace('not provided', '').replace('not specified', '').replace('|', '; ')
 
                 if record_condition == '':
 
