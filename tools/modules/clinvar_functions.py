@@ -76,10 +76,16 @@ def clinvar_vs_download():
             if record['Name'].startswith('NM'):
 
                 if '(' in record['Name']:
-                    dict_nm_hgvs = f'{record['Name'].split('(')[0]}{record['Name'].split(')')[1].split(' ')[0]}'
+                    record_nm_hgvs = f'{record['Name'].split('(')[0]}{record['Name'].split(')')[1].split(' ')[0]}'
 
                 else:
-                    dict_nm_hgvs = record['Name']
+                    record_nm_hgvs = record['Name']
+
+                record_condition = record['PhenotypeList'].replace('not provided; ', '').replace('not specified; ', '').replace('|', '; ').strip()
+
+                if record_condition == '':
+
+                    record_condition = 'None provided'
 
                 if 'practice guideline' in record['ReviewStatus']:
 
@@ -102,9 +108,9 @@ def clinvar_vs_download():
                     stars = '0★'
 
                 variant_info.append((record['ChromosomeAccession'],
-                                dict_nm_hgvs,
+                                record_nm_hgvs,
                                 record['ClinicalSignificance'],
-                                record['PhenotypeList'].replace('not provided', '').replace('|', '; '),
+                                record_condition,
                                 stars,
                                 record['ReviewStatus']
                 ))

@@ -18,15 +18,23 @@
         .loading-message {
             display: none;
             margin-top: 10px;
-            color: white;
+            color: #7A1F5C;
             font-size: 14px;
             font-style: italic;
+            font-weight: bold;
             opacity: 0.9;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        .flash-messages li {
+            font-size: 14px;
+            color: #7A1F5C;
+            font-weight: bold;
+        }
+
 
         body {
             background-color: #24bf96;
@@ -48,7 +56,7 @@
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <ul>
+        <ul class="flash-messages">
           {% for message in messages %}
             <li>{{ message }}</li>
           {% endfor %}
@@ -62,8 +70,8 @@
 
         <input type="hidden" name="form_type" value="add_variant">
 
-        <label for="vcf">Select a variant file:</label>
-        <input type="file" name="vcf" id="vcf" accept=".vcf" required>
+        <label for="vcf">Select a variant files:</label>
+        <input type="file" name="vcf_files" id="vcf" accept=".vcf" multiple required>
 
         <label for="db_file">Choose or enter a database file name:</label>
         <input list="existing_db" name="db_file" id="db_file" class="form-control">
@@ -77,12 +85,11 @@
 
         <button type="submit" class="btn btn-primary mt-3">
             Create Database
-            <span id="tinySpinner" class="spinner-tiny"></span>
+            <span id="buttonSpinner" class="spinner-tiny"></span>
         </button>
     </form>
 
     <div id="loadingArea" style="margin-top: 10px;">
-        <div id="tinySpinner" class="spinner-tiny"></div>
         <div id="loadingMsg" class="loading-message">Loading database. Please wait...</div>
     </div>
 
@@ -118,11 +125,11 @@
 
     <script>
         const form = document.getElementById("make_database");
-        const spinner = document.getElementById("tinySpinner");
+        const buttonSpinner = document.getElementById("buttonSpinner");
         const msg = document.getElementById("loadingMsg");
 
         form.addEventListener("submit", () => {
-            spinner.style.display = "inline-block";  // show tiny spinner
+            buttonSpinner.style.display = "inline-block";
             msg.style.display = "block";            // show loading text
         });
     </script>

@@ -57,27 +57,35 @@ def choose_create_or_add():
 
         # Creating or adding to a database
         if form_type == "add_variant":
-            file = request.files.get('vcf')
+            files = request.files.getlist("vcf_files")
             database_name = os.path.splitext(request.form["db_file"])[0]
 
-            if not file:
+            if not files or files[0].filename == '':
                 flash("No file uploaded")
                 return render_template("Home_Template_Flask.html", databases=databases)
 
-            if not file.filename.endswith('.vcf'):
-                flash("❌ Invalid file type. Please upload a VCF file.")
-                return render_template("Home_Template_Flask.html", databases=databases)
+            # Save the files inside the temp folder
+            for file in files:
 
-            # Save the file inside the uploads folder
-            variant_file_path = os.path.join(app.config['variant_files_upload_folder'], file.filename)
-            file.save(variant_file_path)
+                if not file.filename.endswith('.vcf'):
+                    flash("❌ Invalid file type. Please upload VCF files only.")
+                    return render_template("Home_Template_Flask.html", databases=databases)
+
+                variant_file_path = os.path.join(app.config['variant_files_upload_folder'], file.filename)
+                file.save(variant_file_path)
 
             # Get the absolute path for use in your scripts
             patient_variant_table(app.config['variant_files_upload_folder'], database_name)
             variant_annotations_table(app.config['variant_files_upload_folder'], database_name)
-            os.remove(variant_file_path)
 
-            flash(f"{file.filename} added to database.")
+            # Delete the files from the temp folder otherwise every file in the temp folder will be processed after
+            # the user adds another file to the database.
+            for file in files:
+                variant_file_path = os.path.join(app.config['variant_files_upload_folder'], file.filename)
+                os.remove(variant_file_path)
+
+            filenames = [file.filename for file in files]
+            flash(f"Added {', '.join(filenames)} to database.")
             return redirect(url_for("choose_create_or_add"))
 
         # Selecting existing database
