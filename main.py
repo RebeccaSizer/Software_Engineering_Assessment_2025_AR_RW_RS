@@ -1,5 +1,4 @@
 import os
-import subprocess
 import webbrowser
 from threading import Timer
 from tools.modules.clinvar_functions import clinvar_vs_download
