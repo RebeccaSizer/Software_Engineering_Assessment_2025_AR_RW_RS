@@ -54,43 +54,40 @@ def patient_variant_table(filepath, db_name):
         else:
             continue
 
+    # Create (or connect to) the database file:
+
+    # Get the filepath to the directory of this script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Build absolute path to the database
+    db_path = os.path.abspath(
+        os.path.join(script_dir, '..', '..', 'databases', f'{db_name}.db'))
+
+    # Make the databases folder if it does not exist
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+
+    # Connect to the database
+    conn = sqlite3.connect(db_path)
+
+    # Create a cursor to run SQL commands
+    cursor = conn.cursor()
+
+    # Create the patient_variant table if it does not already exist. UNIQUE groups the patient_ID and variant together
+    # to ensure that they can only appear once in the table together.
+    cursor.execute("""
+                       CREATE TABLE IF NOT EXISTS patient_variant (
+                                                                      No INTEGER PRIMARY KEY,
+                                                                      patient_ID TEXT NOT NULL,
+                                                                      variant TEXT NOT NULL,
+                                                                      UNIQUE(patient_ID, variant)
+                           )
+                       """)
+
     # Iterate through the absolute filepaths to the .vcf files.
     for path in vcf_paths:
 
         # Apply the variantParser function to extract the variants listed in the files.
         variant_list = variantParser(path)
-
-        # Create (or connect to) the database file.
-        # Get the directory of this script
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-
-        # Build absolute path to the database
-        db_path = os.path.abspath(
-            os.path.join(script_dir, '..', '..', 'databases', f'{db_name}.db'))
-
-        # Ensure the folder exists (optional)
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-
-        # Connect to the database
-        conn = sqlite3.connect(db_path)
-
-        # Create a cursor to run SQL commands
-        cursor = conn.cursor()
-
-        # Create the patient_variant table if it does not already exist.
-        cursor.execute("""
-                       CREATE TABLE IF NOT EXISTS patient_variant (
-                                                                      No INTEGER PRIMARY KEY,
-                                                                      patient_ID TEXT NOT NULL,
-                                                                      variant TEXT NOT NULL,
-
-                           /* 
-                            The patient ID and respective variant are collectively treated as unique. 
-                            If either of them are different while the other exits in the table, a new entry will be made in the table.
-                            */
-                                                                      UNIQUE(patient_ID, variant)
-                           )
-                       """)
 
         # Data is then assigned to each header:
 
@@ -115,9 +112,9 @@ def patient_variant_table(filepath, db_name):
                 # The patient ID and corresponding variant are added to the patient_variant table.
                 cursor.execute("INSERT OR IGNORE INTO patient_variant (patient_ID, variant) VALUES (?, ?)", (patient_name, variant_info[0]))
 
-        # Save (commit) changes and close connection
-        conn.commit()
-        conn.close()
+    # Save (commit) changes to the database and close connection
+    conn.commit()
+    conn.close()
 
     # A message is printed in the back-end to indicate that the table was successfully created or updated.
     print("patient_variant table created/updated successfully!")
@@ -172,42 +169,41 @@ def variant_annotations_table(filepath, db_name):
         else:
             continue
 
+    # Get the filepath to the directory of this script
+    script_dir = os.path.dirname(os.path.abspath(__file__))  # RS
+
+    # Absolute path to database
+    db_path = os.path.abspath(os.path.join(script_dir, '..', '..', 'databases', f'{db_name}.db'))  # RS
+
+    # Create (or connect to) the database file.
+    conn = sqlite3.connect(db_path)
+
+    # Create a cursor to run SQL commands.
+    cursor = conn.cursor()
+
+    # Create the variant_annotations table if it does not already exist. UNIQUE groups the variant_NC, variant_NM,
+    # and variant_NP together to ensure that they can only appear once in the table together.
+    cursor.execute("""
+                   CREATE TABLE IF NOT EXISTS variant_annotations (
+                                                                      No INTEGER PRIMARY KEY,
+                                                                      variant_NC TEXT NOT NULL,
+                                                                      variant_NM TEXT NOT NULL,
+                                                                      variant_NP TEXT NOT NULL,
+                                                                      gene TEXT NOT NULL,
+                                                                      HGNC_ID INTEGER NOT NULL,
+                                                                      Classification TEXT NOT NULL,
+                                                                      Conditions TEXT NOT NULL,
+                                                                      Stars TEXT,
+                                                                      Review_status TEXT NOT NULL,
+                                                                      UNIQUE(variant_NC, variant_NM, variant_NP)
+                       )
+                   """)
+
     # Iterate through the absolute filepaths to the .vcf files.
     for path in vcf_paths:
 
         # Apply the variantParser function to extract the variants listed in the files.
         variant_list = variantParser(path)
-        script_dir = os.path.dirname(os.path.abspath(__file__)) #RS
-
-        # Absolute path to database
-        db_path = os.path.abspath(os.path.join(script_dir, '..', '..', 'databases', f'{db_name}.db')) #RS
-        # Create (or connect to) the database file.
-        conn = sqlite3.connect(db_path)
-
-        # Create a cursor to run SQL commands.
-        cursor = conn.cursor()
-
-        # Create the variant_annotations table if it does not already exist.
-        cursor.execute("""
-                       CREATE TABLE IF NOT EXISTS variant_annotations (
-                                                                          No INTEGER PRIMARY KEY,
-                                                                          variant_NC TEXT NOT NULL,
-                                                                          variant_NM TEXT NOT NULL,
-                                                                          variant_NP TEXT NOT NULL,
-                                                                          gene TEXT NOT NULL,
-                                                                          HGNC_ID INTEGER NOT NULL,
-                                                                          Classification TEXT NOT NULL,
-                                                                          Conditions TEXT NOT NULL,
-                                                                          Stars,
-                                                                          Review_status TEXT NOT NULL,
-
-                           /* 
-                            The NC_, NM_, and NP_, accession numbers are collectively treated as unique. 
-                            If any of them are different while the others are the same, a new entry will be made in the table.
-                            */
-                                                                          UNIQUE(variant_NC, variant_NM, variant_NP)
-                           )
-                       """)
 
         # Data is then assigned to each header:
 

@@ -1,6 +1,8 @@
 import os
-import subprocess
+import webbrowser
+from threading import Timer
 from tools.modules.clinvar_functions import clinvar_vs_download
+from app.app import app
 
 # Create a filepath to the ClinVar database
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -13,5 +15,10 @@ if not os.path.exists(clinvar_db_path):
 else:
     print("ClinVar database available. No download needed.")
 
-# Then run the app
-subprocess.run(["python", "app/app.py"])
+
+def open_browser():
+    webbrowser.open("http://127.0.0.1:5000")
+
+if __name__ == "__main__":
+    Timer(1, open_browser).start()
+    app.run(debug=True)
