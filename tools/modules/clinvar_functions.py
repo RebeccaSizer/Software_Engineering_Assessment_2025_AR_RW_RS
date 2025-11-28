@@ -4,18 +4,21 @@ import gzip
 import csv
 import requests
 from ..utils.timer import timer
+from tools.utils.logger import logger
 
 @timer
 def clinvar_vs_download():
     '''
-    This function retrieves the most recent ClinVar variant summary records from NCBI.
+    This function retrieves the most recent ClinVar variant summary records from NCBI and loads them into a database.
 
     :outputs: clinvar_db_summary.txt.gz: A compressed .txt file which contains the variant summaries from ClinVar.
+
+              clinvar.db: a sqlite database containing the variant summaries from ClinVar.
 
               Last-Modified: When the ClinVar variant summaries database was last updated.
                        E.g.: "ClinVar database last modified: Sun, 16 Nov 2025 22:54:32 GMT
 
-    :command: clinvar_vs_fetcher()
+    :command: clinvar_vs_download()
     '''
 
     # The url to the database where we can download the variant summary records.
@@ -27,22 +30,28 @@ def clinvar_vs_download():
     # Raise an error if download failed.
     clinvar_db.raise_for_status()
 
+    # Retrieve the path to this script.
     script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Using the path, to this script, make a subdirectory in the app folder located in the base directory.
     os.makedirs(os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar")), exist_ok=True)
+
+    # Designate where the ClinVar variant summary records and clinvar.db should be.
     clinvar_file_path = os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar", "clinvar_db_summary.txt.gz"))
     clinvar_records = os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar", "clinvar.db"))
 
     # Save the variant summary records to a file (from ChatGPT).
-    # Consider changing chunk_size to chunk_size=8192 is band-width is low.
-    # Consider changing chunk_size to chunk_size=65536 is band-width is high.
-    # or let the requests module decide by using: clinvar_db.iter_content(chunk_size=None)
+    # Consider changing chunk_size to chunk_size=8192 if band-width is low.
+    # Consider changing chunk_size to chunk_size=65536 if band-width is medium.
+    # Consider changing chunk_size to chunk_size=1024*1024 if band-width is high.
+    # Or let the requests module decide by using: clinvar_db.iter_content(chunk_size=None)
     with open(clinvar_file_path, "wb") as f:
         for chunk in clinvar_db.iter_content(chunk_size=65536):
             if chunk:
                 f.write(chunk)
 
     # Print the date when the ClinVar variant_summary records were last modified.
-    print("ClinVar database last modified:", requests.head(url).headers['Last-Modified'])
+    logger.info("ClinVar database last modified:", requests.head(url).headers['Last-Modified'])
 
     conn = sqlite3.connect(clinvar_records)
     cur = conn.cursor()
