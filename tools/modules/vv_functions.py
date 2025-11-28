@@ -120,13 +120,31 @@ def get_mane_nc(variant: str):
     # first for ensenmbl transcript
     # ENST - VariantValidator/variantvalidator_ensembl end point
     if variant.startswith('ENST'):
-        ENST_variant = variant.replace(':', '%3A').replace('>', '%3E')
-        url_vv = f"{base_url_VV}variantvalidator_ensembl/GRCh38/{ENST_variant}/mane_select?content-type=application%2Fjson"  # ENST - transcript
+        transcript, genetic_change = variant.split(':')
+
+        if genetic_change.startswith('c.'):
+            ENST_variant = variant.replace(':', '%3A').replace('>', '%3E')
+            url_vv = f"{base_url_VV}variantvalidator_ensembl/GRCh38/{ENST_variant}/mane_select?content-type=application%2Fjson"  # ENST - transcript
+
+        else:
+            print(f"Error: ENST variant must use c. notation: {variant}")
+            return 'error_enst_not_c' 
 
     # search by NM or LRG Ref Seq transcript - VariantValidator/variantvalidator end point
     elif variant.startswith(('NM_', 'LRG_', 'NC_', 'NG_')):
-        refseq_variant = variant.replace(':', '%3A').replace('>', '%3E')
-        url_vv = f"{base_url_VV}variantvalidator/GRCh38/{refseq_variant}/mane_select?content-type=application%2Fjson"  # RefSeq - transcript
+        transcript, genetic_change = variant.split(':')
+
+        if genetic_change.startswith('c.') and variant.startswith(('NM_', 'LRG_', 'NG_')):
+            refseq_variant = variant.replace(':', '%3A').replace('>', '%3E')
+            url_vv = f"{base_url_VV}variantvalidator/GRCh38/{refseq_variant}/mane_select?content-type=application%2Fjson"  # RefSeq - transcript
+        
+        elif genetic_change.startswith('g.') and variant.startswith('NC_'):
+            refseq_variant = variant.replace(':', '%3A').replace('>', '%3E')
+            url_vv = f"{base_url_VV}variantvalidator/GRCh38/{refseq_variant}/mane_select?content-type=application%2Fjson"  # RefSeq - genomic
+        
+        else:
+            print(f"Error: RefSeq variant must use c. notation: {variant}")
+            return 'error_refseq_not_c'
 
     # search by gene symbol
     # Gene symbol - VariantValidator/tools/gene2transcripts_v2 end point
@@ -213,7 +231,9 @@ def get_mane_nc(variant: str):
                             nm_number = tx["reference"]
 
                             if nm_number:
-                                return f"{nm_number}:{genetic_change}"
+                                variant_nm = f"{nm_number}:{genetic_change}"
+                                nc_variant = get_mane_nc(variant_nm)
+                                return nc_variant
 
                             else:
                                 return f"No nm_number found"
