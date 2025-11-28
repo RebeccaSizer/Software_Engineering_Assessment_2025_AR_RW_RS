@@ -1,3 +1,11 @@
+# Sensitive information
+*.vcf
+*.csv
+*.db
+
+# Downloaded databases
+app/clinvar/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -25,9 +33,6 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-*.vcf
-*.db*
-app/clinvar/clinvar_db_summary.txt.gz
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -208,3 +213,4 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+tools/flask_search_database/clinvar_db_summary.txt.gz
