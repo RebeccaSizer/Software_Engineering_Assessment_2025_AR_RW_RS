@@ -1,9 +1,10 @@
 # First install the requests module if you haven't already:
 # pip install requests
 
-import requests  # Import the 'requests' library to handle HTTP requests to the VariantValidator API
-import time
 import re
+import time
+import requests  # Import the 'requests' library to handle HTTP requests to the VariantValidator API
+from tools.utils.logger import logger
 
 def fetch_vv(variant: str):
     """
