@@ -1,5 +1,4 @@
 import os
-import subprocess
 import webbrowser
 from threading import Timer
 from app.app import app

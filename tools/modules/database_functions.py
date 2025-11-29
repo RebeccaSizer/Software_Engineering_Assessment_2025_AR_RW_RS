@@ -259,9 +259,9 @@ def variant_annotations_table(filepath, db_name):
             else:
                 continue
 
-    # Save (commit) changes and close connection
-    conn.commit()
-    conn.close()
+        # Save (commit) changes and close connection
+        conn.commit()
+        conn.close()
 
     # A message is printed in the back-end to indicate that the table was successfully created or updated.
     print("variant_annotations created/updated successfully!")

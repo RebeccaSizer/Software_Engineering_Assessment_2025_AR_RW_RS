@@ -103,10 +103,10 @@ def get_mane_nc(variant: str):
 
     Parameters
     ----------
-    ENSG genomic ID : str, e.g. 'ENSG00000130164:c.301G>A'
-    ENST_transcript : str, e.g. 'ENST00000252444.10:c.301G>A' #needs converting to g.
+    ENSG genomic ID : str, e.g. 'ENSG00000130164:c.301G>A' #this doesn't work 
+    ENST_transcript : str, e.g. 'ENST00000252444.10:c.301G>A' #does this need converting to g.
     Ref Seq transcript ID : str, e.g. 'NM_000527.3:c.301G>A' or 'NM_001406861.1:c.301G>A' or 'LDLR:c.301G>A'
-    Gene symbol with change : str, e.g. 'LDLR:c.301G>A'
+    Gene symbol with change : str, e.g. 'LDLR:c.301G>A' 
 
     Returns
     -------
@@ -118,18 +118,39 @@ def get_mane_nc(variant: str):
 
     # Construct the full API request URL based on the type of search term.
     # first for ensenmbl transcript
+    # ENST - VariantValidator/variantvalidator_ensembl end point
     if variant.startswith('ENST'):
-        ENST_variant = variant.replace(':', '%3A').replace('>', '%3E')
-        url_vv = f"{base_url_VV}variantvalidator_ensembl/GRCh38/{variant}/mane_select?content-type=application%2Fjson"  # ENST - transcript
+        transcript, genetic_change = variant.split(':')
 
-    # search by NM or LRG Ref Seq transcript
-    elif variant.startswith(('NM_', 'LRG_', 'NC_')):
-        url_vv = f"{base_url_VV}variantvalidator/hg38/{variant}/mane_select?content-type=application%2Fjson"  # RefSeq - transcript
+        if genetic_change.startswith('c.'):
+            ENST_variant = variant.replace(':', '%3A').replace('>', '%3E')
+            url_vv = f"{base_url_VV}variantvalidator_ensembl/GRCh38/{ENST_variant}/mane_select?content-type=application%2Fjson"  # ENST - transcript
+
+        else:
+            print(f"Error: ENST variant must use c. notation: {variant}")
+            return 'error_enst_not_c' 
+
+    # search by NM or LRG Ref Seq transcript - VariantValidator/variantvalidator end point
+    elif variant.startswith(('NM_', 'LRG_', 'NC_', 'NG_')):
+        transcript, genetic_change = variant.split(':')
+
+        if genetic_change.startswith('c.') and variant.startswith(('NM_', 'LRG_', 'NG_')):
+            refseq_variant = variant.replace(':', '%3A').replace('>', '%3E')
+            url_vv = f"{base_url_VV}variantvalidator/GRCh38/{refseq_variant}/mane_select?content-type=application%2Fjson"  # RefSeq - transcript
+        
+        elif genetic_change.startswith('g.') and variant.startswith('NC_'):
+            refseq_variant = variant.replace(':', '%3A').replace('>', '%3E')
+            url_vv = f"{base_url_VV}variantvalidator/GRCh38/{refseq_variant}/mane_select?content-type=application%2Fjson"  # RefSeq - genomic
+        
+        else:
+            print(f"Error: RefSeq variant must use c. notation: {variant}")
+            return 'error_refseq_not_c'
 
     # search by gene symbol
+    # Gene symbol - VariantValidator/tools/gene2transcripts_v2 end point
     elif re.match(r'^[A-Za-z0-9_-]+:', variant):
         gene_symbol, genetic_change = variant.split(':')
-        url_vv = f"{base_url_VV}tools/gene2transcripts/{gene_symbol}?content-type=application%2Fjson"  # ENSG - gene
+        url_vv = f"{base_url_VV}tools/gene2transcripts/{gene_symbol}?content-type=application%2Fjson"  # Gene symbol - gene
 
     else:
         print(f"Error: Unrecognized variant format: {variant}")
@@ -153,26 +174,30 @@ def get_mane_nc(variant: str):
 
             # Parse the API response into a Python dictionary.
             data = response.json()
+            #print(data)
 
-            if data.get('flag') == 'empty_result':
+            if data.get('flag') == 'empty_result': #retrives the value for key 'flag'
 
                 print(f'{variant} returned an empty result from Variant Validator.')
                 return 'empty_result'
 
-            elif data is None:
+            elif data is None: #checks is data is empty 
 
                 print(f"Warning: fetchVV returned None for variant: {variant}")
                 return 'null'
 
-            elif "validation_warning_1" in data:
-                warning_block = data["validation_warning_1"]
+            elif any(k.startswith("validation_warning_") for k in data): #print out any warnings that come up 
+                for key in data:
 
-                warnings = warning_block.get("validation_warnings", [])
+                    if key.startswith("validation_warning_"):
+                        warning_block = data[key]
+                        warnings = warning_block.get("validation_warnings", [])
 
-                if warnings:
-                    print("Validation warnings:")
-                    for w in warnings:
-                        print(f" - {w}")
+                        if warnings:
+                            print(f"Validation warnings from {key}:")
+
+                            for w in warnings:
+                                print(f" - {w}")
 
             elif variant.startswith(('ENS', 'NM_', 'LRG_', 'NC_')):
                 nm_variant = list(data.keys())[0]
@@ -180,14 +205,38 @@ def get_mane_nc(variant: str):
                 return nc_variant
 
             elif re.match(r'^[A-Za-z0-9_-]+:', variant):
-                transcripts = data["transcripts"][0]["genomic_spans"]
+                nc_number = None
+                transcripts = []
 
-                if not transcripts:
-                    print(f"Warning: No transcripts found for variant {variant}")
-                    return 'empty_result'
+                for tx in data["transcripts"]: #this loops through all the transcripts that are in the API output in trancripts 
+                    if tx["annotations"].get("mane_select") is True:
+                        if genetic_change.startswith("g."): #find the transcripts that have mane_select = true
+                            transcripts.append(tx["genomic_spans"])
+                            print(tx.keys()) #add the genomics_span dictionary from these transcripts into a list
 
-                nc_number = [k for k in transcripts.keys() if k.endswith(".11")][0]
-                return f"{nc_number}:{genetic_change}"
+                        # Pick NC number from the first MANE transcript
+                            for tx in transcripts:
+                                for nc_number in tx.keys():
+                                    if nc_number.endswith(".11"):
+                                        nc_number = nc_number 
+                                        break           # breaks inner loop
+                                    else:
+                                    # inner loop didn't break → no .11 found in this tx
+                                        continue            # go to next tx
+                                    break
+
+                            return f"{nc_number}:{genetic_change}"
+                    
+                        if genetic_change.startswith("c."):
+                            nm_number = tx["reference"]
+
+                            if nm_number:
+                                variant_nm = f"{nm_number}:{genetic_change}"
+                                nc_variant = get_mane_nc(variant_nm)
+                                return nc_variant
+
+                            else:
+                                return f"No nm_number found"
 
             else:
                 print(f"Error: Unrecognized variant format after data retrieval: {variant}")
@@ -205,9 +254,23 @@ def get_mane_nc(variant: str):
 
 #print(fetchVV('11-2164285-C-T'))
 
-# Example usage
-#if __name__ == "__main__":
-#    variant = ["17-45983420-G-T"]
-#    output = HGVS_converter(variant)
-#    print("Final Output:")
-#    print(output)
+#Example usage
+if __name__ == "__main__":
+    variant = "PARK7:c.515T>A"
+    output = get_mane_nc(variant)
+    print("Final Output:")
+    print(output)
+
+#######
+#tests:
+# - NM_007262.5:c.515T>A
+# - PARK7:g.7984999T>A (worked in script)
+# - PARK:c.515T>A 
+# -  "ENST00000338639.10:c.515T>A" - output: NC_000001.11:g.7984999T>A (correct) 
+# ENST does not work with g. 
+# - NC_000001.11:g.7984999T>A - output: NC_000001.11:g.7984999T>A
+# - NM_007262.5:c.515T>A - output: NC_000001.11:g.7984999T>A
+# NM does not work with g. 
+# PARK7:c.515T>A - output: NM_007262.5:c.515T>A
+# PARK7:g.7984999T>A - NC_000001.11:g.7984999T>A
+
