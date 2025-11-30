@@ -213,15 +213,22 @@ def variant_annotations_table(filepath, db_name):
         # variant in the variant_list, in HGVS nomenclature.
         for variant in variant_list:
 
-            variant_info = fetch_vv(variant)
+            vv_response = fetch_vv(variant)
             # The time module creates a 0.5s delay after each request to Variant Validator (VV), so that VV is not overloaded with requests.
             time.sleep(0.5)
 
-            if not variant_info or variant_info in ('null', 'empty_result') or len(variant_info) != 5:
+            if not vv_response or len(vv_response) != 5:
+                file = path.split('/')[-1]
+                flash(f'{file}: {variant}: Irregular response from VariantValidator. Variant not added to database.')
+                continue
+
+            elif type(vv_response) == str:
+                file = path.split('/')[-1]
+                flash(f'{file}: {vv_response}')
                 continue
 
             try:
-                nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id = variant_info
+                nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id = vv_response
 
             except ValueError:
                 continue

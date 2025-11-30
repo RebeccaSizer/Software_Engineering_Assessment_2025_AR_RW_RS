@@ -159,7 +159,7 @@ def clinvar_vs_download():
                 if record['Name'].startswith('NM'):
 
                     if '(' in record['Name']:
-                        record_nm_hgvs = f'{record['Name'].split('(')[0]}{record['Name'].split(')')[1].split(' ')[0]}'
+                        record_nm_hgvs = f"{record['Name'].split('(')[0]}{record['Name'].split(')')[1].split(' ')[0]}"
 
                     else:
                         record_nm_hgvs = record['Name']
@@ -257,19 +257,8 @@ def clinvar_annotations(nc_variant, nm_variant):
     :command: clinvarAnnotations('NC_000011.10:g.2164285C>T', 'NM_000360.4:c.1442G>A')
     '''
 
-    # Ensure that the input genomic variant is in the appropriate HGVS nomenclature.
-    if not re.match('^NC_\d+.\d{1,2}:g[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nc_variant):
-        logger.error(f'{nc_variant} is not in valid HGVS nomenclature.')
-        return f'{nc_variant} is not in valid HGVS nomenclature.'
-
-    # Ensure that the input transcript variant is in the appropriate HGVS nomenclature.
-    elif not re.match('^NM_\d+.\d{1,2}:c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nm_variant):
-        logger.error(f'{nm_variant} is not in valid HGVS nomenclature.')
-        return f'{nm_variant} is not in valid HGVS nomenclature.'
-
     # Isolate the NC_ accession number from the NC_ HGVS nomenclature to find the corresponding variant summary record.
-    else:
-        vv_nc_accession = nc_variant.split(":")[0]
+    vv_nc_accession = nc_variant.split(":")[0]
 
     # Creates a python dictionary to store the variant information from ClinVar.
     clinvar_output = {}
@@ -281,16 +270,13 @@ def clinvar_annotations(nc_variant, nm_variant):
         clinvar_db = os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar", "clinvar.db"))
 
         # Log where the clinvar.db is (recommended by ChatGPT).
-        logger.debug(f"Using clinvar.db SQLite database at: {clinvar_db}")
+        logger.debug(f'Using clinvar.db SQLite database at: {clinvar_db}')
 
     # Raise an exception if a path to clinvar.db cannot be made (recommended by ChatGPT).
     except Exception as e:
         #Log the error using the exception output message.
         logger.error(f'clinvar.db path error: {str(e)}', exc_info=True)
-        return (f"clinvar.db file path error whilst searching for {nc_variant}.\n"
-                f"Please delete clinvar folder in {os.path.abspath(os.path.join(script_dir, '..', '..', 'app'))}"
-                f"and run 'python main.py' again."
-        )
+        return f'clinvar.db file path error whilst searching for {nc_variant}.'
 
     # Test if a variant summary record can be retrieved from clinvar.db.
     try:
@@ -319,15 +305,12 @@ def clinvar_annotations(nc_variant, nm_variant):
     except Exception as e:
         # Log the error using the exception output message.
         logger.error(f'Failed to query clinvar.db: {str(e)}', exc_info=True)
-        return (f"Failed to query clinvar.db whilst searching for {nc_variant}.\n"
-                f"Please delete clinvar folder in {os.path.abspath(os.path.join(script_dir, '..', '..', 'app'))}"
-                f"and run 'python main.py' again."
-        )
+        return f'Failed to query clinvar.db whilst searching for {nc_variant}.'
 
     # Log which variant's summary record could not be found in clinvar.db.
     if not record:
         logger.warning(f'Could not find {nc_variant} variant summary record in clinvar.db')
-        return f'Could not find {nc_variant} variant summary record in clinvar.db'
+        return f'⚠ Could not find {nc_variant} variant summary record in clinvar.db'
 
     else:
         # Log which variant's summary record could be found in clinvar.db.

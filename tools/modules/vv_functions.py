@@ -3,43 +3,42 @@
 
 import re
 import time
+import json
 import requests  # Import the 'requests' library to handle HTTP requests to the VariantValidator API
+from flask import flash
 from tools.utils.logger import logger
 
 def fetch_vv(variant: str):
-    """
-    Query the VariantValidator REST API to retrieve HGVS transcript (NM_) and genomic (NC_) identifiers 
-    for a list of human variants in 'chrom-pos-ref-alt' format.
+    '''
+    Using a variant in VCF format, query the VariantValidator REST API to retrieve genomic (NC_), transcript (NM_) and
+    protein (NP_) descriptions in HGVS nomenclature, as well as the gene symbol and HGNC ID. All identifiers will be
+    stored in the clinvar.db database.
+    The genomic and transcript HGVS descriptions are used to find the corresponding ClinVar variant summary record to
+    annotate the variant.
+    The gene symbol is used to support gene queries made by the user through the flask app.
+    Requests are made to the /variantvalidator endpoint with MANE transcript preference.
+    Currently fixed to use the GRCh38 reference genome.
 
-    Parameters
-    ----------
-    variant : str
-        A list of variant strings formatted as 'chrom-pos-ref-alt', e.g. ['17-45983420-G-T'].
+    :params: variant: A variant in VCF format: {chromosome}-{position}-{ref}-{alt}
+                E.g.: '17-45983420-G-T'
 
-    Returns
-    -------
-    HGVS_dict : dict
-        A dictionary mapping each NC_ genomic accession (key) to its corresponding NM_ transcript accession (value).
-        Example:
-            {
-                'NC_000017.11': 'NM_001377265.1'
-            }
+    :output: (nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id)
+             A tuple consisting of the variant's genomic (NC_) description, transcript (NM_) description, protein (NP_)
+             description, gene symbol, HGNC ID
 
-    Notes
-    -----
-    - Uses the VariantValidator public REST API (https://rest.variantvalidator.org/).
-    - Currently fixed to use the hg38 reference genome.
-    - Requests are made to the /variantvalidator endpoint with MANE transcript preference.
-    """
+       E.g.: ('NC_000011.10:g.2164285C>T', 'NM_000360.4:c.1442G>A, 'NP_000351.2:p.(Gly481Asp)', 'TH', '11782')
+    '''
 
     # Base URL for the VariantValidator API.
-    # The endpoint specifies we’re working with the hg38 genome build.
-    base_url_vv = "https://rest.variantvalidator.org/VariantValidator/variantvalidator/hg38/"
+    # The endpoint specifies we’re working with the GRCh38 genome build.
+    base_url_vv = "https://rest.variantvalidator.org/VariantValidator/variantvalidator/GRCh38/"
 
     # Construct the full API request URL for each variant.
     # The 'mane' flag requests MANE transcript data if available.
     # The 'content-type' query specifies JSON output.
     url_vv = f"{base_url_vv}{variant}/mane?content-type=application%2Fjson"
+
+    logger.info(f'Querying VariantValidator request for: {variant}...')
 
     for attempt in range(5):
 
@@ -50,51 +49,80 @@ def fetch_vv(variant: str):
             # Raise an exception if the HTTP status code is not 200 (OK).
             response.raise_for_status()
 
-            # The time module creates a 0.5s delay after each request to Variant Validator (VV), so that VV is not overloaded with requests.
+            # The time module creates a 0.5s delay after each request to VariantValidator (VV), so that VV is not overloaded with requests.
             time.sleep(0.5)
 
             # Parse the API response into a Python dictionary.
             data = response.json()
-            #print(data)
+            print(data)
 
             if data['flag'] == 'empty_result':
 
-                print(f'{variant} returned an empty result from Variant Validator.')
-
-                return 'empty_result'
+                logger.warning(f'{variant} Querying VariantValidator returned an empty result.')
+                return f'{variant}: ⚠ Querying VariantValidator returned an empty result.'
 
             elif data is None:
 
-                print(f"Warning: fetchVV returned None for variant: {variant}")
-
-                return 'null'
+                logger.warning(f'{variant}: Querying VariantValidator did not return a result.')
+                return f'{variant}: ⚠ Querying VariantValidator did not return a result.'
 
             else:
+                try:
+                    nm_variant = list(data.keys())[0]
+                    nc_variant = data[nm_variant]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
+                    np_variant = data[nm_variant]['hgvs_predicted_protein_consequence']['tlr']
+                    gene_symbol  = data[nm_variant]['gene_symbol']
+                    hgnc_id = data[nm_variant]['gene_ids']['hgnc_id'].split(':')[1]
 
-                nm_variant = list(data.keys())[0]
-                nc_variant = data[nm_variant]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
-                np_variant = data[nm_variant]['hgvs_predicted_protein_consequence']['tlr']
-                gene_symbol  = data[nm_variant]['gene_symbol']
-                hgnc_id = data[nm_variant]['gene_ids']['hgnc_id'].split(':')[1]
+                except Exception as e:
+                    logger.error(f'{variant}: Awkward response received from VariantValidator: {e}', exc_info=True)
+                    logger.debug(f'{variant}: Full response from VariantValidator:\n{json.dumps(data, indent=4)}')
+                    return f'{variant}: Awkward response received from VariantValidator.'
 
-                # Once both identifiers are found, add them to the output dictionary.
-                # Example: {'NC_000017.11': 'NM_001377265.1'}
-                if nc_variant and nm_variant and np_variant:
+            if not re.match('^NC_\d+.\d{1,2}:g[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nc_variant):
+                logger.error(f'{variant}: Genomic variant description from VariantValidator is not in valid HGVS nomenclature. Variant not added to database.')
+                logger.debug(f'{variant}: Genomic variant description from VariantValidator: {nc_variant}')
+                return f'{variant}: Genomic variant description from VariantValidator is not in valid HGVS nomenclature. Variant not added to database.'
 
-                    return (nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id)
+            # Ensure that the input transcript variant is in the appropriate HGVS nomenclature.
+            elif not re.match('^NM_\d+.\d{1,2}:c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nm_variant):
+                logger.error(f'{variant}: Transcript variant description from VariantValidator is not in valid HGVS nomenclature. Variant not added to database.')
+                logger.debug(f'{variant}: Transcript variant description from VariantValidator: {nm_variant}')
+                return f'{variant}: Transcript variant description from VariantValidator is not in valid HGVS nomenclature. Variant not added to database.'
 
-                else:
-                    # If either identifier is missing, print a message for debugging.
-                    print(f"No HGVS identifiers found for {variant}. Full response:\n{data}\n")
+            elif not re.match('^NP_\d+.\d{1,2}:p[.](\()*(0)*(\?)*[*]*[?]*(\d*[a-zA-Z]{3})*(\d+[a-zA-Z]{3}(fs)*[*]*(\d+)*|\d*_[a-zA-Z]{3}\d+(ins)*[a-zA-Z]*|\d*_[a-zA-Z]{3}\d+(delins)*[a-zA-Z]*|\d+=|\d+[*]|ext\d*)*(\))*', np_variant):
+                logger.warning(f'{variant}: Protein consequence from VariantValidator is not in valid HGVS nomenclature.')
+                logger.debug(f'{variant}: Protein consequence from VariantValidator: {np_variant}')
+                flash(f'{variant}: Irregular protein consequence from VariantValidator.')
+                np_variant = 'Irregular response from VariantValidator'
+
+            # ChatGPT says C20orf202 is the longest gene symbol.
+            elif len(gene_symbol) not in range(1, 10):
+                logger.warning(f'{variant}: Gene symbol from VariantValidator is {len(gene_symbol)} long.')
+                logger.debug(f'{variant}: Gene symbol response from VariantValidator: {gene_symbol}')
+                flash(f'{variant}: Irregular gene symbol from VariantValidator.')
+                gene_symbol = 'Irregular response from VariantValidator'
+
+            elif not re.match('^\d+', hgnc_id):
+                logger.warning(f'{variant}: HGNC ID from VariantValidator is not a number.')
+                logger.debug(f'{variant}: HGNC ID response from VariantValidator: {hgnc_id}')
+                flash(f'{variant}: Irregular HGNC ID from VariantValidator. Variant will not be returned from gene query.')
+                hgnc_id = 'Irregular response from VariantValidator'
+
+            logger.info(f'{variant}: Successfully retrieved variant identifiers from VariantValidator')
+            return (nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id)
+
 
         # Catch any network or HTTP errors raised by 'requests'.
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 429:
                 time.sleep(2 ** attempt)  # exponential backoff
-                print(e)
-                print('Trying again...')
-                print(f'Attempt: {attempt + 2}/5')
+                logger.warning(f'{variant}: {e}')
+                logger.info(f'Querying VariantValidator again. Attempt: {attempt + 2}/5')
                 continue
+
+    logger.error(f'{variant}: VariantValidator failed after 5 attempts.')
+    return f'{variant}: ❌ VariantValidator unavailable. Try again later.'
 
 
 def get_mane_nc(variant: str):
@@ -170,7 +198,7 @@ def get_mane_nc(variant: str):
             # Raise an exception if the HTTP status code is not 200 (OK).
             response.raise_for_status()
 
-            # The time module creates a 0.5s delay after each request to Variant Validator (VV), so that VV is not overloaded with requests.
+            # The time module creates a 0.5s delay after each request to VariantValidator (VV), so that VV is not overloaded with requests.
             time.sleep(0.5)
 
             # Parse the API response into a Python dictionary.
@@ -179,7 +207,7 @@ def get_mane_nc(variant: str):
 
             if data.get('flag') == 'empty_result': #retrives the value for key 'flag'
 
-                print(f'{variant} returned an empty result from Variant Validator.')
+                print(f'{variant} returned an empty result from VariantValidator.')
                 return 'empty_result'
 
             elif data is None: #checks is data is empty 
@@ -257,6 +285,7 @@ def get_mane_nc(variant: str):
 
 #Example usage
 if __name__ == "__main__":
+    print(fetch_vv('11-2164285-C-T'))
     variant = "PARK7:c.515T>A"
     output = get_mane_nc(variant)
     print("Final Output:")
