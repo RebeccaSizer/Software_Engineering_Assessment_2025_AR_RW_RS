@@ -258,12 +258,12 @@ def clinvar_annotations(nc_variant, nm_variant):
     '''
 
     # Ensure that the input genomic variant is in the appropriate HGVS nomenclature.
-    if not re.match('^NC_\d+.\d{1,2}:g.\d+[ACGT]>[ACGT]', nc_variant):
+    if not re.match('^NC_\d+.\d{1,2}:g[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nc_variant):
         logger.error(f'{nc_variant} is not in valid HGVS nomenclature.')
         return f'{nc_variant} is not in valid HGVS nomenclature.'
 
     # Ensure that the input transcript variant is in the appropriate HGVS nomenclature.
-    elif not re.match('^NM_\d+.\d{1,2}:c.\d+[ACGT]>[ACGT]', nm_variant):
+    elif not re.match('^NM_\d+.\d{1,2}:c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nm_variant):
         logger.error(f'{nm_variant} is not in valid HGVS nomenclature.')
         return f'{nm_variant} is not in valid HGVS nomenclature.'
 
