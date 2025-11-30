@@ -1,7 +1,8 @@
-import sqlite3
 import os
-import gzip
+import re
 import csv
+import gzip
+import sqlite3
 import requests
 from ..utils.timer import timer
 from tools.utils.logger import logger
@@ -39,7 +40,7 @@ def clinvar_vs_download():
         clinvar_db.raise_for_status()
 
         # Log that the download was successful and when the records were last modified.
-        logger.info("Request OK. ClinVar variant summary records last modified:", requests.head(url).headers['Last-Modified'])
+        logger.info(f"Request OK. ClinVar variant summary records last modified: {requests.head(url).headers['Last-Modified']}")
 
     # Raise an exception if the url test failed.
     except Exception as e:
@@ -143,10 +144,11 @@ def clinvar_vs_download():
         #   - Get the review status from 'ReviewStatus' so that the user is aware of how valid the star-rating is.
         with gzip.open(clinvar_file_path, "rt") as gz:
             reader = csv.DictReader(gz, delimiter="\t")
-            for record in reader:
 
-                # Log that the records with 'NM_' accession numbers in their name will now be added to the database.
-                logger.info("Parsing variant summary records named after 'NM_' accession numbers from the most recent download into database...")
+            # Log that the records with 'NM_' accession numbers in their name will now be added to the database.
+            logger.info("Parsing variant summary records named after 'NM_' accession numbers from the most recent download into database...")
+
+            for record in reader:
 
                 # Some records include the gene symbol and the consequence on the protein.
                 # E.g. NM_000360.4(TH):c.1442G>A (Gly481Asp)
@@ -231,10 +233,10 @@ def clinvar_vs_download():
 @timer
 def clinvar_annotations(nc_variant, nm_variant):
     '''
-    This function retrieves variant information from the compressed ClinVar variant summary file. It takes a variant
-    in NC_ and NM_ HGVS nomenclature as input and uses them to find the entry in ClinVar record that matches the
-    NC_accession number and NM_ HGVS nomenclature. It then returns a dictionary containing the variant classification,
-    associated conditions, star-rating and Review status from that record.
+    This function retrieves variant information from the compressed the clinvar.db database. It takes a variant
+    in NC_ and NM_ HGVS nomenclature as input and uses them to find the corresponding variant summary record in the
+    database. It then returns a dictionary containing the variant classification, associated conditions, star-rating
+    and Review status from that record.
 
     :params: nc_variant: The variant described in HGVS nomenclature, using the RefSeq NC_ accession number
                    E.g.: 'NC_000011.10:g.2164285C>T'
@@ -255,40 +257,86 @@ def clinvar_annotations(nc_variant, nm_variant):
     :command: clinvarAnnotations('NC_000011.10:g.2164285C>T', 'NM_000360.4:c.1442G>A')
     '''
 
-    # Isolate the NC_ accession number from the NC_ HGVS nomenclature used as input to search in the ClinVar database.
-    vv_nc_accession = nc_variant.split(":")[0]
+    # Ensure that the input genomic variant is in the appropriate HGVS nomenclature.
+    if not re.match('^NC_\d+.\d{1,2}:g.\d+[ACGT]>[ACGT]', nc_variant):
+        logger.error(f'{nc_variant} is not in valid HGVS nomenclature.')
+        return f'{nc_variant} is not in valid HGVS nomenclature.'
 
-    # Creates a python dictionary to store the required information from ClinVar
+    # Ensure that the input transcript variant is in the appropriate HGVS nomenclature.
+    elif not re.match('^NM_\d+.\d{1,2}:c.\d+[ACGT]>[ACGT]', nm_variant):
+        logger.error(f'{nm_variant} is not in valid HGVS nomenclature.')
+        return f'{nm_variant} is not in valid HGVS nomenclature.'
+
+    # Isolate the NC_ accession number from the NC_ HGVS nomenclature to find the corresponding variant summary record.
+    else:
+        vv_nc_accession = nc_variant.split(":")[0]
+
+    # Creates a python dictionary to store the variant information from ClinVar.
     clinvar_output = {}
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    clinvar_db = os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar", "clinvar.db"))
+    # Test the path to clinvar.db (recommended by ChatGPT).
+    try:
+        # Retrieve the path to this script and create a relative path to clinvar.db.
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        clinvar_db = os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar", "clinvar.db"))
 
-    # Message to indicate that variant is being searched for in the downloaded ClinVar variant summary records.
-    print(f'Searching ClinVar database for {nc_variant} ...')
+        # Log where the clinvar.db is (recommended by ChatGPT).
+        logger.debug(f"Using clinvar.db SQLite database at: {clinvar_db}")
 
-    conn = sqlite3.connect(clinvar_db)
-    cursor = conn.cursor()
+    # Raise an exception if a path to clinvar.db cannot be made (recommended by ChatGPT).
+    except Exception as e:
+        #Log the error using the exception output message.
+        logger.error(f'clinvar.db path error: {str(e)}', exc_info=True)
+        return (f"clinvar.db file path error whilst searching for {nc_variant}.\n"
+                f"Please delete clinvar folder in {os.path.abspath(os.path.join(script_dir, '..', '..', 'app'))}"
+                f"and run 'python main.py' again."
+        )
 
-    cursor.execute("""
-                   SELECT clinical_significance, conditions, stars, review_status
-                   FROM clinvar
-                   WHERE nc_accession = ?
-                     AND nm_hgvs LIKE ? 
-                     LIMIT 1
-                   """, (vv_nc_accession, nm_variant + '%'))
+    # Test if a variant summary record can be retrieved from clinvar.db.
+    try:
+        # Log which variant is being searched for in clinvar.db.
+        logger.info(f'Searching for {nc_variant}/{nm_variant} in clinvar.db...')
 
-    record = cursor.fetchone()
-    conn.close()
+        # Connect to clinvar.db.
+        conn = sqlite3.connect(clinvar_db)
+        cursor = conn.cursor()
 
-    # Message to indicate that variant is being searched for in the downloaded ClinVar variant summary records.
-    if not record or len(record) == 0:
-        print(f'Could not find {nc_variant} in ClinVar summary file!')
+        # Retrieve the required variant information from the record where the inputs to this function match the
+        # NC_ accession number and NM_ HGVS nomenclature in the record.
+        cursor.execute("""
+                       SELECT clinical_significance, conditions, stars, review_status
+                       FROM clinvar
+                       WHERE nc_accession = ?
+                         AND nm_hgvs LIKE ? 
+                         LIMIT 1
+                       """, (vv_nc_accession, nm_variant + '%'))
+
+        # Assign the variant information the variable 'record'
+        record = cursor.fetchone()
+        conn.close()
+
+    # Raise an exception if clinvar.db could not be queried.
+    except Exception as e:
+        # Log the error using the exception output message.
+        logger.error(f'Failed to query clinvar.db: {str(e)}', exc_info=True)
+        return (f"Failed to query clinvar.db whilst searching for {nc_variant}.\n"
+                f"Please delete clinvar folder in {os.path.abspath(os.path.join(script_dir, '..', '..', 'app'))}"
+                f"and run 'python main.py' again."
+        )
+
+    # Log which variant's summary record could not be found in clinvar.db.
+    if not record:
+        logger.warning(f'Could not find {nc_variant} variant summary record in clinvar.db')
+        return f'Could not find {nc_variant} variant summary record in clinvar.db'
 
     else:
+        # Log which variant's summary record could be found in clinvar.db.
+        logger.info(f'{nc_variant} variant summary record found in clinvar.db')
 
+        # Parse the variant information out of the record.
         clinical_significance, conditions, stars, review_status = record
 
+        # Compiles clinvar_out dictionary with variant information.
         clinvar_output['classification'] = clinical_significance
         clinvar_output['conditions'] = conditions
         clinvar_output['stars'] = stars

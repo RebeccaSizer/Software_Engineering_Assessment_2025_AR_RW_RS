@@ -2,6 +2,7 @@
 *.vcf
 *.csv
 *.db
+logs/*
 
 # Downloaded databases
 app/clinvar/

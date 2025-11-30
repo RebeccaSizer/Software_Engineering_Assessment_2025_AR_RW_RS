@@ -1,8 +1,10 @@
 import os
 import time
 import sqlite3
-from ..utils.parser import variantParser
+from flask import flash
 from .vv_functions import fetch_vv
+from tools.utils.logger import logger
+from ..utils.parser import variantParser
 from .clinvar_functions import clinvar_annotations
 
 def patient_variant_table(filepath, db_name):
@@ -117,7 +119,7 @@ def patient_variant_table(filepath, db_name):
     conn.close()
 
     # A message is printed in the back-end to indicate that the table was successfully created or updated.
-    print("patient_variant table created/updated successfully!")
+    logger.info('Patient_variant table created/updated successfully!')
 
 
 
@@ -226,17 +228,22 @@ def variant_annotations_table(filepath, db_name):
 
             # CliVar is queried to retrieve the variant classification, associated conditions, the star-ratings
             # and the review statuses.
-            clinVar_response = clinvar_annotations(nc_variant, nm_variant)
+            clinvar_response = clinvar_annotations(nc_variant, nm_variant)
 
-            if not clinVar_response or len(clinVar_response) == 0:
+            if not clinvar_response or len(clinvar_response) == 0:
                 continue
 
-            elif len(clinVar_response) > 0:
+            elif type(clinvar_response) == str:
+                file = path.split('/')[-1]
+                flash(f'{file}: {clinvar_response}')
+                continue
 
-                classification = clinVar_response['classification']
-                conditions = clinVar_response['conditions']
-                stars = clinVar_response['stars']
-                review_status = clinVar_response['reviewstatus']
+            elif len(clinvar_response) > 0:
+
+                classification = clinvar_response['classification']
+                conditions = clinvar_response['conditions']
+                stars = clinvar_response['stars']
+                review_status = clinvar_response['reviewstatus']
 
                 # The HGVS nomenclatures, gene symbol, HGNC ID and ClinVar annotations for each variant are added to
                 # the variant_annotations table.
@@ -264,7 +271,7 @@ def variant_annotations_table(filepath, db_name):
         conn.close()
 
     # A message is printed in the back-end to indicate that the table was successfully created or updated.
-    print("variant_annotations created/updated successfully!")
+    logger.info('Variant_annotations created/updated successfully!')
 
 
 def validate_database(db_path):
