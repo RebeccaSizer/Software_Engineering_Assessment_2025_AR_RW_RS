@@ -11,7 +11,7 @@ from tools.utils.logger import logger
 def fetch_vv(variant: str):
     '''
     Using a variant in VCF format, query the VariantValidator REST API to retrieve genomic (NC_), transcript (NM_) and
-    protein (NP_) descriptions in HGVS nomenclature, as well as the gene symbol and HGNC ID. All identifiers will be
+    protein (NP_) descriptions in HGVS nomenclature, as well as the gene symbol and HGNC ID. All information will be
     stored in the clinvar.db database.
     The genomic and transcript HGVS descriptions are used to find the corresponding ClinVar variant summary record to
     annotate the variant.
@@ -38,10 +38,13 @@ def fetch_vv(variant: str):
     # The 'content-type' query specifies JSON output.
     url_vv = f"{base_url_vv}{variant}/mane?content-type=application%2Fjson"
 
+    # Log the start of the query.
     logger.info(f'Querying VariantValidator request for: {variant}...')
 
+    # For loop enables 5 attempts to query VariantValidator API, in case 429 request errors occur.
     for attempt in range(5):
 
+        # Test the query.
         try:
             # Send an HTTP GET request to the API.
             response = requests.get(url_vv)
@@ -49,79 +52,164 @@ def fetch_vv(variant: str):
             # Raise an exception if the HTTP status code is not 200 (OK).
             response.raise_for_status()
 
-            # The time module creates a 0.5s delay after each request to VariantValidator (VV), so that VV is not overloaded with requests.
+            # The time module creates a 0.5s delay after each request to VariantValidator (VV), so that
+            # VariantValidator is not overloaded with requests.
             time.sleep(0.5)
 
-            # Parse the API response into a Python dictionary.
+            # Access the API response like its a Python dictionary.
             data = response.json()
-            print(data)
 
+            # VariantValidator returns this key, value combination when variants cannot be validated.
             if data['flag'] == 'empty_result':
 
-                logger.warning(f'{variant} Querying VariantValidator returned an empty result.')
+                # Log a warning that VariantValidator returned an empty result.
+                logger.warning(f'{variant}: Querying VariantValidator returned an empty result.')
+
+                # Return the description so that the variant_annotations_table function in database_functions.py can
+                # attach the description to the file name where the queried variant comes from. This will help the user.
                 return f'{variant}: ⚠ Querying VariantValidator returned an empty result.'
 
+            # Handle unexpected null responses from the VariantValidator API.
             elif data is None:
 
+                # Log a warning that VariantValidator did not return a result.
                 logger.warning(f'{variant}: Querying VariantValidator did not return a result.')
+
+                # Return the description so that the variant_annotations_table function in database_functions.py can
+                # attach the description to the file name where the queried variant comes from. This will help the user.
                 return f'{variant}: ⚠ Querying VariantValidator did not return a result.'
 
+            # If a result was returned and it is not an empty result, the response should be parsable.
             else:
+
+                # Test that the keys where the information is stored, exist in the response.
                 try:
+
+                    # Extract the information from the response.
                     nm_variant = list(data.keys())[0]
                     nc_variant = data[nm_variant]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
                     np_variant = data[nm_variant]['hgvs_predicted_protein_consequence']['tlr']
                     gene_symbol  = data[nm_variant]['gene_symbol']
                     hgnc_id = data[nm_variant]['gene_ids']['hgnc_id'].split(':')[1]
 
+                # Raise an exception if an error occurs while extracting information from the response.
                 except Exception as e:
+
+                    # Log the error using the exception output message.
                     logger.error(f'{variant}: Awkward response received from VariantValidator: {e}', exc_info=True)
+                    # Log the response from VariantValidator to help with debugging.
                     logger.debug(f'{variant}: Full response from VariantValidator:\n{json.dumps(data, indent=4)}')
+
+                    # Return the description so that the variant_annotations_table function in database_functions.py can
+                    # attach the description to the file name where the queried variant comes from.
+                    # This will help the user.
                     return f'{variant}: Awkward response received from VariantValidator.'
 
+            # Use Regex to detect if an anything but the HGVS genomic description was returned.
             if not re.match('^NC_\d+.\d{1,2}:g[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nc_variant):
+
+                # Log the error if anything but the HGVS genomic description was returned.
                 logger.error(f'{variant}: Genomic variant description from VariantValidator is not in valid HGVS nomenclature. Variant not added to database.')
+                # Log what was extracted from the response to support debugging.
                 logger.debug(f'{variant}: Genomic variant description from VariantValidator: {nc_variant}')
+
+                # Return the description so that the variant_annotations_table function in database_functions.py can
+                # attach the description to the file name where the queried variant comes from. This will help the user.
                 return f'{variant}: Genomic variant description from VariantValidator is not in valid HGVS nomenclature. Variant not added to database.'
 
-            # Ensure that the input transcript variant is in the appropriate HGVS nomenclature.
+            # Use Regex to detect if an anything but the HGVS transcript description was returned.
             elif not re.match('^NM_\d+.\d{1,2}:c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nm_variant):
+
+                # Log the error if anything but the HGVS transcript description was returned.
                 logger.error(f'{variant}: Transcript variant description from VariantValidator is not in valid HGVS nomenclature. Variant not added to database.')
+                # Log what was extracted from the response to support debugging.
                 logger.debug(f'{variant}: Transcript variant description from VariantValidator: {nm_variant}')
+
+                # Return the description so that the variant_annotations_table function in database_functions.py can
+                # attach the description to the file name where the queried variant comes from. This will help the user.
                 return f'{variant}: Transcript variant description from VariantValidator is not in valid HGVS nomenclature. Variant not added to database.'
 
+            # Use Regex to detect if an anything but the HGVS protein description was returned.
             elif not re.match('^NP_\d+.\d{1,2}:p[.](\()*(0)*(\?)*[*]*[?]*(\d*[a-zA-Z]{3})*(\d+[a-zA-Z]{3}(fs)*[*]*(\d+)*|\d*_[a-zA-Z]{3}\d+(ins)*[a-zA-Z]*|\d*_[a-zA-Z]{3}\d+(delins)*[a-zA-Z]*|\d+=|\d+[*]|ext\d*)*(\))*', np_variant):
+
+                # Log the warning if anything but the HGVS protein description was returned.
+                # A warning is logged because the protein description is not essential to this software package's
+                # functionality.
                 logger.warning(f'{variant}: Protein consequence from VariantValidator is not in valid HGVS nomenclature.')
+                # Log what was extracted from the response to support debugging.
                 logger.debug(f'{variant}: Protein consequence from VariantValidator: {np_variant}')
+
+                # Flash message sent to flask app UI to help the user understand the issue.
                 flash(f'{variant}: Irregular protein consequence from VariantValidator.')
+
+                # This is what will be stored in the database, to help the user understand why the protein description
+                # is not there.
                 np_variant = 'Irregular response from VariantValidator'
 
-            # ChatGPT says C20orf202 is the longest gene symbol.
+            # ChatGPT says C20orf202 is the longest gene symbol, which is 9 characters long. As gene symbols can
+            # consist of letters and numbers in different combinations, the length is the only way to scrutinise
+            # this response.
             elif len(gene_symbol) not in range(1, 10):
+
+                # Log a warning if the length of the gene symbol is not between 1 to 10 characters long.
+                # A warning is logged because the gene symbol is not essential to this software package's
+                # functionality.
                 logger.warning(f'{variant}: Gene symbol from VariantValidator is {len(gene_symbol)} long.')
+
+                # Log what was extracted from the response to support debugging.
                 logger.debug(f'{variant}: Gene symbol response from VariantValidator: {gene_symbol}')
+
+                # Flash message sent to flask app UI to help the user understand the issue.
                 flash(f'{variant}: Irregular gene symbol from VariantValidator.')
+
+                # This is what will be stored in the database, to help the user understand why the gene symbol
+                # is not there.
                 gene_symbol = 'Irregular response from VariantValidator'
 
+            # The HGNC ID is a number but the response from VariantValidator is a string.
+            # Use Regex to ensure that the response consists of only numbers.
             elif not re.match('^\d+', hgnc_id):
+
+                # Log a warning if the HGNC ID consists of anything but numbers.
+                # A warning is logged because the HGNC ID is not essential to this software package's functionality.
+                # However it is necessary when the user performs a gene query through the flask app.
                 logger.warning(f'{variant}: HGNC ID from VariantValidator is not a number.')
+
+                # Log what was extracted from the response to support debugging.
                 logger.debug(f'{variant}: HGNC ID response from VariantValidator: {hgnc_id}')
+
+                # Flash message sent to flask app UI to help the user understand the irregularity.
                 flash(f'{variant}: Irregular HGNC ID from VariantValidator. Variant will not be returned from gene query.')
+
+                # This is what will be stored in the database, to help the user understand why the HGNC ID
+                # is not there.
                 hgnc_id = 'Irregular response from VariantValidator'
 
-            logger.info(f'{variant}: Successfully retrieved variant identifiers from VariantValidator')
-            return (nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id)
+            # Log that the test was passed.
+            logger.info(f'{variant}: Successfully retrieved variant information from VariantValidator')
 
+            # Return the variant information to database_functions.py so that they can populate the clinvar.db database.
+            return (nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id)
 
         # Catch any network or HTTP errors raised by 'requests'.
         except requests.exceptions.HTTPError as e:
+
+            # Handle 429 request errors.
             if e.response.status_code == 429:
-                time.sleep(2 ** attempt)  # exponential backoff
+
+                # Create a delay between attempts if 429 error is raised.
+                time.sleep(2 ** attempt)
+                # Log a warning if another request needs to be sent.
                 logger.warning(f'{variant}: {e}')
+                # Log a description of which attempt out of 5 is going to be tried.
                 logger.info(f'Querying VariantValidator again. Attempt: {attempt + 2}/5')
                 continue
 
+    # Log an error if VariantValidator was unable to return a response after 5 attempts.
     logger.error(f'{variant}: VariantValidator failed after 5 attempts.')
+
+    # Return the description so that the variant_annotations_table function in database_functions.py can attach the
+    # description to the file name where the queried variant comes from. This will help the user.
     return f'{variant}: ❌ VariantValidator unavailable. Try again later.'
 
 
