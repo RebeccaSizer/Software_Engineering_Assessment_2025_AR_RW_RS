@@ -38,8 +38,8 @@ def fetch_vv(variant: str):
     # The 'content-type' query specifies JSON output.
     url_vv = f"{base_url_vv}{variant}/mane?content-type=application%2Fjson"
 
-    # Log the start of the query.
-    logger.info(f'Querying VariantValidator request for: {variant}...')
+    # Log the start of the query and the url.
+    logger.info(f'{variant}: Retrieving genomic description, transcript description, protein description, gene symbol, HGNC ID from VariantValidator @ {url_vv}')
 
     # For loop enables 5 attempts to query VariantValidator API, in case 429 request errors occur.
     for attempt in range(5):
@@ -59,25 +59,45 @@ def fetch_vv(variant: str):
             # Access the API response like its a Python dictionary.
             data = response.json()
 
-            # VariantValidator returns this key, value combination when variants cannot be validated.
+            # VariantValidator returns this key, value combination when it cannot recognise the variant or it cannot
+            # map it to a reference sequence.
             if data['flag'] == 'empty_result':
 
                 # Log a warning that VariantValidator returned an empty result.
-                logger.warning(f'{variant}: Querying VariantValidator returned an empty result.')
+                logger.error(f'{variant}: VariantValidator did not recognise variant or could not map it to a reference sequence.')
 
                 # Return the description so that the variant_annotations_table function in database_functions.py can
                 # attach the description to the file name where the queried variant comes from. This will help the user.
-                return f'{variant}: ⚠ Querying VariantValidator returned an empty result.'
+                return f'{variant}: ⚠ VariantValidator did not recognise variant or could not map it to a reference sequence.'
 
             # Handle unexpected null responses from the VariantValidator API.
             elif data is None:
 
                 # Log a warning that VariantValidator did not return a result.
-                logger.warning(f'{variant}: Querying VariantValidator did not return a result.')
+                logger.error(f'{variant}: Querying VariantValidator did not return a result.')
 
                 # Return the description so that the variant_annotations_table function in database_functions.py can
                 # attach the description to the file name where the queried variant comes from. This will help the user.
                 return f'{variant}: ⚠ Querying VariantValidator did not return a result.'
+
+            # Report the warnings produced by VariantValidator.
+            elif any(k.startswith("validation_warning_") for k in data):
+                for key in data:
+
+                    if key.startswith("validation_warning_"):
+                        warning_block = data[key]
+                        warnings = warning_block.get("validation_warnings", [])
+
+                        if warnings:
+                            return_warnings = ','.join(warnings)
+
+                            # Log the warnings produced by VariantValidator.
+                            logger.debug(f'{variant}: VariantValidator warning: {return_warnings}')
+
+                            # Return the warnings so that the variant_annotations_table function in
+                            # database_functions.py can attach the description to the file name where the queried
+                            # variant comes from. This will help the user.
+                            return return_warnings
 
             # If a result was returned and it is not an empty result, the response should be parsable.
             else:
@@ -173,7 +193,7 @@ def fetch_vv(variant: str):
                 # Log a warning if the HGNC ID consists of anything but numbers.
                 # A warning is logged because the HGNC ID is not essential to this software package's functionality.
                 # However it is necessary when the user performs a gene query through the flask app.
-                logger.warning(f'{variant}: HGNC ID from VariantValidator is not a number.')
+                logger.warning(f'{variant}: HGNC ID from VariantValidator is not a number. Variant will not be returned from gene query.')
 
                 # Log what was extracted from the response to support debugging.
                 logger.debug(f'{variant}: HGNC ID response from VariantValidator: {hgnc_id}')
@@ -202,8 +222,14 @@ def fetch_vv(variant: str):
                 # Log a warning if another request needs to be sent.
                 logger.warning(f'{variant}: {e}')
                 # Log a description of which attempt out of 5 is going to be tried.
-                logger.info(f'Querying VariantValidator again. Attempt: {attempt + 2}/5')
+                logger.info(f'Trying to get the variant information from VariantValidator again. Attempt: {attempt + 2}/5')
                 continue
+
+        # Raise an exception if an error occurs while querying VariantValidator.
+        except Exception as e :
+
+            # Log the error if it occurs, using the exception output message.
+            logger.error(f'{variant}: Failed to query VariantValidator: {e}', exc_info=True)
 
     # Log an error if VariantValidator was unable to return a response after 5 attempts.
     logger.error(f'{variant}: VariantValidator failed after 5 attempts.')
@@ -231,49 +257,65 @@ def get_mane_nc(variant: str):
     """
 
     # Base URL for the VariantValidator API.
-    base_url_VV = "https://rest.variantvalidator.org/VariantValidator/"
+    base_url_vv = "https://rest.variantvalidator.org/VariantValidator/"
 
-    # Construct the full API request URL based on the type of search term.
-    # first for ensenmbl transcript
-    # ENST - VariantValidator/variantvalidator_ensembl end point
-    if variant.startswith('ENST'):
-        transcript, genetic_change = variant.split(':')
+    # Log the start of the query and the url.
+    logger.info(f"User's variant query: {variant}. Querying VariantValidator for HGVS description...")
 
-        if genetic_change.startswith('c.'):
-            ENST_variant = variant.replace(':', '%3A').replace('>', '%3E')
-            url_vv = f"{base_url_VV}variantvalidator_ensembl/GRCh38/{ENST_variant}/mane_select?content-type=application%2Fjson"  # ENST - transcript
+    try:
+
+        # Construct the full API request URL based on the type of search term.
+        # first for ensenmbl transcript
+        # ENST - VariantValidator/variantvalidator_ensembl end point
+        if variant.startswith('ENST'):
+            transcript, genetic_change = variant.split(':')
+
+            if genetic_change.startswith('c.'):
+                ENST_variant = variant.replace(':', '%3A').replace('>', '%3E')
+                url_vv = f"{base_url_vv}variantvalidator_ensembl/GRCh38/{ENST_variant}/mane_select?content-type=application%2Fjson"  # ENST - transcript
+
+            else:
+                flash(f"Error: {transcript} must use c. notation. {variant} does not work.")
+                logger.warning(f'User entered an ENST variant without c. notation: {variant}')
+                return None
+
+        # search by NM or LRG Ref Seq transcript - VariantValidator/variantvalidator end point
+        elif variant.startswith(('NM_', 'LRG_', 'NC_', 'NG_')):
+            transcript, genetic_change = variant.split(':')
+
+            if transcript.startswith(('NM_', 'LRG_', 'NG_')) and not genetic_change.startswith('c.'):
+                flash(f"Error: {transcript} must use c. notation. {variant} does not work.")
+                logger.warning(f"User entered an '{transcript[:2]}' accession number without c. notation: {variant}")
+                return None
+
+            elif transcript.startswith('NC_') and not genetic_change.startswith('g.'):
+                flash(f"Error: {transcript} must use g. notation. {variant} does not work.")
+                logger.warning(f"User entered an '{variant[:2]}' accession number without g. notation: {variant}")
+                return None
+
+            else:
+                refseq_variant = variant.replace(':', '%3A').replace('>', '%3E')
+                url_vv = f"{base_url_vv}variantvalidator/GRCh38/{refseq_variant}/mane_select?content-type=application%2Fjson"
+
+        # search by gene symbol
+        # Gene symbol - VariantValidator/tools/gene2transcripts_v2 end point
+        elif re.match(r'^[A-Za-z0-9_-]+:', variant):
+            gene_symbol, genetic_change = variant.split(':')
+            url_vv = f"{base_url_vv}tools/gene2transcripts/{gene_symbol}?content-type=application%2Fjson"  # Gene symbol - gene
 
         else:
-            print(f"Error: ENST variant must use c. notation: {variant}")
-            return 'error_enst_not_c' 
+            flash(f"Error: {variant}: Unrecognized variant format. Please describe variant using HGVS nomenclature.")
+            logger.error(f'{variant}: Variant rejected because of invalid format.')
+            return None
 
-    # search by NM or LRG Ref Seq transcript - VariantValidator/variantvalidator end point
-    elif variant.startswith(('NM_', 'LRG_', 'NC_', 'NG_')):
-        transcript, genetic_change = variant.split(':')
+        logger.debug(f'{variant}: VariantValidator URL: {url_vv}')
 
-        if genetic_change.startswith('c.') and variant.startswith(('NM_', 'LRG_', 'NG_')):
-            refseq_variant = variant.replace(':', '%3A').replace('>', '%3E')
-            url_vv = f"{base_url_VV}variantvalidator/GRCh38/{refseq_variant}/mane_select?content-type=application%2Fjson"  # RefSeq - transcript
-        
-        elif genetic_change.startswith('g.') and variant.startswith('NC_'):
-            refseq_variant = variant.replace(':', '%3A').replace('>', '%3E')
-            url_vv = f"{base_url_VV}variantvalidator/GRCh38/{refseq_variant}/mane_select?content-type=application%2Fjson"  # RefSeq - genomic
-        
-        else:
-            print(f"Error: RefSeq variant must use c. notation: {variant}")
-            return 'error_refseq_not_c'
+    # Raise an exception if a URL could not be created.
+    except Exception as e :
+        # Log an error if a URL could not be made using the exception output message.
+        logger.error(f'{variant}: Failed to construct a valid URL for querying VariantValidator: {e}', exc_info=True)
+        return None
 
-    # search by gene symbol
-    # Gene symbol - VariantValidator/tools/gene2transcripts_v2 end point
-    elif re.match(r'^[A-Za-z0-9_-]+:', variant):
-        gene_symbol, genetic_change = variant.split(':')
-        url_vv = f"{base_url_VV}tools/gene2transcripts/{gene_symbol}?content-type=application%2Fjson"  # Gene symbol - gene
-
-    else:
-        print(f"Error: Unrecognized variant format: {variant}")
-        return 'error_unrecognized_format'
-
-    print(f"Requesting URL: {url_vv}")
 
     # ----- Make the API request and handle the response -----
 
@@ -291,19 +333,20 @@ def get_mane_nc(variant: str):
 
             # Parse the API response into a Python dictionary.
             data = response.json()
-            #print(data)
 
             if data.get('flag') == 'empty_result': #retrives the value for key 'flag'
 
-                print(f'{variant} returned an empty result from VariantValidator.')
-                return 'empty_result'
+                flash(f'{variant}: Error: VariantValidator did not recognise variant or could not map it to a reference sequence.')
+                logger.error(f'VariantValidator returned empty_result from querying {variant}')
+                return None
 
-            elif data is None: #checks is data is empty 
+            if data is None:
 
-                print(f"Warning: fetchVV returned None for variant: {variant}")
-                return 'null'
+                flash(f"{variant}: Error: VariantValidator did not return a response.")
+                logger.error(f'VariantValidator did not return a response from querying {variant}')
+                return None
 
-            elif any(k.startswith("validation_warning_") for k in data): #print out any warnings that come up 
+            elif any(k.startswith("validation_warning_") for k in data): #print out any warnings that come up
                 for key in data:
 
                     if key.startswith("validation_warning_"):
@@ -311,14 +354,16 @@ def get_mane_nc(variant: str):
                         warnings = warning_block.get("validation_warnings", [])
 
                         if warnings:
-                            print(f"Validation warnings from {key}:")
+                            flash(f'{variant}: VariantValidator warnings:')
 
-                            for w in warnings:
-                                print(f" - {w}")
+                            for warning in warnings:
+                                flash(f"\t-{warning}")
+                                logger.debug(f'{variant}: VariantValidator warning: {warning}')
 
             elif variant.startswith(('ENS', 'NM_', 'LRG_', 'NC_')):
                 nm_variant = list(data.keys())[0]
                 nc_variant = data[nm_variant]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
+                logger.info(f'{variant}: HGVS genomic description retrieved from VariantValidator: {nc_variant}')
                 return nc_variant
 
             elif re.match(r'^[A-Za-z0-9_-]+:', variant):
@@ -342,6 +387,7 @@ def get_mane_nc(variant: str):
                                         continue            # go to next tx
                                     break
 
+                            logger.info(f'{variant}: HGVS genomic description retrieved from VariantValidator: {nc_number}:{genetic_change}')
                             return f"{nc_number}:{genetic_change}"
                     
                         if genetic_change.startswith("c."):
@@ -350,24 +396,41 @@ def get_mane_nc(variant: str):
                             if nm_number:
                                 variant_nm = f"{nm_number}:{genetic_change}"
                                 nc_variant = get_mane_nc(variant_nm)
+                                logger.info(f'{variant}: HGVS transcript description retrieved from VariantValidator: {variant_nm}')
                                 return nc_variant
 
                             else:
-                                return f"No nm_number found"
+                                flash(f'{variant}: Error: MANE select transcript cannot be found.')
+                                logger.error(f'{variant}: VariantValidator did not return a MANE select transcript.')
+                                return None
+
+                    elif tx["annotations"].get("mane_select") is not True:
+                        flash(f'{variant}: Error: MANE select cannot be found.')
+                        logger.error(f'{variant}: VariantValidator did not return a MANE select transcript.')
 
             else:
-                print(f"Error: Unrecognized variant format after data retrieval: {variant}")
-                return 'error_unrecognized_format_after_retrieval'
+                flash(f"{variant}: Error: Unrecognized variant format after data retrieval: {variant}")
+                return None
 
 
         # Catch any network or HTTP errors raised by 'requests'.
         except requests.exceptions.HTTPError as e:
+
             if e.response.status_code == 429:
-                time.sleep(2 ** attempt)  # exponential backoff
-                print(e)
-                print('Trying again...')
-                print(f'Attempt: {attempt + 2}/5')
+                # Create a delay between attempts if 429 error is raised.
+                time.sleep(2 ** attempt)
+                # Log a warning if another request needs to be sent.
+                logger.warning(f'{variant}: {e}')
+                # Log a description of which attempt out of 5 is going to be tried.
+                logger.info(f'Trying to retrieve HGVS genomic description from VariantValidator again. Attempt: {attempt + 2}/5')
                 continue
+
+        # Raise an exception if an error occurs while querying VariantValidator.
+        except Exception as e:
+
+            # Log the error using the exception output message.
+            logger.error(f'{variant}: Failed to construct a valid URL for querying VariantValidator: {e}', exc_info=True)
+            continue
 
 #print(fetchVV('11-2164285-C-T'))
 
