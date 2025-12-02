@@ -212,14 +212,18 @@ def variant_annotations_table(filepath, db_name):
     '''
     This function creates a database, if it doesn't already exist.
     It then creates or updates a table in the database called 'variant_annotations', which is populated by variants
-    extracted from .vcf files uploaded by the user on our flask website.
+    extracted from .vcf files uploaded by the user on our flask website, denoted as HGVS genomic descriptions from
+    VariantValidator.
+    It is further annotated by the HGVS transcript description, HGVS NP_ nomenclature, gene symbol and HGNC ID, also
+    from VariantValidator, as well as the cumulative variant classification, associated conditions, star-rating and
+    review status, from ClinVar.
 
-    :params: filepath: This leads to the subdirectory where the .vcf files uploaded by the user are stored.
-                       The subdirectory is called 'data' and is located in the base-directory of this software package.
+    :params: filepath: This leads to the subdirectory where the variant files uploaded by the user are stored.
+                       The subdirectory is called 'temp' and is located in the base-directory of this software package.
                        The filepath is not hardcoded into the script because it is the absolute filepath within the
                        respective computer that this software package was loaded in.
 
-                 E.g.: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/data/'
+                 E.g.: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/temp/'
 
               db_name: The user-specified name of the database.
 
@@ -238,15 +242,21 @@ def variant_annotations_table(filepath, db_name):
              4|NC_000004.12:g.89835580C>G|NM_007262.5:c.541G>C|NP_009193.2:p.(Val181Leu)|SNCA|11138|Pathogenic|Unknown|★★|criteria provided, multiple submitters, no conflicts
              5|NC_000019.10:g.41985036A>C|NM_007262.5:c.541G>C|NP_009193.2:p.(Val181Leu)|ATP1A3|801|Pathogenic|Unknown|★★|criteria provided, multiple submitters, no conflicts
 
-    :command: filepath = '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/data/'
-              variantAnnotationsTable(filepath)
+    :command: filepath = '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/temp/'
+              variantAnnotationsTable(filepath, 'my_database')
 
               To access database: sqlite3 /<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/my_database.db
 
               To view table: SELECT * FROM variant_annotations;
     '''
 
-    # Create a list of the filepaths to all of the .vcf files in the 'data' subdirectory.
+    # Log the start of the function.
+    logger.info('Executing variant_annotations_table()...')
+    # Log the absolute filepath to the 'temp' directory where the data is going to be pulled into the database from.
+    # And the name of the database being updated/created by the user.
+    logger.debug(f'Filepath to data: {filepath}; database to be populated: {db_name}')
+
+    # Create a list of the filepaths to all of the variant files in the 'temp' subdirectory.
     vcf_paths = []
 
     # Iterate through the files in the filepath provided by the user and add the files with a .vcf or .csv extension to the vcf_paths list.
@@ -255,6 +265,25 @@ def variant_annotations_table(filepath, db_name):
             vcf_paths.append(f'{filepath}/{file}')
         else:
             continue
+
+    # If there aren't any variant files in the 'temp' folder, notify the user through a flash message and log the
+    # warning.
+    if len(vcf_paths) == 0:
+        flash('No data files have been uploaded. Please upload a .VCF or .CSV file or select a database to query.')
+        logger.warning(f"No VCF/CSV files detected in 'temp' directory: {filepath}")
+        return
+
+    # Log the number of variant files in temp directory.
+    logger.info(f'{len(vcf_paths)} variant files in {filepath}.')
+
+    # Log the variant file names that will be processed.
+    for file in vcf_paths:
+        logger.debug(f"Files detected: {file.split('/')[-1]}")
+
+
+
+
+
 
     # Get the filepath to the directory of this script
     script_dir = os.path.dirname(os.path.abspath(__file__))  # RS
@@ -358,9 +387,9 @@ def variant_annotations_table(filepath, db_name):
             else:
                 continue
 
-        # Save (commit) changes and close connection
-        conn.commit()
-        conn.close()
+    # Save (commit) changes and close connection
+    conn.commit()
+    conn.close()
 
     # A message is printed in the back-end to indicate that the table was successfully created or updated.
     logger.info('Variant_annotations created/updated successfully!')
