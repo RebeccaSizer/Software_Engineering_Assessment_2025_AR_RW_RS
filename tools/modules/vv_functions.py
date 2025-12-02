@@ -15,7 +15,7 @@ def fetch_vv(variant: str):
     stored in the clinvar.db database.
     The genomic and transcript HGVS descriptions are used to find the corresponding ClinVar variant summary record to
     annotate the variant.
-    The gene symbol is used to support gene queries made by the user through the flask app.
+    The gene symbol is used to support gene queries made by the User through the flask app.
     Requests are made to the /variantvalidator endpoint with MANE transcript preference.
     Currently fixed to use the GRCh38 reference genome.
 
@@ -67,7 +67,7 @@ def fetch_vv(variant: str):
                 logger.warning(f'{variant}: VariantValidator did not recognise variant or could not map it to a reference sequence.')
 
                 # Return the description so that the variant_annotations_table function in database_functions.py can
-                # attach the description to the file name where the queried variant comes from. This will help the user.
+                # attach the description to the file name where the queried variant comes from. This will help the User.
                 return f'{variant}: ⚠ VariantValidator did not recognise variant or could not map it to a reference sequence.'
 
             # Handle unexpected null responses from the VariantValidator API.
@@ -77,7 +77,7 @@ def fetch_vv(variant: str):
                 logger.warning(f'{variant}: Querying VariantValidator did not return a result.')
 
                 # Return the description so that the variant_annotations_table function in database_functions.py can
-                # attach the description to the file name where the queried variant comes from. This will help the user.
+                # attach the description to the file name where the queried variant comes from. This will help the User.
                 return f'{variant}: ⚠ Querying VariantValidator did not return a result.'
 
             # Report the warnings produced by VariantValidator.
@@ -96,7 +96,7 @@ def fetch_vv(variant: str):
 
                             # Return the warnings so that the variant_annotations_table function in
                             # database_functions.py can attach the description to the file name where the queried
-                            # variant comes from. This will help the user.
+                            # variant comes from. This will help the User.
                             return return_warnings
 
             # If a result was returned and it is not an empty result, the response should be parsable.
@@ -122,7 +122,7 @@ def fetch_vv(variant: str):
 
                     # Return the description so that the variant_annotations_table function in database_functions.py can
                     # attach the description to the file name where the queried variant comes from.
-                    # This will help the user.
+                    # This will help the User.
                     return f'{variant}: Awkward response received from VariantValidator.'
 
             # Use Regex to detect if an anything but the HGVS genomic description was returned.
@@ -134,7 +134,7 @@ def fetch_vv(variant: str):
                 logger.debug(f'{variant}: Genomic variant description from VariantValidator: {nc_variant}')
 
                 # Return the description so that the variant_annotations_table function in database_functions.py can
-                # attach the description to the file name where the queried variant comes from. This will help the user.
+                # attach the description to the file name where the queried variant comes from. This will help the User.
                 return f'{variant}: Genomic variant description from VariantValidator is not in valid HGVS nomenclature.'
 
             # Use Regex to detect if an anything but the HGVS transcript description was returned.
@@ -146,7 +146,7 @@ def fetch_vv(variant: str):
                 logger.debug(f'{variant}: Transcript variant description from VariantValidator: {nm_variant}')
 
                 # Return the description so that the variant_annotations_table function in database_functions.py can
-                # attach the description to the file name where the queried variant comes from. This will help the user.
+                # attach the description to the file name where the queried variant comes from. This will help the User.
                 return f'{variant}: Transcript variant description from VariantValidator is not in valid HGVS nomenclature.'
 
             # Use Regex to detect if an anything but the HGVS protein description was returned.
@@ -159,10 +159,10 @@ def fetch_vv(variant: str):
                 # Log what was extracted from the response to support debugging.
                 logger.debug(f'{variant}: Protein consequence from VariantValidator: {np_variant}')
 
-                # Flash message sent to flask app UI to help the user understand the issue.
+                # Flash message sent to flask app UI to help the User understand the issue.
                 flash(f'{variant}: Irregular protein consequence from VariantValidator.')
 
-                # This is what will be stored in the database, to help the user understand why the protein description
+                # This is what will be stored in the database, to help the User understand why the protein description
                 # is not there.
                 np_variant = 'Irregular response from VariantValidator'
 
@@ -179,10 +179,10 @@ def fetch_vv(variant: str):
                 # Log what was extracted from the response to support debugging.
                 logger.debug(f'{variant}: Gene symbol response from VariantValidator: {gene_symbol}')
 
-                # Flash message sent to flask app UI to help the user understand the issue.
+                # Flash message sent to flask app UI to help the User understand the issue.
                 flash(f'{variant}: Irregular gene symbol from VariantValidator.')
 
-                # This is what will be stored in the database, to help the user understand why the gene symbol
+                # This is what will be stored in the database, to help the User understand why the gene symbol
                 # is not there.
                 gene_symbol = 'Irregular response from VariantValidator'
 
@@ -192,16 +192,16 @@ def fetch_vv(variant: str):
 
                 # Log a warning if the HGNC ID consists of anything but numbers.
                 # A warning is logged because the HGNC ID is not essential to this software package's functionality.
-                # However it is necessary when the user performs a gene query through the flask app.
+                # However it is necessary when the User performs a gene query through the flask app.
                 logger.warning(f'{variant}: HGNC ID from VariantValidator is not a number. Variant will not be returned from gene query.')
 
                 # Log what was extracted from the response to support debugging.
                 logger.debug(f'{variant}: HGNC ID response from VariantValidator: {hgnc_id}')
 
-                # Flash message sent to flask app UI to help the user understand the irregularity.
+                # Flash message sent to flask app UI to help the User understand the irregularity.
                 flash(f'{variant}: Irregular HGNC ID from VariantValidator. Variant will not be returned from gene query.')
 
-                # This is what will be stored in the database, to help the user understand why the HGNC ID
+                # This is what will be stored in the database, to help the User understand why the HGNC ID
                 # is not there.
                 hgnc_id = 'Irregular response from VariantValidator'
 
@@ -220,7 +220,7 @@ def fetch_vv(variant: str):
                 # Create a delay between attempts if 429 error is raised.
                 time.sleep(2 ** attempt)
                 # Log a warning if another request needs to be sent.
-                logger.warning(f'{variant}: {e}')
+                logger.warning(f'{variant}: {e}', exc_info=True)
                 # Log a description of which attempt out of 5 is going to be tried.
                 logger.info(f'Trying to get the variant information from VariantValidator again. Attempt: {attempt + 2}/5')
                 continue
@@ -230,12 +230,13 @@ def fetch_vv(variant: str):
 
             # Log the error if it occurs, using the exception output message.
             logger.error(f'{variant}: Failed to query VariantValidator: {e}', exc_info=True)
+            break
 
     # Log an error if VariantValidator was unable to return a response after 5 attempts.
     logger.error(f'{variant}: VariantValidator failed after 5 attempts.')
 
     # Return the description so that the variant_annotations_table function in database_functions.py can attach the
-    # description to the file name where the queried variant comes from. This will help the user.
+    # description to the file name where the queried variant comes from. This will help the User.
     return f'{variant}: ❌ VariantValidator unavailable. Try again later.'
 
 
@@ -263,35 +264,32 @@ def get_mane_nc(variant: str):
     logger.info(f"User's variant query: {variant}. Querying VariantValidator for HGVS description...")
 
     try:
+        # Get the transcript and genetic change from the input variant.
+        transcript, genetic_change = variant.split(':')
 
         # Construct the full API request URL based on the type of search term.
         # first for ensenmbl transcript
         # ENST - VariantValidator/variantvalidator_ensembl end point
         if variant.startswith('ENST'):
-            transcript, genetic_change = variant.split(':')
 
             if genetic_change.startswith('c.'):
                 ENST_variant = variant.replace(':', '%3A').replace('>', '%3E')
                 url_vv = f"{base_url_vv}variantvalidator_ensembl/GRCh38/{ENST_variant}/mane_select?content-type=application%2Fjson"  # ENST - transcript
 
             else:
-                flash(f"Error: {transcript} must use c. notation. {variant} does not work.")
-                logger.warning(f'User entered an ENST variant without c. notation: {variant}')
-                return None
+                flash(f"⚠ {transcript} must use c. notation. {variant} does not work.")
+                logger.warning(f'ENST transcript entered without c. notation: {variant}')
 
         # search by NM or LRG Ref Seq transcript - VariantValidator/variantvalidator end point
         elif variant.startswith(('NM_', 'LRG_', 'NC_', 'NG_')):
-            transcript, genetic_change = variant.split(':')
 
             if transcript.startswith(('NM_', 'LRG_', 'NG_')) and not genetic_change.startswith('c.'):
-                flash(f"Error: {transcript} must use c. notation. {variant} does not work.")
-                logger.warning(f"User entered an '{transcript[:2]}' accession number without c. notation: {variant}")
-                return None
+                flash(f"⚠ {transcript} must use c. notation. {variant} does not work.")
+                logger.warning(f"'{transcript[:3]}' accession number entered without c. notation: {variant}")
 
             elif transcript.startswith('NC_') and not genetic_change.startswith('g.'):
-                flash(f"Error: {transcript} must use g. notation. {variant} does not work.")
-                logger.warning(f"User entered an '{variant[:2]}' accession number without g. notation: {variant}")
-                return None
+                flash(f"⚠ {transcript} must use g. notation. {variant} does not work.")
+                logger.warning(f"'{variant[:3]}' accession number entered without g. notation: {variant}")
 
             else:
                 refseq_variant = variant.replace(':', '%3A').replace('>', '%3E')
@@ -299,22 +297,21 @@ def get_mane_nc(variant: str):
 
         # search by gene symbol
         # Gene symbol - VariantValidator/tools/gene2transcripts_v2 end point
-        elif re.match(r'^[A-Za-z0-9_-]+:', variant):
+        elif not transcript.startswith('ENST') and '_' not in transcript and len(transcript) < 10:
             gene_symbol, genetic_change = variant.split(':')
             url_vv = f"{base_url_vv}tools/gene2transcripts/{gene_symbol}?content-type=application%2Fjson"  # Gene symbol - gene
 
         else:
-            flash(f"Error: {variant}: Unrecognized variant format. Please describe variant using HGVS nomenclature.")
+            flash(f"❌ {variant}: Unrecognized variant format. Please describe variant using HGVS nomenclature.")
             logger.error(f'{variant}: Variant rejected because of invalid format.')
-            return None
 
         logger.debug(f'{variant}: VariantValidator URL: {url_vv}')
 
     # Raise an exception if a URL could not be created.
-    except Exception as e :
+    except Exception as e:
         # Log an error if a URL could not be made using the exception output message.
-        logger.error(f'{variant}: Failed to construct a valid URL for querying VariantValidator: {e}', exc_info=True)
-        return None
+        logger.error(f'Failed to construct a valid VariantValidator URL from {variant}: {e}', exc_info=True)
+
 
 
     # ----- Make the API request and handle the response -----
@@ -334,18 +331,44 @@ def get_mane_nc(variant: str):
             # Parse the API response into a Python dictionary.
             data = response.json()
 
-            if data.get('flag') == 'empty_result': #retrives the value for key 'flag'
+        # Catch any network or HTTP errors raised by 'requests'.
+        except requests.exceptions.HTTPError as e:
 
-                flash(f'{variant}: Error: VariantValidator did not recognise variant or could not map it to a reference sequence.')
+            if e.response.status_code == 429:
+                # Create a delay between attempts if 429 error is raised.
+                time.sleep(2 ** attempt)
+                # Log a warning if another request needs to be sent.
+                logger.warning(f'{variant}: {e}', exc_info=True)
+                # Log a description of which attempt out of 5 is going to be tried.
+                logger.info(f'Trying to retrieve HGVS genomic description from VariantValidator again. Attempt: {attempt + 2}/5')
+                # Continue the loop.
+                continue
+
+        # Test the response from VariantValidator
+        try:
+
+            # VariantValidator returns this key, value combination when it cannot recognise the variant or it cannot
+            # map it to a reference sequence.
+            if data.get('flag') == 'empty_result':
+
+                # Log an error that VariantValidator returned an empty result.
                 logger.error(f'VariantValidator returned empty_result from querying {variant}')
-                return None
 
+                # Notify the User that there was an error while querying VariantValidator.
+                flash(f'❌ {variant}: Error: VariantValidator did not recognise variant or could not map it to a reference sequence.')
+                break
+
+            # Handle unexpected null responses from the VariantValidator API.
             if data is None:
 
-                flash(f"{variant}: Error: VariantValidator did not return a response.")
+                # Log an error that VariantValidator did not return a result.
                 logger.error(f'VariantValidator did not return a response from querying {variant}')
-                return None
 
+                # Notify the User that there was an error while querying VariantValidator.
+                flash(f"❌ {variant}: Error: VariantValidator did not return a response.")
+                break
+
+            # Report the warnings produced by VariantValidator.
             elif any(k.startswith("validation_warning_") for k in data): #print out any warnings that come up
                 for key in data:
 
@@ -354,93 +377,126 @@ def get_mane_nc(variant: str):
                         warnings = warning_block.get("validation_warnings", [])
 
                         if warnings:
-                            flash(f'{variant}: VariantValidator warnings:')
+                            flash(f'⚠ {variant}: VariantValidator warnings:')
 
                             for warning in warnings:
-                                flash(f"\t-{warning}")
-                                logger.debug(f'{variant}: VariantValidator warning: {warning}')
 
-            elif variant.startswith(('ENS', 'NM_', 'LRG_', 'NC_')):
+                                # Display the warning from VariantValidator to the User
+                                flash(f"\t-{warning}")
+                                # Log the warnings produced by VariantValidator.
+                                logger.debug(f'{variant}: VariantValidator warning: {warning}')
+                break
+
+            # If the variant started with 'ENST', 'NM_', 'LRG_' or 'NC_', parse the genomic description in HGVS
+            # nomenclature from the response.
+            elif variant.startswith(('ENST', 'NM_', 'LRG_', 'NC_')):
                 nm_variant = list(data.keys())[0]
                 nc_variant = data[nm_variant]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
+
+                # Log that the User's input result in the corresponding genomic description.
                 logger.info(f'{variant}: HGVS genomic description retrieved from VariantValidator: {nc_variant}')
+                # Return the genomic description.
                 return nc_variant
 
-            elif re.match(r'^[A-Za-z0-9_-]+:', variant):
-                nc_number = None
-                transcripts = []
+            # Return the HGVS genomic description if the User provided a gene symbol.
+            elif not transcript.startswith('ENST') and '_' not in transcript and len(transcript) < 11:
 
-                for tx in data["transcripts"]: #this loops through all the transcripts that are in the API output in trancripts 
-                    if tx["annotations"].get("mane_select") is True:
-                        if genetic_change.startswith("g."): #find the transcripts that have mane_select = true
-                            transcripts.append(tx["genomic_spans"])
-                            print(tx.keys()) #add the genomics_span dictionary from these transcripts into a list
+                # This method returns the NC_ accession number with the latest version if the User used a g. number.
+                genomic_ref = ''
 
-                        # Pick NC number from the first MANE transcript
-                            for tx in transcripts:
-                                for nc_number in tx.keys():
-                                    if nc_number.endswith(".11"):
-                                        nc_number = nc_number 
-                                        break           # breaks inner loop
-                                    else:
-                                    # inner loop didn't break → no .11 found in this tx
-                                        continue            # go to next tx
-                                    break
+                if genetic_change.startswith("g."):
 
-                            logger.info(f'{variant}: HGVS genomic description retrieved from VariantValidator: {nc_number}:{genetic_change}')
-                            return f"{nc_number}:{genetic_change}"
-                    
-                        if genetic_change.startswith("c."):
-                            nm_number = tx["reference"]
+                    try:
+                        # Find the MANE select transcript.
+                        for transcript_record in data["transcripts"]:
+                            if transcript_record["annotations"]["mane_select"]:
 
-                            if nm_number:
-                                variant_nm = f"{nm_number}:{genetic_change}"
-                                nc_variant = get_mane_nc(variant_nm)
-                                logger.info(f'{variant}: HGVS transcript description retrieved from VariantValidator: {variant_nm}')
-                                return nc_variant
+                                # Extract the NC_ accession number.
+                                for item in transcript_record["genomic_spans"].keys():
 
-                            else:
-                                flash(f'{variant}: Error: MANE select transcript cannot be found.')
-                                logger.error(f'{variant}: VariantValidator did not return a MANE select transcript.')
-                                return None
+                                    if item.startswith("NC_") and genomic_ref == '':
 
-                    elif tx["annotations"].get("mane_select") is not True:
-                        flash(f'{variant}: Error: MANE select cannot be found.')
-                        logger.error(f'{variant}: VariantValidator did not return a MANE select transcript.')
+                                        genomic_ref = item
+
+                                    # The 'genomic_ref' variable is changed to the NC_ accession number with the highest
+                                    # version number.
+                                    elif item.split('.')[0] == genomic_ref.split('.')[0]:
+
+                                        if item.split('.')[-1] > genomic_ref.split('.')[-1]:
+                                            genomic_ref = item
+
+                        # Log the output from querying VariantValidator using the gene symbol entered by the User.
+                        logger.info(f'{variant}: HGVS genomic description successfully retrieved from {transcript} gene symbol: {genomic_ref}:{genetic_change}')
+
+                        # Return the genomic description in HGVS nomenclature.
+                        return f'{genomic_ref}:{genetic_change}'
+
+                    # Raise and exception if the genomic description could not be retrieved from the gene symbol.
+                    except Exception as e:
+                        # Log that the gene symbol failed to retrieve the genomic description.
+                        logger.error(f'{variant}: Failed to retrieve genomic description from gene symbol: {transcript}: {e}', exc_info=True)
+                        # Notify the User that the gene symbol is what failed to retrieve a response.
+                        flash(f'❌ {variant}: Error: VariantValidator was unable to return a response using this gene symbol: {transcript}.')
+
+                # This method recursively uses get_mane_nc to retrieve the genomic description by feeding it the MANE
+                # select transcript along with the variant, if the variant was described using a c. number.
+                elif genetic_change.startswith("c."):
+
+                    try:
+                        # Find the MANE select transcript.
+                        for transcript_record in data["transcripts"]:
+                            if transcript_record["annotations"]["mane_select"]:
+
+                                # Extract the NM_ number of the MANE select transcript.
+                                transcript_ref = transcript_record["reference"]
+
+                        # Feed the MANE select and c. variant back into get_mane_nc
+                        gs_variant = f'{transcript_ref}:{genetic_change}'
+                        nc_variant = get_mane_nc(gs_variant)
+
+                        # Log the output from querying VariantValidator using the gene symbol entered by the User.
+                        logger.info(f'{variant}: HGVS genomic description successfully retrieved from {transcript} gene symbol: {genomic_ref}:{genetic_change}')
+                        # Return the genomic description in HGVS nomenclature.
+                        return nc_variant
+
+                    # Raise and exception if the genomic description could not be retrieved from the gene symbol.
+                    except Exception as e:
+                        # Log that the gene symbol failed to retrieve the genomic description.
+                        logger.error(f'{variant}: Failed to retrieve genomic description from MANE select of {transcript}: {e}', exc_info=True)
+                        # Notify the User that the gene symbol is what failed to retrieve a response.
+                        flash(f"❌ {variant}: VariantValidator was unable to return a response using {transcript}'s MANE select.")
+
+                else:
+                    # Log that there was an issue with the variant denotation.
+                    logger.error(f'{variant}: User did not enter a c. or g. after the colon of their variant query.')
+                    # Notify the User that there was an issue with the variant denotation.
+                    flash(f'❌ {variant}: Error: Please enter a c. or g. number after the colon in your query.')
+                    break
 
             else:
-                flash(f"{variant}: Error: Unrecognized variant format after data retrieval: {variant}")
-                return None
+                # Log that there was an issue with the gene symbol or accession number.
+                logger.error(f'{variant}: VariantValidator was unable to recognise the gene symbol or accession number in the variant query, entered by the User: {transcript}')
+                # Notify the User that there was an issue with the gene symbol or accession number.
+                flash(f"❌ {variant}: Error: VariantValidator was unable to recognise the gene symbol or accession number in your variant query: {transcript}")
+                break
 
-
-        # Catch any network or HTTP errors raised by 'requests'.
-        except requests.exceptions.HTTPError as e:
-
-            if e.response.status_code == 429:
-                # Create a delay between attempts if 429 error is raised.
-                time.sleep(2 ** attempt)
-                # Log a warning if another request needs to be sent.
-                logger.warning(f'{variant}: {e}')
-                # Log a description of which attempt out of 5 is going to be tried.
-                logger.info(f'Trying to retrieve HGVS genomic description from VariantValidator again. Attempt: {attempt + 2}/5')
-                continue
-
-        # Raise an exception if an error occurs while querying VariantValidator.
+        # Raise an exception if there is an error in the response from VariantValidator.
         except Exception as e:
-
             # Log the error using the exception output message.
-            logger.error(f'{variant}: Failed to construct a valid URL for querying VariantValidator: {e}', exc_info=True)
-            continue
+            logger.error(f'{variant}: Response from VariantValidator was problematic: {e}', exc_info=True)
+            # Log the response from VariantValidator.
+            logger.debug(f'{variant}: Response from VariantValidator:\n{json.dumps(data, indent=4)}')
+            flash('❌ {variant}: Error: There was a problem with the response from VariantValidator.')
 
 #print(fetchVV('11-2164285-C-T'))
 
 #Example usage
-if __name__ == "__main__":
-    print(fetch_vv('11-2164285-C-T'))
-    variant = "PARK7:c.515T>A"
-    output = get_mane_nc(variant)
-    print("Final Output:")
-    print(output)
+#if __name__ == "__main__":
+ #   print(fetch_vv('11-2164285-C-T'))
+  #  variant = "PARK7:c.515T>A"
+   # output = get_mane_nc(variant)
+    #print("Final Output:")
+    #print(output)
 
 #######
 #tests:
