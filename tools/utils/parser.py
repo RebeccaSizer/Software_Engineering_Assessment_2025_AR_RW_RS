@@ -49,7 +49,7 @@ def variant_parser(file):
             elif len(line.split('\t')) <= 4:
 
                 # ...and prints a message to help identify which line was skipped.
-                print(f'Variant in line {line_number} from {file.split('/')[-1]} is irregular and was not parsed.')
+                print(f"Variant in line {line_number} from {file.split('/')[-1]} is irregular and was not parsed.")
                 continue
 
             else:
@@ -95,7 +95,7 @@ def variant_parser(file):
             elif len(row) <= 4:
 
                 # ...and prints a message to help identify which row was skipped.
-                print(f'Variant in line {line_number} from {file.split('/')[-1]} is irregular and was not parsed.')
+                print(f"Variant in line {line_number} from {file.split('/')[-1]} is irregular and was not parsed.")
                 continue
 
             # Ignores NoneType entities in the file.
