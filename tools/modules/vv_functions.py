@@ -64,7 +64,7 @@ def fetch_vv(variant: str):
             if data['flag'] == 'empty_result':
 
                 # Log a warning that VariantValidator returned an empty result.
-                logger.error(f'{variant}: VariantValidator did not recognise variant or could not map it to a reference sequence.')
+                logger.warning(f'{variant}: VariantValidator did not recognise variant or could not map it to a reference sequence.')
 
                 # Return the description so that the variant_annotations_table function in database_functions.py can
                 # attach the description to the file name where the queried variant comes from. This will help the user.
@@ -74,7 +74,7 @@ def fetch_vv(variant: str):
             elif data is None:
 
                 # Log a warning that VariantValidator did not return a result.
-                logger.error(f'{variant}: Querying VariantValidator did not return a result.')
+                logger.warning(f'{variant}: Querying VariantValidator did not return a result.')
 
                 # Return the description so that the variant_annotations_table function in database_functions.py can
                 # attach the description to the file name where the queried variant comes from. This will help the user.
@@ -89,7 +89,7 @@ def fetch_vv(variant: str):
                         warnings = warning_block.get("validation_warnings", [])
 
                         if warnings:
-                            return_warnings = ','.join(warnings)
+                            return_warnings = '|'.join(warnings)
 
                             # Log the warnings produced by VariantValidator.
                             logger.debug(f'{variant}: VariantValidator warning: {return_warnings}')
@@ -135,7 +135,7 @@ def fetch_vv(variant: str):
 
                 # Return the description so that the variant_annotations_table function in database_functions.py can
                 # attach the description to the file name where the queried variant comes from. This will help the user.
-                return f'{variant}: Genomic variant description from VariantValidator is not in valid HGVS nomenclature. Variant not added to database.'
+                return f'{variant}: Genomic variant description from VariantValidator is not in valid HGVS nomenclature.'
 
             # Use Regex to detect if an anything but the HGVS transcript description was returned.
             elif not re.match('^NM_\d+.\d{1,2}:c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nm_variant):
@@ -147,7 +147,7 @@ def fetch_vv(variant: str):
 
                 # Return the description so that the variant_annotations_table function in database_functions.py can
                 # attach the description to the file name where the queried variant comes from. This will help the user.
-                return f'{variant}: Transcript variant description from VariantValidator is not in valid HGVS nomenclature. Variant not added to database.'
+                return f'{variant}: Transcript variant description from VariantValidator is not in valid HGVS nomenclature.'
 
             # Use Regex to detect if an anything but the HGVS protein description was returned.
             elif not re.match('^NP_\d+.\d{1,2}:p[.](\()*(0)*(\?)*[*]*[?]*(\d*[a-zA-Z]{3})*(\d+[a-zA-Z]{3}(fs)*[*]*(\d+)*|\d*_[a-zA-Z]{3}\d+(ins)*[a-zA-Z]*|\d*_[a-zA-Z]{3}\d+(delins)*[a-zA-Z]*|\d+=|\d+[*]|ext\d*)*(\))*', np_variant):

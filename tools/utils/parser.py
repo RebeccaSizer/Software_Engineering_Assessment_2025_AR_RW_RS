@@ -1,6 +1,6 @@
 import csv
 
-def variantParser(file):
+def variant_parser(file):
     '''
     This function  extracts and parses the variants from .vcf and .csv files. It then stores the variants in a
     list.
