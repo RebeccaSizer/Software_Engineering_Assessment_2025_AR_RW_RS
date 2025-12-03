@@ -235,8 +235,6 @@ def patient_variant_table(filepath, db_name):
 
     # A message is logged and shown to the user to indicate that the database was successfully created or updated.
     logger.info(f'Patient_variant table in {db_name} created/updated successfully!')
-    flash(f'{db_name}.db created/updated successfully!')
-
 
 
 def variant_annotations_table(filepath, db_name):
