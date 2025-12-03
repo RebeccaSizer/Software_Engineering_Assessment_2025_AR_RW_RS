@@ -310,11 +310,11 @@ def clinvar_annotations(nc_variant, nm_variant):
     # Log which variant's summary record could not be found in clinvar.db.
     if not record:
         logger.warning(f'Could not find {nc_variant} variant summary record in clinvar.db')
-        return f'⚠ Could not find {nc_variant} variant summary record in clinvar.db'
+        return f'❌ Could not find {nc_variant} variant summary record in clinvar.db.'
 
     else:
         # Log which variant's summary record could be found in clinvar.db.
-        logger.info(f'{nc_variant} variant summary record found in clinvar.db')
+        logger.info(f'{nc_variant}: Variant summary record found in clinvar.db')
 
         # Parse the variant information out of the record.
         clinical_significance, conditions, stars, review_status = record
