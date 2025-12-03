@@ -82,17 +82,18 @@ def patient_variant_table(filepath, db_name):
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Build absolute path to the database
-    db_path = os.path.abspath(
-        os.path.join(script_dir, '..', '..', 'databases', f'{db_name}.db'))
+    db_path = os.path.abspath(os.path.join(script_dir, '..', '..', 'databases', f'{db_name}.db'))
 
     # Make the databases folder if it does not exist
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
-    # Connect to the database
-    conn = sqlite3.connect(db_path)
-
-    # Create a cursor to run SQL commands
-    cursor = conn.cursor()
+    try:
+        # Connect to the database
+        conn = sqlite3.connect(db_path)
+        # Create a cursor to run SQL commands
+        cursor = conn.cursor()
+        # Log the filepath to the database.
+        logger.info(f'Connected to database: {db_path}')
 
     # Create the patient_variant table if it does not already exist. UNIQUE groups the patient_ID and variant together
     # to ensure that they can only appear once in the table together.
@@ -278,18 +279,16 @@ def variant_annotations_table(filepath, db_name):
 
     # Log the variant file names that will be processed.
     for file in vcf_paths:
-        logger.debug(f"Files detected: {file.split('/')[-1]}")
-
-
-
-
-
+        logger.debug(f"Variant files detected: {file.split('/')[-1]}")
 
     # Get the filepath to the directory of this script
     script_dir = os.path.dirname(os.path.abspath(__file__))  # RS
 
     # Absolute path to database
     db_path = os.path.abspath(os.path.join(script_dir, '..', '..', 'databases', f'{db_name}.db'))  # RS
+
+    # Make the databases folder if it does not exist
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
     # Create (or connect to) the database file.
     conn = sqlite3.connect(db_path)
