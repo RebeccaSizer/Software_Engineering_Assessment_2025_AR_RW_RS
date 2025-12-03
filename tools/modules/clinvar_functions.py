@@ -276,7 +276,7 @@ def clinvar_annotations(nc_variant, nm_variant):
     except Exception as e:
         #Log the error using the exception output message.
         logger.error(f'clinvar.db path error: {str(e)}', exc_info=True)
-        return f'clinvar.db file path error whilst searching for {nc_variant}.'
+        return f'clinvar.db file path error whilst searching for {nc_variant}'
 
     # Test if a variant summary record can be retrieved from clinvar.db.
     try:
@@ -305,16 +305,16 @@ def clinvar_annotations(nc_variant, nm_variant):
     except Exception as e:
         # Log the error using the exception output message.
         logger.error(f'Failed to query clinvar.db: {str(e)}', exc_info=True)
-        return f'Failed to query clinvar.db whilst searching for {nc_variant}.'
+        return f'❌ Failed to query clinvar.db whilst searching for {nc_variant}'
 
     # Log which variant's summary record could not be found in clinvar.db.
     if not record:
-        logger.warning(f'Could not find {nc_variant} variant summary record in clinvar.db')
-        return f'❌ Could not find {nc_variant} variant summary record in clinvar.db.'
+        logger.warning(f'Could not find {nc_variant} variant summary record in clinvar.db.')
+        return f'❌ Could not find {nc_variant} variant summary record in clinvar.db'
 
     else:
         # Log which variant's summary record could be found in clinvar.db.
-        logger.info(f'{nc_variant}: Variant summary record found in clinvar.db')
+        logger.info(f'{nc_variant}: Variant summary record found in clinvar.db.')
 
         # Parse the variant information out of the record.
         clinical_significance, conditions, stars, review_status = record
