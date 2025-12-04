@@ -7,6 +7,7 @@ import json
 import requests  # Import the 'requests' library to handle HTTP requests to the VariantValidator API
 from flask import flash
 from tools.utils.logger import logger
+from tools.utils.error_handlers import request_status_codes
 
 def fetch_vv(variant: str):
     '''
@@ -42,7 +43,7 @@ def fetch_vv(variant: str):
     logger.info(f'{variant}: Retrieving genomic description, transcript description, protein description, gene symbol, HGNC ID from VariantValidator @ {url_vv}')
 
     try:
-        # For loop enables 5 attempts to query VariantValidator API, in case 429 request errors occur.
+        # For loop enables 5 attempts to query VariantValidator API, in case 408 or 429 request errors occur.
         for attempt in range(5):
 
             # Test the query.
@@ -63,16 +64,47 @@ def fetch_vv(variant: str):
             # Catch any network or HTTP errors raised by 'requests'.
             except requests.exceptions.HTTPError as e:
 
-                # Handle 429 request errors.
-                if e.response.status_code == 429:
-                    # Create a delay between attempts if 429 error is raised.
-                    time.sleep(2 ** attempt)
-                    # Log a warning if another request needs to be sent.
-                    logger.warning(f'{variant}: {e}', exc_info=True)
-                    # Log a description of which attempt out of 5 is going to be tried.
-                    logger.info(
-                        f'Trying to get the variant information from VariantValidator again. Attempt: {attempt + 2}/5')
+                # Handle HTTP errors that need to be tried again.
+                if e.response.status_code == 408 or e.response.status_code == 429:
+                    error_message = request_status_codes(e, variant, url_vv, 'VariantValidator', attempt)
                     continue
+
+                # Handle HTTP errors that do not need to be tried again.
+                else:
+                    error_message = request_status_codes(e, variant, url_vv, 'VariantValidator', attempt)
+
+                # Return any flash messages to the function in database_functions.py, so that it can be appended to
+                # the file name. This will help the User where along the API request process failed.
+                return error_message
+
+            # Raise an exception if there is a problem with connection to the Network.
+            except requests.exceptions.ConnectionError as e:
+                # Retrieve the cause of the ConnectionError exception.
+                cause = e.__cause__
+                # Search if the cause comes under the OSError class of exceptions and was due to a poor internet
+                # connection (denoted as 101).
+                if isinstance(cause, OSError) and cause.errno == 101:
+                    # Log the ConnectionError.
+                    logger.error(f'{variant}: There was an error connecting to the internet: {e}', exc_info=True)
+                    # Return a flash message to the function in database_functions.py, so that it can be appended to
+                    # the file name. This will help the User where along the API request process failed.
+                    return f'{variant}: ❌ There was a problem connecting to the internet. Please check your WiFi, VPN or ethernet connection.'
+
+                # Handle other ConnectionErrors
+                else:
+                    # Log any other ConnectionError.
+                    logger.error(f'{variant}: There was a Connection error: {e}', exc_info=True)
+                    # Return a flash message to the function in database_functions.py, so that it can be appended to
+                    # the file name. This will help the User where along the API request process failed.
+                    return f'{variant}: ❌ There was a problem with your connection.'
+
+            # Raise an exception if any other errors occurred.
+            except Exception as e:
+                # Log the error using the exception output message.
+                logger.error(f'{variant}: Failed to construct a valid VariantValidator request: {url_vv}.\n{e}', exc_info=True)
+                # Return a flash message to the function in database_functions.py, so that it can be appended to the
+                # file name. This will help the User where along the API request process failed.
+                return f'{variant}: ❌ Failed to request a response from VariantValidator.'
 
             try:
 
@@ -324,12 +356,11 @@ def get_mane_nc(variant: str):
     # Raise an exception if a URL could not be created.
     except Exception as e:
         # Log an error if a URL could not be made using the exception output message.
-        logger.error(f'Failed to construct a valid VariantValidator URL from {variant}: {e}', exc_info=True)
-
-
+        logger.error(f'{variant}: Failed to construct a valid VariantValidator URL from {transcript}: {e}', exc_info=True)
 
     # ----- Make the API request and handle the response -----
 
+    # For loop enables 5 attempts to query VariantValidator API, in case 408 or 429 request errors occur.
     for attempt in range(5):
 
         try:
@@ -348,15 +379,48 @@ def get_mane_nc(variant: str):
         # Catch any network or HTTP errors raised by 'requests'.
         except requests.exceptions.HTTPError as e:
 
-            if e.response.status_code == 429:
-                # Create a delay between attempts if 429 error is raised.
-                time.sleep(2 ** attempt)
-                # Log a warning if another request needs to be sent.
-                logger.warning(f'{variant}: {e}', exc_info=True)
-                # Log a description of which attempt out of 5 is going to be tried.
-                logger.info(f'Trying to retrieve HGVS genomic description from VariantValidator again. Attempt: {attempt + 2}/5')
-                # Continue the loop.
+            # Handle HTTP errors that need to be tried again.
+            if e.response.status_code == 408 or e.response.status_code == 429:
+                error_message = request_status_codes(e, variant, url_vv, 'VariantValidator', attempt)
                 continue
+
+            # Handle HTTP errors that do not need to be tried again.
+            else:
+                error_message = request_status_codes(e, variant, url_vv, 'VariantValidator', attempt)
+
+            # Return any flash messages to the function in database_functions.py, so that it can be appended to
+            # the file name. This will help the User where along the API request process failed.
+            return error_message
+
+        # Raise an exception if there is a problem with connection to the Network.
+        except requests.exceptions.ConnectionError as e:
+            # Retrieve the cause of the ConnectionError exception.
+            cause = e.__cause__
+            # Search if the cause comes under the OSError class of exceptions and was due to a poor internet
+            # connection (denoted as 101).
+            if isinstance(cause, OSError) and cause.errno == 101:
+                # Log the ConnectionError.
+                logger.error(f'{variant}: There was an error connecting to the internet: {e}', exc_info=True)
+                # Return a flash message to the function in database_functions.py, so that it can be appended to
+                # the file name. This will help the User where along the API request process failed.
+                return f'{variant}: ❌ There was a problem connecting to the internet. Please check your WiFi, VPN or ethernet connection.'
+
+            # Handle other ConnectionErrors
+            else:
+                # Log any other ConnectionError.
+                logger.error(f'{variant}: There was a Connection error: {e}', exc_info=True)
+                # Return a flash message to the function in database_functions.py, so that it can be appended to
+                # the file name. This will help the User where along the API request process failed.
+                return f'{variant}: ❌ There was a problem with your connection.'
+
+        # Raise an exception if any other errors occurred.
+        except Exception as e:
+            # Log the error using the exception output message.
+            logger.error(f'{variant}: Failed to construct a valid VariantValidator request: {url_vv}.\n{e}',
+                         exc_info=True)
+            # Return a flash message to the function in database_functions.py, so that it can be appended to the
+            # file name. This will help the User where along the API request process failed.
+            return f'{variant}: ❌ Failed to request a response from VariantValidator.'
 
         # Test the response from VariantValidator
         try:

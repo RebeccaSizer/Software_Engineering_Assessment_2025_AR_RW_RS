@@ -6,6 +6,7 @@ import sqlite3
 import requests
 from ..utils.timer import timer
 from tools.utils.logger import logger
+from tools.utils.error_handlers import request_status_codes
 
 @timer
 def clinvar_vs_download():
@@ -28,24 +29,55 @@ def clinvar_vs_download():
     # The url to the database where the variant summary records are downloaded from.
     url =  'https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/variant_summary.txt.gz'
 
-    # Test if the url is OK to request a response from.
-    try:
-        # Log the start of the test.
-        logger.info(f'Downloading ClinVar summary records from {url}')
+    # For loop enables 5 attempts to query ClinVar API, in case 408 or 429 request errors occur.
+    for attempt in range(5):
+        # Test if the url is OK to request a response from.
+        try:
+            # Log the start of the test.
+            logger.info(f'Downloading ClinVar summary records from {url}')
 
-        # Stream the download so we don't load the entire file into memory at once.
-        clinvar_db = requests.get(url, stream=True)
+            # Stream the download so we don't load the entire file into memory at once.
+            clinvar_db = requests.get(url, stream=True)
 
-        # Raise an error if download failed.
-        clinvar_db.raise_for_status()
+            # Raise an error if download failed.
+            clinvar_db.raise_for_status()
 
-        # Log that the download was successful and when the records were last modified.
-        logger.info(f"Request OK. ClinVar variant summary records last modified: {requests.head(url).headers['Last-Modified']}")
+            # Log that the download was successful and when the records were last modified.
+            logger.info(f"Request OK. ClinVar variant summary records last modified: {requests.head(url).headers['Last-Modified']}")
 
-    # Raise an exception if the url test failed.
-    except Exception as e:
-        # Log the error, describing the reason why the test failed, using the exception output message.
-        logger.error(f'ClinVar variant summary record download failed:{str(e)}', exc_info=True)
+        # Catch any network or HTTP errors raised by 'requests'.
+        except requests.exceptions.HTTPError as e:
+
+            # Handle HTTP errors that need to be tried again.
+            if e.response.status_code == 408 or e.response.status_code == 429:
+                error_message = request_status_codes(e, 'ClinVar_Download', url, 'ClinVar', attempt)
+                continue
+
+            # Handle HTTP errors that do not need to be tried again.
+            else:
+                error_message = request_status_codes(e, 'ClinVar_Download', url, 'ClinVar', attempt)
+
+        # Raise an exception if there is a problem with connection to the Network.
+        except requests.exceptions.ConnectionError as e:
+            # Retrieve the cause of the ConnectionError exception.
+            cause = e.__cause__
+            # Search if the cause comes under the OSError class of exceptions and was due to a poor internet
+            # connection (denoted as 101).
+            if isinstance(cause, OSError) and cause.errno == 101:
+                # Log the ConnectionError.
+                logger.error(f'ClinVar_Download: There was an error connecting to the internet: {e}', exc_info=True)
+
+            # Handle other ConnectionErrors
+            else:
+                # Log any other ConnectionError.
+                logger.error(f'ClinVar_Download: There was a Connection error: {e}', exc_info=True)
+
+        # Raise an exception if any other errors occurred.
+        except Exception as e:
+            # Log the error using the exception output message.
+            logger.error(f'ClinVar_Download: Failed to construct a valid VariantValidator request: {url}.\n{e}', exc_info=True)
+
+
 
     # Test if the clinvar subdirectory can be made in the app folder.
     try:
