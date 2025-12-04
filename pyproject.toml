@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "SoftwareEngineeringAssessment"
+version = "0.0.1"
+license = { text = "MIT" } 
+authors = [
+    { name = "Arjun Ryatt", email = "arjun.ryatt@postgrad.manchester.ac.uk"},
+    { name = "Rebecca Sizer", email = "rebecca.sizer@postgrad.manchester.ac.uk"},
+    { name = "Rachel Wellman", email = "rachel.wellman@postgrad.manchester.ac.uk"}
+]
+description = "A web-based application tool for annotating germline variant data"
+readme = "README.md"
+requires-python = ">=3.13"
+keywords = ["sea_app", "VariantValidator", "Clinvar", "Genomics", "Annotation", "Database"]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended audience :: Clinical Healthcare Professionals",
+    "Topic :: Software Development :: Build Tools",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License"
+]
+
+[tools.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[project.optional-dependencies]
+test = ["pytest==7.4.3"]
+
+[project.urls]
+Homepage = "https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS"
+Repository = "https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS"
+Issues = "https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS/issues"
+
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["SEA_toolkit*"]
