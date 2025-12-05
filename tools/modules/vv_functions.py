@@ -10,7 +10,7 @@ from tools.utils.logger import logger
 from tools.utils.error_handlers import request_status_codes, connection_error, remote_connection_error, json_decoder_error
 
 def fetch_vv(variant: str):
-    '''
+    """
     Using a variant in VCF format, query the VariantValidator REST API to retrieve genomic (NC_), transcript (NM_) and
     protein (NP_) descriptions in HGVS nomenclature, as well as the gene symbol and HGNC ID. All information will be
     stored in the clinvar.db database.
@@ -28,7 +28,7 @@ def fetch_vv(variant: str):
              description, gene symbol, HGNC ID
 
        E.g.: ('NC_000011.10:g.2164285C>T', 'NM_000360.4:c.1442G>A, 'NP_000351.2:p.(Gly481Asp)', 'TH', '11782')
-    '''
+    """
 
     # Base URL for the VariantValidator API.
     # The endpoint specifies we’re working with the GRCh38 genome build.
@@ -108,72 +108,91 @@ def fetch_vv(variant: str):
                 # file name. This will help the User understand where along the API request process failed.
                 return f'{variant}: ❌ Failed to receive a valid response from VariantValidator.'
 
-            try:
+            # Handle unexpected null responses from the VariantValidator API.
+            if data is None:
 
-                # VariantValidator returns this key, value combination when it cannot recognise the variant or it cannot
-                # map it to a reference sequence.
-                if data['flag'] == 'empty_result':
+                # Log an error that VariantValidator did not return a result.
+                logger.error(f'{variant}: Querying VariantValidator did not return a result.')
 
-                    # Log an error that VariantValidator returned an empty result.
-                    logger.error(f'{variant}: VariantValidator did not recognise variant or could not map it to a reference sequence.')
+                # Return the description so that the functions in database_functions.py can attach the description to
+                # the file name where the queried variant comes from. This will help the User.
+                return f'{variant}: ❌ Querying VariantValidator did not return a response. Variant not added to database.'
 
-                    # Return the description so that the functions in database_functions.py can attach the description to
-                    # the file name where the queried variant comes from. This will help the User.
-                    return f'{variant}: ❌ VariantValidator did not recognise variant or could not map it to a reference sequence.'
+            # VariantValidator returns this key, value combination when it cannot recognise the variant or it cannot
+            # map it to a reference sequence.
+            elif data.get('flag') == 'empty_result':
 
-                # Handle unexpected null responses from the VariantValidator API.
-                elif data is None:
+                # Log an error that VariantValidator returned an empty result.
+                logger.error(f'{variant}: VariantValidator did not recognise variant or could not map it to a reference sequence.')
 
-                    # Log an error that VariantValidator did not return a result.
-                    logger.error(f'{variant}: Querying VariantValidator did not return a result.')
+                # Return the description so that the functions in database_functions.py can attach the description to
+                # the file name where the queried variant comes from. This will help the User.
+                return f'{variant}: ❌ VariantValidator did not recognise variant or could not map it to a reference sequence.'
 
-                    # Return the description so that the functions in database_functions.py can attach the description to
-                    # the file name where the queried variant comes from. This will help the User.
-                    return f'{variant}: ❌ Querying VariantValidator did not return a response. Variant not added to database.'
+            # Report the warnings produced by VariantValidator.
+            elif any(k.startswith("validation_warning_") for k in data):
+                for key in data:
 
-                # Report the warnings produced by VariantValidator.
-                elif any(k.startswith("validation_warning_") for k in data):
-                    for key in data:
+                    if key.startswith("validation_warning_"):
+                        warning_block = data[key]
+                        warnings = warning_block.get("validation_warnings", [])
 
-                        if key.startswith("validation_warning_"):
-                            warning_block = data[key]
-                            warnings = warning_block.get("validation_warnings", [])
+                        if warnings:
+                            return_warnings = '|'.join(warnings)
 
-                            if warnings:
-                                return_warnings = '|'.join(warnings)
+                            # Log the warnings produced by VariantValidator.
+                            logger.debug(f'{variant}: ⚠ VariantValidator warning: {return_warnings}')
 
-                                # Log the warnings produced by VariantValidator.
-                                logger.debug(f'{variant}: ⚠ VariantValidator warning: {return_warnings}')
+                            # Return the warnings so that the functions in database_functions.py can attach the
+                            # description to the file name where the queried variant comes from. This will help the
+                            # User.
+                            return f'{variant}: ❌ {return_warnings}. Variant not added to database.'
 
-                                # Return the warnings so that the functions in database_functions.py can attach the
-                                # description to the file name where the queried variant comes from. This will help the
-                                # User.
-                                return f'{variant}: ❌ {return_warnings}. Variant not added to database.'
+            # If a result was returned and does not contain an empty result flag or any warning from VariantValidator,
+            # the response should be parsable.
+            else:
 
-                # If a result was returned and it is not an empty result, the response should be parsable.
-                else:
+                # Test that the keys where the information is stored, exist in the response.
+                try:
 
-                    # Test that the keys where the information is stored, exist in the response.
-                    try:
+                    # Extract the information from the response.
+                    first_key = list(data.keys())[0]
+                    nm_variant = data[first_key]['hgvs_transcript_variant']
+                    nc_variant = data[first_key]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
+                    np_variant = data[first_key]['hgvs_predicted_protein_consequence']['tlr']
+                    gene_symbol  = data[first_key]['gene_symbol']
+                    hgnc_id = data[first_key]['gene_ids']['hgnc_id'].split(':')[1]
 
-                        # Extract the information from the response.
-                        nm_variant = list(data.keys())[0]
-                        nc_variant = data[nm_variant]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
-                        np_variant = data[nm_variant]['hgvs_predicted_protein_consequence']['tlr']
-                        gene_symbol  = data[nm_variant]['gene_symbol']
-                        hgnc_id = data[nm_variant]['gene_ids']['hgnc_id'].split(':')[1]
+                # Raise an exception if the keys in the response are not iterable (specific to 'first_key' variable).
+                except IndexError:
 
-                    # Raise an exception if an error occurs while extracting information from the response.
-                    except Exception as e:
+                    # Log the IndexError.
+                    logger.error(f'{variant}: VariantValidator API returned an empty JSON.')
+                    # Return the description so that the functions in database_functions.py can attach the description
+                    # to the file name where the queried variant comes from. This will help the User.
+                    return f'{variant}: ❌ No response received from VariantValidator.'
 
-                        # Log the error using the exception output message.
-                        logger.error(f'{variant}: Awkward response received from VariantValidator: {e}', exc_info=True)
-                        # Log the response from VariantValidator to help with debugging.
-                        logger.debug(f'{variant}: Full response from VariantValidator:\n{json.dumps(data, indent=4)}')
+                # Raise an exception if any of the keys in the response are missing.
+                except KeyError as e:
+                    # KeyError message contains the missing key (from ChatGPT).
+                    missing_key = e.args[0]
+                    # Log the KeyError.
+                    logger.error(f"{variant}: The {missing_key} key is missing from VariantValidator's JSON response. Variant info could not be parsed from response.")
+                    # Return the description so that the functions in database_functions.py can attach the description
+                    # to the file name where the queried variant comes from. This will help the User.
+                    return f'{variant}: ❌ Awkward response received from VariantValidator.'
 
-                        # Return the description so that the functions in database_functions.py can attach the description
-                        # to the file name where the queried variant comes from. This will help the User.
-                        return f'{variant}: ❌ Awkward response received from VariantValidator.'
+                # Raise an exception if an error occurs while extracting information from the response.
+                except Exception as e:
+
+                    # Log the error using the exception output message.
+                    logger.error(f'{variant}: Awkward response received from VariantValidator: {e}')
+                    # Log the response from VariantValidator to help with debugging.
+                    logger.debug(f'{variant}: Full response from VariantValidator:\n{json.dumps(data, indent=4)}')
+
+                    # Return the description so that the functions in database_functions.py can attach the description
+                    # to the file name where the queried variant comes from. This will help the User.
+                    return f'{variant}: ❌ Awkward response received from VariantValidator.'
 
                 # Use Regex to detect if anything but the HGVS genomic description was returned.
                 if not re.match('^NC_\d+.\d{1,2}:g[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nc_variant):
@@ -472,8 +491,8 @@ def get_mane_nc(variant: str):
             # If the variant started with 'ENST', 'NM_', 'LRG_' or 'NC_', parse the genomic description in HGVS
             # nomenclature from the response.
             elif variant.startswith(('ENST', 'NM_', 'LRG_', 'NC_')):
-                nm_variant = list(data.keys())[0]
-                nc_variant = data[nm_variant]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
+                first_key = list(data.keys())[0]
+                nc_variant = data[first_key]['primary_assembly_loci']['grch38']['hgvs_genomic_description']
 
                 # Log that the User's input result in the corresponding genomic description.
                 logger.info(f'{variant}: HGVS genomic description retrieved from VariantValidator: {nc_variant}')

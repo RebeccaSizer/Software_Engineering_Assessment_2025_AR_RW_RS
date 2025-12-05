@@ -2,8 +2,6 @@ import time
 import json
 import requests
 from tools.utils.logger import logger
-from requests.exceptions import ConnectionError, HTTPError
-from json.decoder import JSONDecodeError
 
 
 def request_status_codes(e, variant, url, API, attempt):
