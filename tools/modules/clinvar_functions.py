@@ -6,7 +6,7 @@ import sqlite3
 import requests
 from ..utils.timer import timer
 from tools.utils.logger import logger
-from tools.utils.error_handlers import request_status_codes
+from tools.utils.error_handlers import request_status_codes, connection_error, remote_connection_error
 
 @timer
 def clinvar_vs_download():
@@ -49,34 +49,31 @@ def clinvar_vs_download():
         except requests.exceptions.HTTPError as e:
 
             # Handle HTTP errors that need to be tried again.
-            if e.response.status_code == 408 or e.response.status_code == 429:
+            if e.response.status_code in [408, 429]:
                 error_message = request_status_codes(e, 'ClinVar_Download', url, 'ClinVar', attempt)
+
+                # Once the error message has been received, return.
+                if error_message:
+                    return
+
                 continue
 
             # Handle HTTP errors that do not need to be tried again.
             else:
-                error_message = request_status_codes(e, 'ClinVar_Download', url, 'ClinVar', attempt)
+                request_status_codes(e, 'ClinVar_Download', url, 'ClinVar', attempt)
 
-        # Raise an exception if there is a problem with connection to the Network.
+        # Raise an exception if there is a problem with the connection to the remote server.
         except requests.exceptions.ConnectionError as e:
-            # Retrieve the cause of the ConnectionError exception.
-            cause = e.__cause__
-            # Search if the cause comes under the OSError class of exceptions and was due to a poor internet
-            # connection (denoted as 101).
-            if isinstance(cause, OSError) and cause.errno == 101:
-                # Log the ConnectionError.
-                logger.error(f'ClinVar_Download: There was an error connecting to the internet: {e}', exc_info=True)
+            connection_error(e, 'ClinVar_Download')
 
-            # Handle other ConnectionErrors
-            else:
-                # Log any other ConnectionError.
-                logger.error(f'ClinVar_Download: There was a Connection error: {e}', exc_info=True)
+        # Raise an exception if the remote server drops the connection.
+        except requests.exceptions.RemoteDisconnected as e:
+            remote_connection_error(e, 'ClinVar_Download', 'ClinVar', url)
 
         # Raise an exception if any other errors occurred.
         except Exception as e:
             # Log the error using the exception output message.
-            logger.error(f'ClinVar_Download: Failed to construct a valid VariantValidator request: {url}.\n{e}', exc_info=True)
-
+            logger.error(f'ClinVar_Download: Failed to download variant summary records from {url}. {e}')
 
 
     # Test if the clinvar subdirectory can be made in the app folder.

@@ -7,7 +7,7 @@ import json
 import requests  # Import the 'requests' library to handle HTTP requests to the VariantValidator API
 from flask import flash
 from tools.utils.logger import logger
-from tools.utils.error_handlers import request_status_codes
+from tools.utils.error_handlers import request_status_codes, connection_error, remote_connection_error, json_decoder_error
 
 def fetch_vv(variant: str):
     '''
@@ -64,9 +64,16 @@ def fetch_vv(variant: str):
             # Catch any network or HTTP errors raised by 'requests'.
             except requests.exceptions.HTTPError as e:
 
-                # Handle HTTP errors that need to be tried again.
-                if e.response.status_code == 408 or e.response.status_code == 429:
+                # Handle HTTP errors that need to be tried again, through the attempt loop.
+                if e.response.status_code in [408, 429]:
                     error_message = request_status_codes(e, variant, url_vv, 'VariantValidator', attempt)
+
+                    # Once received, return any flash messages to the function in database_functions.py, so that it can
+                    # be appended to the file name. This will help the User understand where along the API request
+                    # process failed.
+                    if error_message:
+                        return error_message
+
                     continue
 
                 # Handle HTTP errors that do not need to be tried again.
@@ -74,36 +81,39 @@ def fetch_vv(variant: str):
                     error_message = request_status_codes(e, variant, url_vv, 'VariantValidator', attempt)
 
                 # Return any flash messages to the function in database_functions.py, so that it can be appended to
-                # the file name. This will help the User where along the API request process failed.
+                # the file name. This will help the User understand where along the API request process failed.
                 return error_message
 
-            # Raise an exception if there is a problem with connection to the Network.
+            # Raise an exception if there is a problem with the connection to the remote server.
             except requests.exceptions.ConnectionError as e:
-                # Retrieve the cause of the ConnectionError exception.
-                cause = e.__cause__
-                # Search if the cause comes under the OSError class of exceptions and was due to a poor internet
-                # connection (denoted as 101).
-                if isinstance(cause, OSError) and cause.errno == 101:
-                    # Log the ConnectionError.
-                    logger.error(f'{variant}: There was an error connecting to the internet: {e}', exc_info=True)
-                    # Return a flash message to the function in database_functions.py, so that it can be appended to
-                    # the file name. This will help the User where along the API request process failed.
-                    return f'{variant}: ❌ There was a problem connecting to the internet. Please check your WiFi, VPN or ethernet connection.'
+                error_message = connection_error(e, variant)
+                # Return any flash messages to the function in database_functions.py, so that it can be appended to
+                # the file name. This will help the User understand where along the API request process failed.
+                return error_message
 
-                # Handle other ConnectionErrors
-                else:
-                    # Log any other ConnectionError.
-                    logger.error(f'{variant}: There was a Connection error: {e}', exc_info=True)
-                    # Return a flash message to the function in database_functions.py, so that it can be appended to
-                    # the file name. This will help the User where along the API request process failed.
-                    return f'{variant}: ❌ There was a problem with your connection.'
+            # Raise an exception if the remote server drops the connection.
+            except requests.exceptions.RemoteDisconnected as e:
+                error_message = remote_connection_error(e, variant, 'VariantValidator', url_vv)
+
+                # Return any flash messages to the function in database_functions.py, so that it can be appended to
+                # the file name. This will help the User understand where along the API request process failed.
+                return error_message
+
+            # Raise an exception if the response is not a JSON data type.
+            except json.decoder.JSONDecodeError as e:
+                error_message = json_decoder_error(e, variant, 'VariantValidator', url_vv)
+
+                # Return any flash messages to the function in database_functions.py, so that it can be appended to
+                # the file name. This will help the User understand where along the API request process failed.
+                return error_message
 
             # Raise an exception if any other errors occurred.
             except Exception as e:
                 # Log the error using the exception output message.
                 logger.error(f'{variant}: Failed to construct a valid VariantValidator request: {url_vv}.\n{e}', exc_info=True)
+
                 # Return a flash message to the function in database_functions.py, so that it can be appended to the
-                # file name. This will help the User where along the API request process failed.
+                # file name. This will help the User understand where along the API request process failed.
                 return f'{variant}: ❌ Failed to request a response from VariantValidator.'
 
             try:
@@ -330,12 +340,12 @@ def get_mane_nc(variant: str):
         elif variant.startswith(('NM_', 'LRG_', 'NC_', 'NG_')):
 
             if transcript.startswith(('NM_', 'LRG_', 'NG_')) and not genetic_change.startswith('c.'):
-                flash(f"⚠ {transcript} must use c. notation. {variant} does not work.")
                 logger.warning(f"'{transcript[:3]}' accession number entered without c. notation: {variant}")
+                flash(f"⚠ {transcript} must use c. notation. {variant} does not work.")
 
             elif transcript.startswith('NC_') and not genetic_change.startswith('g.'):
-                flash(f"⚠ {transcript} must use g. notation. {variant} does not work.")
                 logger.warning(f"'{variant[:3]}' accession number entered without g. notation: {variant}")
+                flash(f"⚠ {transcript} must use g. notation. {variant} does not work.")
 
             else:
                 refseq_variant = variant.replace(':', '%3A').replace('>', '%3E')
@@ -348,8 +358,8 @@ def get_mane_nc(variant: str):
             url_vv = f"{base_url_vv}tools/gene2transcripts/{gene_symbol}?content-type=application%2Fjson"  # Gene symbol - gene
 
         else:
-            flash(f"❌ {variant}: Unrecognized variant format. Please describe variant using HGVS nomenclature.")
             logger.error(f'{variant}: Variant rejected because of invalid format.')
+            flash(f"{variant}: ❌ Unrecognized variant format. Please describe variant using HGVS nomenclature.")
 
         logger.debug(f'{variant}: VariantValidator URL: {url_vv}')
 
@@ -380,47 +390,57 @@ def get_mane_nc(variant: str):
         except requests.exceptions.HTTPError as e:
 
             # Handle HTTP errors that need to be tried again.
-            if e.response.status_code == 408 or e.response.status_code == 429:
+            if e.response.status_code in [408, 429]:
                 error_message = request_status_codes(e, variant, url_vv, 'VariantValidator', attempt)
+
+                # Once received, return any flash messages to the function in database_functions.py, so that it can
+                # be appended to the file name. This will help the User understand where along the API request process
+                # failed.
+                if error_message:
+                    return error_message
+
                 continue
 
             # Handle HTTP errors that do not need to be tried again.
             else:
                 error_message = request_status_codes(e, variant, url_vv, 'VariantValidator', attempt)
 
-            # Return any flash messages to the function in database_functions.py, so that it can be appended to
-            # the file name. This will help the User where along the API request process failed.
+            # Return any flash messages to the function in database_functions.py, so that it can be appended to the
+            # file name. This will help the User understand where along the API request process failed.
             return error_message
 
-        # Raise an exception if there is a problem with connection to the Network.
+        # Raise an exception if there is a problem with the connection to the remote server.
         except requests.exceptions.ConnectionError as e:
-            # Retrieve the cause of the ConnectionError exception.
-            cause = e.__cause__
-            # Search if the cause comes under the OSError class of exceptions and was due to a poor internet
-            # connection (denoted as 101).
-            if isinstance(cause, OSError) and cause.errno == 101:
-                # Log the ConnectionError.
-                logger.error(f'{variant}: There was an error connecting to the internet: {e}', exc_info=True)
-                # Return a flash message to the function in database_functions.py, so that it can be appended to
-                # the file name. This will help the User where along the API request process failed.
-                return f'{variant}: ❌ There was a problem connecting to the internet. Please check your WiFi, VPN or ethernet connection.'
+            error_message = connection_error(e, variant)
 
-            # Handle other ConnectionErrors
-            else:
-                # Log any other ConnectionError.
-                logger.error(f'{variant}: There was a Connection error: {e}', exc_info=True)
-                # Return a flash message to the function in database_functions.py, so that it can be appended to
-                # the file name. This will help the User where along the API request process failed.
-                return f'{variant}: ❌ There was a problem with your connection.'
+            # Return any flash messages to the function in database_functions.py, so that it can be appended to
+            # the file name. This will help the User understand where along the API request process failed.
+            return error_message
+
+        # Raise an exception if the remote server drops the connection.
+        except requests.exceptions.RemoteDisconnected as e:
+            error_message = remote_connection_error(e, variant, 'VariantValidator', url_vv)
+
+            # Return any flash messages to the function in database_functions.py, so that it can be appended to
+            # the file name. This will help the User understand where along the API request process failed.
+            return error_message
+
+        # Raise an exception if the response is not a JSON data type.
+        except json.decoder.JSONDecodeError as e:
+            error_message = json_decoder_error(e, variant, 'VariantValidator', url_vv)
+
+            # Return any flash messages to the function in database_functions.py, so that it can be appended to
+            # the file name. This will help the User understand where along the API request process failed.
+            return error_message
 
         # Raise an exception if any other errors occurred.
         except Exception as e:
             # Log the error using the exception output message.
-            logger.error(f'{variant}: Failed to construct a valid VariantValidator request: {url_vv}.\n{e}',
-                         exc_info=True)
+            logger.error(f'{variant}: Failed to construct a valid VariantValidator request: {url_vv}. {e}')
+
             # Return a flash message to the function in database_functions.py, so that it can be appended to the
-            # file name. This will help the User where along the API request process failed.
-            return f'{variant}: ❌ Failed to request a response from VariantValidator.'
+            # file name. This will help the User understand where along the API request process failed.
+            return f'{variant}: ❌ Failed to request or receive a response from VariantValidator.'
 
         # Test the response from VariantValidator
         try:
