@@ -94,7 +94,6 @@ def fetch_vv(variant: str):
             # Raise an exception if the response is not a JSON data type.
             except ValueError as e:
                 error_message = json_decoder_error(e, variant, 'VariantValidator', url_vv)
-
                 # Return any flash messages to the function in database_functions.py, so that it can be appended to
                 # the file name. This will help the User understand where along the API request process failed.
                 return error_message
@@ -103,26 +102,31 @@ def fetch_vv(variant: str):
             except Exception as e:
                 # Log the error using the exception output message.
                 logger.error(f'{variant}: Failed to receive a valid response from VariantValidator: {url_vv}.\n{e}', exc_info=True)
-
                 # Return a flash message to the function in database_functions.py, so that it can be appended to the
                 # file name. This will help the User understand where along the API request process failed.
                 return f'{variant}: ❌ Failed to receive a valid response from VariantValidator.'
 
             # Handle unexpected null responses from the VariantValidator API.
             if data is None:
-
                 # Log an error that VariantValidator did not return a result.
-                logger.error(f'{variant}: Querying VariantValidator did not return a result.')
-
+                logger.error(f'{variant}: VariantValidator did not return a result.')
                 # Return the description so that the functions in database_functions.py can attach the description to
                 # the file name where the queried variant comes from. This will help the User.
-                return f'{variant}: ❌ Querying VariantValidator did not return a response. Variant not added to database.'
+                return f'{variant}: ❌ VariantValidator did not return a response.'
+
+            elif not isinstance(data, dict):
+                # Log an error that VariantValidator did not return a dictionary.
+                logger.error(f'{variant}: VariantValidator did not return a dictionary.')
+                # Return the description so that the functions in database_functions.py can attach the description to
+                # the file name where the queried variant comes from. This will help the User.
+                return f'{variant}: ❌ VariantValidator did not return a response.'
+
 
             # VariantValidator returns this key, value combination when it cannot recognise the variant or it cannot
             # map it to a reference sequence.
             elif data.get('flag') == 'empty_result':
 
-                # Log an error that VariantValidator returned an empty result.
+                # Log an error that VariantValidator returned an 'empty result'.
                 logger.error(f'{variant}: VariantValidator did not recognise variant or could not map it to a reference sequence.')
 
                 # Return the description so that the functions in database_functions.py can attach the description to
@@ -141,7 +145,7 @@ def fetch_vv(variant: str):
                             return_warnings = '|'.join(warnings)
 
                             # Log the warnings produced by VariantValidator.
-                            logger.debug(f'{variant}: ⚠ VariantValidator warning: {return_warnings}')
+                            logger.debug(f'{variant}: VariantValidator warning: {return_warnings}')
 
                             # Return the warnings so that the functions in database_functions.py can attach the
                             # description to the file name where the queried variant comes from. This will help the
@@ -180,116 +184,137 @@ def fetch_vv(variant: str):
                     logger.error(f"{variant}: The {missing_key} key is missing from VariantValidator's JSON response. Variant info could not be parsed from response.")
                     # Return the description so that the functions in database_functions.py can attach the description
                     # to the file name where the queried variant comes from. This will help the User.
-                    return f'{variant}: ❌ Awkward response received from VariantValidator.'
+                    return f'{variant}: ❌ Irregular response received from VariantValidator.'
 
                 # Raise an exception if an error occurs while extracting information from the response.
                 except Exception as e:
 
                     # Log the error using the exception output message.
-                    logger.error(f'{variant}: Awkward response received from VariantValidator: {e}')
+                    logger.error(f'{variant}: Irregular response received from VariantValidator: {e}')
                     # Log the response from VariantValidator to help with debugging.
                     logger.debug(f'{variant}: Full response from VariantValidator:\n{json.dumps(data, indent=4)}')
 
                     # Return the description so that the functions in database_functions.py can attach the description
                     # to the file name where the queried variant comes from. This will help the User.
-                    return f'{variant}: ❌ Awkward response received from VariantValidator.'
+                    return f'{variant}: ❌ Irregular response received from VariantValidator.'
 
-                # Use Regex to detect if anything but the HGVS genomic description was returned.
-                if not re.match('^NC_\d+.\d{1,2}:g[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nc_variant):
+                # Checking the values from the dictionary.
+                try:
+                    # Use Regex to detect if anything but the HGVS genomic description was returned.
+                    if not re.match('^NC_\d+.\d{1,2}:g[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nc_variant):
 
-                    # Log the error if anything but the HGVS genomic description was returned.
-                    logger.error(f'{variant}: Genomic variant description from VariantValidator is not in valid HGVS nomenclature. Variant not added to database.')
-                    # Log what was extracted from the response to support debugging.
-                    logger.debug(f'{variant}: Genomic variant description from VariantValidator: {nc_variant}')
+                        # Log the error if anything but the HGVS genomic description was returned.
+                        logger.error(f'{variant}: Genomic variant description from VariantValidator is not in valid HGVS nomenclature. Variant not added to database.')
+                        # Log what was extracted from the response to support debugging.
+                        logger.debug(f'{variant}: Genomic variant description from VariantValidator: {nc_variant}')
 
-                    # Return the description so that the functions in database_functions.py can attach the description to
-                    # the file name where the queried variant comes from. This will help the User.
-                    return f'{variant}: ❌ Genomic variant description from VariantValidator is not in valid HGVS nomenclature.'
+                        # Return the description so that the functions in database_functions.py can attach the description to
+                        # the file name where the queried variant comes from. This will help the User.
+                        return f'{variant}: ❌ Genomic variant description from VariantValidator is not in valid HGVS nomenclature.'
 
-                # Use Regex to detect if an anything but the HGVS transcript description was returned.
-                elif not re.match('^NM_\d+.\d{1,2}:c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nm_variant):
+                    # Use Regex to detect if an anything but the HGVS transcript description was returned.
+                    elif not re.match('^NM_\d+.\d{1,2}:c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nm_variant):
 
-                    # Log the error if anything but the HGVS transcript description was returned.
-                    logger.error(f'{variant}: Transcript variant description from VariantValidator is not in valid HGVS nomenclature.')
-                    # Log what was extracted from the response to support debugging.
-                    logger.debug(f'{variant}: Transcript variant description from VariantValidator: {nm_variant}')
+                        # Log the error if anything but the HGVS transcript description was returned.
+                        logger.error(f'{variant}: Transcript variant description from VariantValidator is not in valid HGVS nomenclature.')
+                        # Log what was extracted from the response to support debugging.
+                        logger.debug(f'{variant}: Transcript variant description from VariantValidator: {nm_variant}')
 
-                    # Return the description so that the functions in database_functions.py can attach the description to
-                    # the file name where the queried variant comes from. This will help the User.
-                    return f'{variant}: ❌ Transcript variant description from VariantValidator is not in valid HGVS nomenclature.'
+                        # Return the description so that the functions in database_functions.py can attach the description to
+                        # the file name where the queried variant comes from. This will help the User.
+                        return f'{variant}: ❌ Transcript variant description from VariantValidator is not in valid HGVS nomenclature.'
 
-                # Use Regex to detect if an anything but the HGVS protein description was returned.
-                elif not re.match('^NP_\d+.\d{1,2}:p[.](\()*(0)*(\?)*[*]*[?]*(\d*[a-zA-Z]{3})*(\d+[a-zA-Z]{3}(fs)*[*]*(\d+)*|\d*_[a-zA-Z]{3}\d+(ins)*[a-zA-Z]*|\d*_[a-zA-Z]{3}\d+(delins)*[a-zA-Z]*|\d+=|\d+[*]|ext\d*)*(\))*', np_variant):
+                    # Use Regex to detect if an anything but the HGVS protein description was returned.
+                    elif not re.match('^NP_\d+.\d{1,2}:p[.](\()*(0)*(\?)*[*]*[?]*(\d*[a-zA-Z]{3})*(\d+[a-zA-Z]{3}(fs)*[*]*(\d+)*|\d*_[a-zA-Z]{3}\d+(ins)*[a-zA-Z]*|\d*_[a-zA-Z]{3}\d+(delins)*[a-zA-Z]*|\d+=|\d+[*]|ext\d*)*(\))*', np_variant):
 
-                    # Log the warning if anything but the HGVS protein description was returned.
-                    # A warning is logged because the protein description is not essential to this software package's
-                    # functionality.
-                    logger.warning(f'{variant}: Protein consequence from VariantValidator is not in valid HGVS nomenclature.')
-                    # Log what was extracted from the response to support debugging.
-                    logger.debug(f'{variant}: Protein consequence from VariantValidator: {np_variant}')
+                        # Log the warning if anything but the HGVS protein description was returned.
+                        # A warning is logged because the protein description is not essential to this software package's
+                        # functionality.
+                        logger.warning(f'{variant}: Protein consequence from VariantValidator is not in valid HGVS nomenclature.')
+                        # Log what was extracted from the response to support debugging.
+                        logger.debug(f'{variant}: Protein consequence from VariantValidator: {np_variant}')
 
-                    # Flash message sent to flask app UI to help the User understand the issue.
-                    flash(f'{variant}: ⚠ Irregular protein consequence from VariantValidator.')
+                        # Flash message sent to flask app UI to help the User understand the issue.
+                        flash(f'{variant}: ⚠ Irregular protein consequence from VariantValidator.')
 
-                    # This is what will be stored in the database, to help the User understand why the protein description
-                    # is not there.
-                    np_variant = 'Irregular response from VariantValidator'
-                    break
+                        # This is what will be stored in the database, to help the User understand why the protein description
+                        # is not there.
+                        np_variant = 'Irregular NP_ description from VariantValidator'
+                        break
 
-                # ChatGPT says C20orf202 is the longest gene symbol, which is 9 characters long. As gene symbols can
-                # consist of letters and numbers in different combinations, the length is the only way to scrutinise
-                # this response.
-                elif len(gene_symbol) not in range(1, 10):
+                    # ChatGPT says C20orf202 is the longest gene symbol, which is 9 characters long. As gene symbols can
+                    # consist of letters and numbers in different combinations, the length is the only way to scrutinise
+                    # this response.
+                    elif len(gene_symbol) not in range(1, 10):
 
-                    # Log a warning if the length of the gene symbol is not between 1 to 10 characters long.
-                    # A warning is logged because the gene symbol is not essential to this software package's
-                    # functionality.
-                    logger.warning(f'{variant}: Gene symbol from VariantValidator is {len(gene_symbol)} long.')
+                        # Log a warning if the length of the gene symbol is not between 1 to 10 characters long.
+                        # A warning is logged because the gene symbol is not essential to this software package's
+                        # functionality.
+                        logger.warning(f'{variant}: Gene symbol from VariantValidator is {len(gene_symbol)} long.')
 
-                    # Log what was extracted from the response to support debugging.
-                    logger.debug(f'{variant}: Gene symbol response from VariantValidator: {gene_symbol}')
+                        # Log what was extracted from the response to support debugging.
+                        logger.debug(f'{variant}: Gene symbol response from VariantValidator: {gene_symbol}')
 
-                    # Flash message sent to flask app UI to help the User understand the issue.
-                    flash(f'{variant}: ⚠ Irregular gene symbol from VariantValidator.')
+                        # Flash message sent to flask app UI to help the User understand the issue.
+                        flash(f'{variant}: ⚠ Irregular gene symbol from VariantValidator.')
 
-                    # This is what will be stored in the database, to help the User understand why the gene symbol
-                    # is not there.
-                    gene_symbol = 'Irregular response from VariantValidator'
-                    break
+                        # This is what will be stored in the database, to help the User understand why the gene symbol
+                        # is not there.
+                        gene_symbol = 'Irregular gene symbol from VariantValidator'
+                        break
 
-                # The HGNC ID is a number but the response from VariantValidator is a string.
-                # Use Regex to ensure that the response consists of only numbers.
-                elif not re.match('^\d+', hgnc_id):
+                    # The HGNC ID is a number but the response from VariantValidator is a string.
+                    # Use Regex to ensure that the response consists of only numbers.
+                    elif not re.match('^\d+', hgnc_id):
 
-                    # Log a warning if the HGNC ID consists of anything but numbers.
-                    # A warning is logged because the HGNC ID is not essential to this software package's functionality.
-                    # However it is necessary when the User performs a gene query through the flask app.
-                    logger.warning(f'{variant}: HGNC ID from VariantValidator is not a number. Variant will not be returned from gene query.')
+                        # Log a warning if the HGNC ID consists of anything but numbers.
+                        # A warning is logged because the HGNC ID is not essential to this software package's functionality.
+                        # However it is necessary when the User performs a gene query through the flask app.
+                        logger.warning(f'{variant}: HGNC ID from VariantValidator is not a number. Variant will not be returned from gene query.')
 
-                    # Log what was extracted from the response to support debugging.
-                    logger.debug(f'{variant}: HGNC ID response from VariantValidator: {hgnc_id}')
+                        # Log what was extracted from the response to support debugging.
+                        logger.debug(f'{variant}: HGNC ID response from VariantValidator: {hgnc_id}')
 
-                    # Flash message sent to flask app UI to help the User understand the irregularity.
-                    flash(f'{variant}: ⚠ Irregular HGNC ID from VariantValidator. Variant will not be returned from gene query.')
+                        # Flash message sent to flask app UI to help the User understand the irregularity.
+                        flash(f'{variant}: ⚠ Irregular HGNC ID from VariantValidator. Variant will not be returned from gene query.')
 
-                    # This is what will be stored in the database, to help the User understand why the HGNC ID
-                    # is not there.
-                    hgnc_id = 'Irregular response from VariantValidator'
-                    break
+                        # This is what will be stored in the database, to help the User understand why the HGNC ID
+                        # is not there.
+                        hgnc_id = 'Irregular HGNC ID from VariantValidator'
+                        break
 
-                # If the response from VariantValidator is all as it should be, break from the loop an continue.
-                else:
-                    break
+                    # If the response from VariantValidator is all as it should be, break from the loop an continue.
+                    else:
+                        break
 
-            # Raise an exception if an error occurs while querying VariantValidator.
-            except Exception as e :
+                # Raise an exception if any of the values parsed from the response.JSON() is not a string, including
+                # None data types.
+                except TypeError:
+                    # Log the error if it occurs, using the exception output message.
+                    logger.error(f'{variant}: Some of the variant information from VariantValidator JSON are not strings.')
+                    # Log a debug message describing the data type of the value from the JSON.
+                    logger.debug(f'{variant}: nc_variant= {type(nc_variant)}, nm_variant= {type(nm_variant)}, np_variant= {type(np_variant)}, gene_symbol= {type(gene_symbol)}, hgnc_id= {type(hgnc_id)}')
+                    # Return the description so that the functions in database_functions.py can attach the attach the
+                    # description to the file name where the queried variant comes from. This will help the User.
+                    return f'{variant}: ❌ Irregular response from VariantValidator.'
 
-                # Log the error if it occurs, using the exception output message.
-                logger.error(f'{variant}: Failed to query VariantValidator: {e}', exc_info=True)
+                # Raise an exception if the Regex pattern is invalid (from ChatGPT).
+                except re.error as e:
+                    # Log the error if it occurs, using the exception output message.
+                    logger.error(f'{variant}: The Regex pattern was invalid: {e.pattern}')
+                    # Log a debug message describing why and where the Regex pattern broke.
+                    logger.debug(f'Reason: {e.msg}; Regex pattern broke as position: {e.pos}.')
+                    # Return the description so that the functions in database_functions.py can attach the attach the
+                    # description to the file name where the queried variant comes from. This will help the User.
+                    return f'{variant}: ❌ Internal error: Regex validation failed. Please report this to your friendly neighbourhood Developer.'
 
-                # Return the description so that the functions in database_functions.py can attach the attach the
-                # description to the file name where the queried variant comes from. This will help the User.
-                return f'{variant}: Failed to query VariantValidator.'
+                # Raise an exception if any other error issue arises with the nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id.
+                except Exception as e:
+                    # Log the error if it occurs, using the exception output message.
+                    logger.error(f'{variant}: Failed to query VariantValidator: {e}', exc_info=True)
+                    # Return the description so that the functions in database_functions.py can attach the attach the
+                    # description to the file name where the queried variant comes from. This will help the User.
+                    return f'{variant}: Irregular response received from VariantValidator.'
 
         # Log that the test was passed.
         logger.info(f'{variant}: Successfully retrieved variant information from VariantValidator')
