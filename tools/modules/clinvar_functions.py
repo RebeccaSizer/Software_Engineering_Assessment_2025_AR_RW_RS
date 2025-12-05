@@ -64,11 +64,7 @@ def clinvar_vs_download():
 
         # Raise an exception if there is a problem with the connection to the remote server.
         except requests.exceptions.ConnectionError as e:
-            connection_error(e, 'ClinVar_Download')
-
-        # Raise an exception if the remote server drops the connection.
-        except requests.exceptions.RemoteDisconnected as e:
-            remote_connection_error(e, 'ClinVar_Download', 'ClinVar', url)
+            connection_error(e, 'ClinVar_Download', 'ClinVar', url)
 
         # Raise an exception if any other errors occurred.
         except Exception as e:

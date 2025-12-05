@@ -3,6 +3,7 @@ import json
 import requests
 from tools.utils.logger import logger
 from requests.exceptions import ConnectionError, HTTPError
+from json.decoder import JSONDecodeError
 
 
 def request_status_codes(e, variant, url, API, attempt):
@@ -69,41 +70,44 @@ def request_status_codes(e, variant, url, API, attempt):
 
 
 
-def connection_error(e, variant):
+def connection_error(e, variant, API, url):
     # Retrieve the cause of the ConnectionError exception.
     cause = e.__cause__
-    # Search if the cause comes under the OSError class of exceptions and was due to a poor internet
-    # connection (denoted as 101).
-    if isinstance(cause, OSError) and cause.errno == 101:
+    # Grab the error number if it exists by checking if the cause exists.
+    errno = getattr(cause, "errno", None)
+    # Search if the cause comes under the OSError class of exceptions and was due to a poor internet connection
+    # (denoted as 101).
+    if isinstance(cause, OSError) and errno == 101:
         # Log the ConnectionError.
-        logger.error(f'{variant}: There was an error connecting to the internet. {e}')
+        logger.error(f'{variant}: NewConnectionError [101]: There was an error connecting to the internet. Request: {url}. {e}')
         # Return a flash message to the function in database_functions.py, so that it can be appended to
         # the file name. This will help the User understand where along the API request process failed.
-        return f'{variant}: ❌ There was a problem with your internet connection. Please check your WiFi, VPN or ethernet connection.'
+        return f'{variant}: ❌ NewConnectionError [101]: There was a problem with your internet connection. Please check your WiFi, VPN or ethernet connection.'
 
+    # Log RemoteDisconnected exceptions.
+    elif isinstance(cause, RemoteDisconnected):
+        logger.error(f'{variant}: RemoteDisconnected: {API} server dropped the connection. Request: {url}. {e}')
+        # Return a flash message to the function in database_functions.py, so that it can be appended to
+        # the file name. This will help the User understand where along the API request process failed.
+        return f'{variant}: ❌ {API} server dropped the connection before sending a response.'
+
+    # Log any other ConnectionError.
     else:
-        # Log any other ConnectionError.
-        logger.error(f'{variant}: ConnectionError [{cause.errno}]: There was an error connecting with the remote server. {e}')
+        if errno:
+            # Log an error number is provided in 'cause', provide it in the logger message.
+            logger.error(f'{variant}: ConnectionError [{errno}]: There was an error connecting with the remote server. Request: {url}. {e}')
+        else:
+            # If an error number is not provided in 'cause', leave a generic logger message.
+            logger.error(f'{variant}: ConnectionError: There was an error connecting with the remote server. Request: {url}. {e}')
         # Return a flash message to the function in database_functions.py, so that it can be appended to
         # the file name. This will help the User understand where along the API request process failed.
         return f'{variant}: ❌ There was a problem with your connection with the remote server.'
 
 
 
-def remote_connection_error(e, variant, API, url):
-    # Log RemoteDisconnected exceptions.
-    logger.error(f'{variant}: RemoteDisconnected: {API} server dropped the connection. Request: {url}. {e}')
-    # Return a flash message to the function in database_functions.py, so that it can be appended to
-    # the file name. This will help the User understand where along the API request process failed.
-    return f'{variant}: ❌ {API} server dropped the connection before sending a response.'
-
-
-
 def json_decoder_error(e, variant, API, url):
     # Log JSONDecodeError exceptions.
-    logger.error(f'{variant}: JSON decode error from {API}: Response was not in JSON format. Request: {url}')
-    # Log the exception output message and the response from the query, for debugging.
-    logger.debug(f'\n{e}')
+    logger.error(f'{variant}: ValueError from {API}: Response was not in JSON format. Request: {url}')
     # Return a flash message to the function in database_functions.py, so that it can be appended to the file name.
     # This will help the User understand where along the API request process failed.
     return f'{variant}: ❌ Response from {API} was not in JSON format.'
@@ -119,15 +123,16 @@ def json_decoder_error(e, variant, API, url):
 for attempt in range(7):
 
     try:
-        url = "https://httpstat.us/200?sleep=60000"
+        url = "http://example.com"
         response = requests.get(url)
         # response.raise_for_status()
 
         data = response.json()
 
-    except RemoteDisconnected as e:
+    except ValueError as e:
 
-        remote_connection_error(e, 'test', 'test_api', url)
+        error_message = json_decoder_error(e, 'test', 'test_api', url)
+        print(error_message)
 
 
 """

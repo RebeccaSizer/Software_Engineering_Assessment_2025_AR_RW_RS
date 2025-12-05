@@ -86,21 +86,13 @@ def fetch_vv(variant: str):
 
             # Raise an exception if there is a problem with the connection to the remote server.
             except requests.exceptions.ConnectionError as e:
-                error_message = connection_error(e, variant)
-                # Return any flash messages to the function in database_functions.py, so that it can be appended to
-                # the file name. This will help the User understand where along the API request process failed.
-                return error_message
-
-            # Raise an exception if the remote server drops the connection.
-            except requests.exceptions.RemoteDisconnected as e:
-                error_message = remote_connection_error(e, variant, 'VariantValidator', url_vv)
-
+                error_message = connection_error(e, variant, 'VariantValidator', url_vv)
                 # Return any flash messages to the function in database_functions.py, so that it can be appended to
                 # the file name. This will help the User understand where along the API request process failed.
                 return error_message
 
             # Raise an exception if the response is not a JSON data type.
-            except json.decoder.JSONDecodeError as e:
+            except ValueError as e:
                 error_message = json_decoder_error(e, variant, 'VariantValidator', url_vv)
 
                 # Return any flash messages to the function in database_functions.py, so that it can be appended to
@@ -110,11 +102,11 @@ def fetch_vv(variant: str):
             # Raise an exception if any other errors occurred.
             except Exception as e:
                 # Log the error using the exception output message.
-                logger.error(f'{variant}: Failed to construct a valid VariantValidator request: {url_vv}.\n{e}', exc_info=True)
+                logger.error(f'{variant}: Failed to receive a valid response from VariantValidator: {url_vv}.\n{e}', exc_info=True)
 
                 # Return a flash message to the function in database_functions.py, so that it can be appended to the
                 # file name. This will help the User understand where along the API request process failed.
-                return f'{variant}: ❌ Failed to request a response from VariantValidator.'
+                return f'{variant}: ❌ Failed to receive a valid response from VariantValidator.'
 
             try:
 
@@ -411,22 +403,14 @@ def get_mane_nc(variant: str):
 
         # Raise an exception if there is a problem with the connection to the remote server.
         except requests.exceptions.ConnectionError as e:
-            error_message = connection_error(e, variant)
-
-            # Return any flash messages to the function in database_functions.py, so that it can be appended to
-            # the file name. This will help the User understand where along the API request process failed.
-            return error_message
-
-        # Raise an exception if the remote server drops the connection.
-        except requests.exceptions.RemoteDisconnected as e:
-            error_message = remote_connection_error(e, variant, 'VariantValidator', url_vv)
+            error_message = connection_error(e, variant, 'VariantValidator', url_vv)
 
             # Return any flash messages to the function in database_functions.py, so that it can be appended to
             # the file name. This will help the User understand where along the API request process failed.
             return error_message
 
         # Raise an exception if the response is not a JSON data type.
-        except json.decoder.JSONDecodeError as e:
+        except ValueError as e:
             error_message = json_decoder_error(e, variant, 'VariantValidator', url_vv)
 
             # Return any flash messages to the function in database_functions.py, so that it can be appended to
@@ -436,11 +420,11 @@ def get_mane_nc(variant: str):
         # Raise an exception if any other errors occurred.
         except Exception as e:
             # Log the error using the exception output message.
-            logger.error(f'{variant}: Failed to construct a valid VariantValidator request: {url_vv}. {e}')
+            logger.error(f'{variant}: Failed to receive a valid response from VariantValidator: {url_vv}. {e}')
 
             # Return a flash message to the function in database_functions.py, so that it can be appended to the
             # file name. This will help the User understand where along the API request process failed.
-            return f'{variant}: ❌ Failed to request or receive a response from VariantValidator.'
+            return f'{variant}: ❌ Failed to receive a valid response from VariantValidator.'
 
         # Test the response from VariantValidator
         try:
