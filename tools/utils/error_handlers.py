@@ -119,7 +119,7 @@ def regex_error(e, variant, message):
     logger.debug(f'Reason: {e.msg}; Regex pattern broke as position: {e.pos}.')
     # Return the description so that the functions in database_functions.py can attach the description
     # to the file name where the queried variant comes from. This will help the User.
-    return {message}
+    return f'{variant}: ❌ Internal error: Regex validation failed. Please report this to your friendly neighbourhood Developer.'
 
 
 
