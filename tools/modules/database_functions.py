@@ -169,12 +169,9 @@ def patient_variant_table(filepath, db_name):
             # Log the list of variants that were parsed.
             logger.debug(f'patient_variant_table: Variant list: {variant_list}')
 
-        # Data is then assigned to each header:
-
         # VariantValidator is queried through fetch_vv to retrieve the NC_ genomic description of each
         # variant in the variant_list, in HGVS nomenclature.
         for variant in variant_list:
-
             # Log the file and variant that is being queried on VariantValidator.
             logger.info(f"patient_variant_table: Querying VariantValidator for {file}: {variant}")
 
@@ -196,6 +193,13 @@ def patient_variant_table(filepath, db_name):
             if not variant_info:
                 logger.warning(f'patient_variant_table: {file}: {variant}: No response was received from VariantValidator. Variant not added to database.')
                 flash(f'{file}: {variant}: ❌ No response was received from VariantValidator. Variant not added to database.')
+                continue
+
+            # If the response received from fetch_vv is a string and not the tuple, log the error and notify the User
+            # through the flask app. Then move onto the next varaiant.
+            elif type(variant_info) == str:
+                logger.error(f'patient_variant_table: {file}: {variant_info}. Variant not added to {db_name}.db.')
+                flash(f'{file}: {variant_info}')
                 continue
 
             else:
