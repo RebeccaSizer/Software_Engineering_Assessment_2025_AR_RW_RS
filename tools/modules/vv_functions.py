@@ -7,7 +7,7 @@ import json
 import requests  # Import the 'requests' library to handle HTTP requests to the VariantValidator API
 from flask import flash
 from tools.utils.logger import logger
-from tools.utils.error_handlers import request_status_codes, connection_error, remote_connection_error, json_decoder_error
+from tools.utils.error_handlers import request_status_codes, connection_error, json_decoder_error, regex_error
 
 def fetch_vv(variant: str):
     """
@@ -201,7 +201,7 @@ def fetch_vv(variant: str):
                 # Checking the values from the dictionary.
                 try:
                     # Use Regex to detect if anything but the HGVS genomic description was returned.
-                    if not re.match('^NC_\d+.\d{1,2}:g[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nc_variant):
+                    if not re.match('^NC_\d+.\d{1,2}:g[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nc_variant):
 
                         # Log the error if anything but the HGVS genomic description was returned.
                         logger.error(f'{variant}: Genomic variant description from VariantValidator is not in valid HGVS nomenclature. Variant not added to database.')
@@ -213,7 +213,7 @@ def fetch_vv(variant: str):
                         return f'{variant}: ❌ Genomic variant description from VariantValidator is not in valid HGVS nomenclature.'
 
                     # Use Regex to detect if an anything but the HGVS transcript description was returned.
-                    elif not re.match('^NM_\d+.\d{1,2}:c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]>[ACGT]|delins[ACGT]*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nm_variant):
+                    elif not re.match('^NM_\d+.\d{1,2}:c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nm_variant):
 
                         # Log the error if anything but the HGVS transcript description was returned.
                         logger.error(f'{variant}: Transcript variant description from VariantValidator is not in valid HGVS nomenclature.')
@@ -300,13 +300,8 @@ def fetch_vv(variant: str):
 
                 # Raise an exception if the Regex pattern is invalid (from ChatGPT).
                 except re.error as e:
-                    # Log the error if it occurs, using the exception output message.
-                    logger.error(f'{variant}: The Regex pattern was invalid: {e.pattern}')
-                    # Log a debug message describing why and where the Regex pattern broke.
-                    logger.debug(f'Reason: {e.msg}; Regex pattern broke as position: {e.pos}.')
-                    # Return the description so that the functions in database_functions.py can attach the attach the
-                    # description to the file name where the queried variant comes from. This will help the User.
-                    return f'{variant}: ❌ Internal error: Regex validation failed. Please report this to your friendly neighbourhood Developer.'
+                    error_message = regex_error(e, variant, f'{variant}: ❌ Internal error: Regex validation failed. Please report this to your friendly neighbourhood Developer.')
+                    return error_message
 
                 # Raise an exception if any other error issue arises with the nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id.
                 except Exception as e:
@@ -317,16 +312,14 @@ def fetch_vv(variant: str):
                     return f'{variant}: Irregular response received from VariantValidator.'
 
         # Log that the test was passed.
-        logger.info(f'{variant}: Successfully retrieved variant information from VariantValidator')
+        logger.info(f'{variant}: Successfully retrieved variant information from VariantValidator: {nc_variant}, {nm_variant}, {np_variant}, {gene_symbol}, {hgnc_id}')
 
-        # Return the variant information to database_functions.py so that they can populate the clinvar.db
-        # database.
+        # Return the variant information to database_functions.py so that they can populate the clinvar.db database.
         return (nc_variant, nm_variant, np_variant, gene_symbol, hgnc_id)
 
     except:
         # Log an error if VariantValidator was unable to return a response after 5 attempts.
         logger.error(f'{variant}: VariantValidator failed after 5 attempts.')
-
         # Return the description so that the functions in database_functions.py can attach the description to the file
         # name where the queried variant comes from. This will help the User.
         return f'{variant}: ❌ VariantValidator unavailable. Try again later.'
@@ -355,49 +348,149 @@ def get_mane_nc(variant: str):
     # Log the start of the query and the url.
     logger.info(f"User's variant query: {variant}. Querying VariantValidator for HGVS description...")
 
+    url_vv = None
+
+    # Check if a colon is in the variant description.
+    if ':' not in variant:
+        # Log the variant input that didn't contain a colon.
+        logger.warning(f'Variant Query Error: User did not use a colon in their variant description: {variant}')
+        # Show the User a message that will help them search for the variant.
+        flash(f"⚠ Variant Query Error: ':' missing from variant query. {variant} does not work.")
+        return
+
     try:
-        # Get the transcript and genetic change from the input variant.
-        transcript, genetic_change = variant.split(':')
+        # Get the transcript and genetic change from the input variant. Allow only one split.
+        transcript, genetic_change = variant.split(':', 1)
+        transcript = transcript.strip()
+        genetic_change = genetic_change.strip()
 
         # Construct the full API request URL based on the type of search term.
-        # first for ensenmbl transcript
+        # first for Ensenmbl transcript
         # ENST - VariantValidator/variantvalidator_ensembl end point
-        if variant.startswith('ENST'):
+        if transcript.startswith('ENST'):
 
-            if genetic_change.startswith('c.'):
+            # If an Ensembl accession number was entered, check that the version number was provided.
+            if '.' not in transcript:
+                # Log that a version number was not provided.
+                logger.warning(f"Variant Query Error: User did not provide a version number after the Ensembl accession number: {transcript}")
+                # Show the User a message that will help them search for the variant.
+                flash(f"⚠ Variant Query Error: Please provide a version number after the Ensembl accession number. {transcript} does not work.")
+                return
+
+            # If an Ensembl accession number was entered, check that the version number is in fact a number.
+            elif not re.match('^\d{1,3}$', transcript.split('.')[1]):
+                # Log that a version number was not provided.
+                logger.warning(f"Variant Query Error: User did not provide a valid version number after the Ensembl accession number: {transcript}")
+                # Show the User a message that will help them search for the variant.
+                flash(f"⚠ Variant Query Error: Please provide a valid version number after the Ensembl accession number. {transcript} does not work.")
+                return
+
+            # If an Ensembl transcript was entered, make sure that it starts with 'ENST', followed by 11 digits and the version number.
+            elif not re.match(r'^ENST\d{11}.\d{1,3}', transcript):
+                # Log the ensembl number that didn't work.
+                logger.warning(f"Variant Query Error: User tried to search for a variant using an Ensembl transcript but there was something wrong with it: {transcript}")
+                # Show the User a message that will help them search for the variant.
+                flash(f"⚠ Variant Query Error: Irregular ensembl transcript. {transcript} does not work.")
+                return
+
+            # ENST transcripts require a variant described with c. notation.
+            elif not genetic_change.startswith('c.'):
+                # Log the variant if it does not start with c. notation.
+                logger.warning(f'ENST transcript entered without c. notation: {genetic_change}')
+                # Show the User a message that will help them search for the variant.
+                flash(f"⚠ {transcript} must use c. notation. {genetic_change} does not work.")
+                return
+
+            # Variant must follow the pattern captured by this Regex code in order to find a corresponding variant in
+            # the database.
+            elif not re.match('^c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', genetic_change):
+                # Log the error if it does not conform with the Regex pattern.
+                logger.warning(f'Irregular variant nomenclature: {genetic_change}')
+                # Show the User a message that will help them search for the variant.
+                flash(f"⚠ Variant Query Error: Irregular variant nomenclature. {genetic_change} does not work.")
+                return
+
+            # If all of the conditions have been met, VariantValidator's Ensembl endpoint can be sent a request.
+            else:
                 ENST_variant = variant.replace(':', '%3A').replace('>', '%3E')
                 url_vv = f"{base_url_vv}variantvalidator_ensembl/GRCh38/{ENST_variant}/mane_select?content-type=application%2Fjson"  # ENST - transcript
 
-            else:
-                flash(f"⚠ {transcript} must use c. notation. {variant} does not work.")
-                logger.warning(f'ENST transcript entered without c. notation: {variant}')
 
         # search by NM or LRG Ref Seq transcript - VariantValidator/variantvalidator end point
-        elif variant.startswith(('NM_', 'LRG_', 'NC_', 'NG_')):
+        elif transcript.startswith(('NM_', 'LRG_', 'NC_', 'NG_')):
 
-            if transcript.startswith(('NM_', 'LRG_', 'NG_')) and not genetic_change.startswith('c.'):
-                logger.warning(f"'{transcript[:3]}' accession number entered without c. notation: {variant}")
-                flash(f"⚠ {transcript} must use c. notation. {variant} does not work.")
+            # If a RefSeq accession number was entered, check that the version number was provided.
+            if not transcript.startswith('LRG_') and '.' not in transcript:
+                # Log that a version number was not provided.
+                logger.warning(f"Variant Query Error: User did not provide a version number after the RefSeq accession number: {variant}")
+                # Show the User a message that will help them search for the variant.
+                flash(f"⚠ Variant Query Error: Please provide a version number after the RefSeq accession number. {transcript} does not work.")
+                return
 
+            # If a RefSeq accession number was entered, check that the version number is in fact a number.
+            elif not transcript.startswith('LRG_') and not re.match(r'^\d{1,2}$', transcript.split('.')[1]):
+                # Log that a version number was not provided.
+                logger.warning(f"Variant Query Error: User did not provide a valid version number after the RefSeq accession number: {transcript}")
+                # Show the User a message that will help them search for the variant.
+                flash(f"⚠ Variant Query Error: Please provide a valid version number after the RefSeq accession number. {transcript} does not work.")
+                return
+
+            # If a RefSeq accession number was entered, make sure that it starts with 'NM_', 'NC_' or 'NG_', followed by an accession number and version number.
+            elif not transcript.startswith('LRG_') and not re.match('^N[CMG]_\d+.\d{1,2}', transcript):
+                # Log the RefSeq number that didn't work.
+                logger.warning(f"Variant Query Error: User tried to search for a variant using a RefSeq number but there was something wrong with it: {transcript}")
+                # Show the User a message that will help them search for the variant.
+                flash(f"⚠ Variant Query Error: Irregular RefSeq transcript. {transcript} does not work.")
+                return
+
+            # 'NM', 'NG' and 'LRG' transcripts must be followed by variants denoted with c.
+            elif transcript.startswith(('NM_', 'LRG_', 'NG_')) and not genetic_change.startswith('c.'):
+                # Log the variant if it does not start with c. notation.
+                logger.warning(f"'{transcript}' accession number entered without c. notation: {variant}")
+                # Show the User a message that will help them search for the variant.
+                flash(f"⚠ Variant Query Error: {transcript} must use c. notation. {genetic_change} does not work.")
+                return
+
+            # 'NC_' transcripts must be followed by variants denoted with g.
             elif transcript.startswith('NC_') and not genetic_change.startswith('g.'):
-                logger.warning(f"'{variant[:3]}' accession number entered without g. notation: {variant}")
-                flash(f"⚠ {transcript} must use g. notation. {variant} does not work.")
+                # Log the variant if it does not start with g. notation.
+                logger.warning(f"'{transcript}' accession number entered without g. notation: {variant}")
+                # Show the User a message that will help them search for the variant.
+                flash(f"⚠ Variant Query Error: {transcript} must use g. notation. {variant} does not work.")
+                return
 
+            # Variant must follow the pattern captured by this Regex code in order to find a corresponding variant in
+            # the database.
+            elif not re.match('^[cg][.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', genetic_change):
+                # Log the error if it does not conform with the Regex pattern.
+                logger.warning(f'Irregular variant nomenclature: {variant}')
+                # Show the User a message that will help them search for the variant.
+                flash(f'⚠ Variant Query Error: Irregular variant nomenclature. {genetic_change} does not work.')
+                return
+
+            # If all of the conditions have been met, VariantValidator's variant description endpoint can be sent a
+            # request.
             else:
                 refseq_variant = variant.replace(':', '%3A').replace('>', '%3E')
                 url_vv = f"{base_url_vv}variantvalidator/GRCh38/{refseq_variant}/mane_select?content-type=application%2Fjson"
 
         # search by gene symbol
         # Gene symbol - VariantValidator/tools/gene2transcripts_v2 end point
-        elif not transcript.startswith('ENST') and '_' not in transcript and len(transcript) < 10:
+        elif not transcript.startswith('ENST') and re.match(r'^[A-Za-z0-9]{1,10}$', transcript):
             gene_symbol, genetic_change = variant.split(':')
             url_vv = f"{base_url_vv}tools/gene2transcripts/{gene_symbol}?content-type=application%2Fjson"  # Gene symbol - gene
 
         else:
             logger.error(f'{variant}: Variant rejected because of invalid format.')
             flash(f"{variant}: ❌ Unrecognized variant format. Please describe variant using HGVS nomenclature.")
+            return
 
         logger.debug(f'{variant}: VariantValidator URL: {url_vv}')
+
+    # Raise an exception if the Regex pattern is invalid (from ChatGPT).
+    except re.error as e:
+        error_message = regex_error(e, variant, f'{variant}: ❌ Internal error: Regex validation failed. Please report this to your friendly neighbourhood Developer.')
+        return error_message
 
     # Raise an exception if a URL could not be created.
     except Exception as e:
@@ -525,7 +618,7 @@ def get_mane_nc(variant: str):
                 return nc_variant
 
             # Return the HGVS genomic description if the User provided a gene symbol.
-            elif not transcript.startswith('ENST') and '_' not in transcript and len(transcript) < 11:
+            elif not transcript.startswith('ENST') and re.match(r'^[A-Za-z0-9]{1,10}$', transcript):
 
                 # This method returns the NC_ accession number with the latest version if the User used a g. number.
                 genomic_ref = ''

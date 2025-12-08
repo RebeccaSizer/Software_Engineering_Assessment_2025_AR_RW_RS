@@ -112,12 +112,23 @@ def json_decoder_error(e, variant, API, url):
 
 
 
+def regex_error(e, variant, message):
+    # Log the error if it occurs, using the exception output message.
+    logger.error(f'{variant}: The Regex pattern was invalid: {e.pattern}')
+    # Log a debug message describing why and where the Regex pattern broke.
+    logger.debug(f'Reason: {e.msg}; Regex pattern broke as position: {e.pos}.')
+    # Return the description so that the functions in database_functions.py can attach the description
+    # to the file name where the queried variant comes from. This will help the User.
+    return {message}
 
 
 
 
 
 
+
+
+"""
 for attempt in range(7):
 
     try:
@@ -133,7 +144,7 @@ for attempt in range(7):
         print(error_message)
 
 
-"""
+
 
     # Catch any network or HTTP errors raised by 'requests'.
     except requests.exceptions.HTTPError as e:
