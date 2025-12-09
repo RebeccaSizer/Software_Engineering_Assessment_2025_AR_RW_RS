@@ -3,6 +3,7 @@ import sys
 import io
 import csv
 import json
+import errno
 import sqlite3
 from openpyxl import Workbook
 
@@ -24,7 +25,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from tools.utils.logger import logger
 from tools.modules.vv_functions import get_mane_nc
-from tools.modules.database_functions import patient_variant_table, variant_annotations_table, validate_database, query_db
+from tools.modules.database_functions import (
+    patient_variant_table,
+    variant_annotations_table,
+    validate_database,
+    query_db
+)
 
 # ---------------------------------------------------------------
 # Flask setup
@@ -93,7 +99,7 @@ def choose_create_or_add():
 
         # The 'add_variant' form-type corresponds with creating or adding to a database.
         if form_type == "add_variant":
-            # Log that the User wants to create or adds to a database.
+            # Log that the User wants to create or add to a database.
             logger.info(f'Form-type: add_variant. User is trying to create or add to a database.')
 
             # The variant files uploaded by the User are added to a list called 'variant_files' in the backend.
@@ -106,10 +112,11 @@ def choose_create_or_add():
             # The html provides many prompts preventing the User from not uploading a file before creating/adding to
             # the database. However, if somehow nothing has been assigned to the 'files' variable...
             if not files or files[0].filename == '':
-                # 'No File uploaded' appears at the top of the homepage.
-                flash("⚠ No file uploaded")
+                # A warning appears at the top of the homepage.
+                flash("⚠ A variant file was not uploaded")
                 # The warning is also logged.
                 logger.warning("No variant files were uploaded.")
+                # Render the output into the homepage.
                 return render_template("homepage.html", databases=databases)
 
             # Save the selected files to the 'temp' folder.
@@ -119,6 +126,7 @@ def choose_create_or_add():
                     # Log that the file could not be uploaded.
                     logger.warning(f"{file.filename} not uploaded because it is not a .VCF or .CSV file.")
                     flash("❌ Invalid file type. Please upload .VCF or .CSV files only.")
+                    # Render this output into the homepage.
                     return render_template("homepage.html", databases=databases)
 
                 # Test if the file can be saved to the 'temp' folder.
@@ -134,11 +142,12 @@ def choose_create_or_add():
                 except PermissionError as e:
                     # Log the error, explaining the User's lack of permission, using the exception output.
                     logger.error(
-                        f'Failed to save {file.filename} to {app.config['variant_files_upload_folder']} because the '
-                        f'User lacks permissions: {str(e)}')
+                        f"Failed to save {file.filename} to {app.config['variant_files_upload_folder']} because the "
+                        f"User lacks permissions: {str(e)}")
                     # Notify the User that the file couldn't be saved to the 'temp' folder because they lack permission.
-                    flash(f'❌ Failed to save {file.filename} because User lacks permissions.')
-                    return
+                    flash(f'❌ Failed to save {file.filename}. Permission denied.')
+                    # Render this output into the homepage.
+                    return render_template("homepage.html", databases=databases)
 
                 # Raise an exception if there is an error with the system, preventing the file from being saved.
                 except OSError as e:
@@ -146,80 +155,179 @@ def choose_create_or_add():
                     if e.errno == errno.ENOSPC:
                         # Log the error, explaining there isn't enough disk space, using the exception output.
                         logger.error(
-                            f'Failed to save {file.filename} to {app.config['variant_files_upload_folder']} because '
-                            f'there is not enough disk space: {str(e)}')
+                            f"Failed to save {file.filename} to {app.config['variant_files_upload_folder']} because "
+                            f"there is not enough disk space: {str(e)}")
                         # Notify the User that the file couldn't be saved to the 'temp' folder because there is not
                         # enough disk.
-                        flash(
-                            f'❌ Failed to save {file.filename} because there is not enough disk space.')
+                        flash(f'❌ Failed to save {file.filename}. Not enough disk space.')
+                        # Render this output into the homepage.
+                        return render_template("homepage.html", databases=databases)
 
                     else:
-                        # Log the error, explaining there isn't enough disk space, using the exception output.
+                        # Log that there was an error with the operating system, using the exception output.
                         logger.error(
-                            f'Failed to save {file.filename} to {app.config['variant_files_upload_folder']} because '
-                            f'there is an issue with the operating system: {str(e)}')
+                            f"Failed to save {file.filename} to {app.config['variant_files_upload_folder']} because "
+                            f"there is an issue with the operating system: {str(e)}")
                         # Notify the User that the file couldn't be saved to the 'temp' folder.
                         flash(
-                            f'❌ Failed to save {file.filename} because there is an issue with the operating system: '
+                            f'❌ Failed to save {file.filename}. There is an issue with the operating system: '
                             f'{str(e)}')
-                    return
+                        # Render this output into the homepage.
+                        return render_template("homepage.html", databases=databases)
 
                 # Raise an exception if the file cannot be saved.
                 except Exception as e:
                     # Log the error, describing the reason why the test failed, using the exception output.
-                    logger.error(f'Failed to save {file.filename} to {app.config['variant_files_upload_folder']}: '
-                                 f'{str(e)}')
+                    logger.error(
+                        f"Failed to save {file.filename} to {app.config['variant_files_upload_folder']}: {str(e)}")
                     # Notify the User that the file couldn't be saved to the 'temp' folder.
-                    flash(
-                        f'❌ Failed to save {file.filename}: {str(e)}')
-                    return
+                    flash(f'❌ Failed to save {file.filename}: {str(e)}')
+                    # Render this output into the homepage.
+                    return render_template("homepage.html", databases=databases)
 
             # Execute the imported database_functions, using the absolute path to the 'temp' folder and the database
             # created/selected by the User. These functions parse the files and populate the database with the relevant
             # information.
+            # Log the start of when the variant files are being loaded into the User-specified database.
+            logger.info(f"Starting to load variant files in 'temp' folder, into {database_name} database.")
             patient_variant_table(app.config['variant_files_upload_folder'], database_name)
             variant_annotations_table(app.config['variant_files_upload_folder'], database_name)
+            # Log when the variant files have been loaded into the database.
+            logger.info(f"Successfully loaded variant files into {database_name} database.")
 
             # Delete the files from the 'temp' folder otherwise every file in the 'temp' folder will be processed after
             # the User adds another file to the database.
             for file in files:
                 variant_file_path = os.path.join(app.config['variant_files_upload_folder'], file.filename)
                 os.remove(variant_file_path)
+                # Log when the file has been deleted from the 'temp' folder.
+                logger.info(f"{file.filename} removed from 'temp' folder.")
 
+            # Notify the User which files have been loaded into the database.
             filenames = [file.filename for file in files]
             flash(f"Added {', '.join(filenames)} to database.")
+            # Refresh the homepage so that the newly created/updated database can be queried.
             return redirect(url_for("choose_create_or_add"))
 
-        # Selecting existing database
+        # The 'open_db' form-type corresponds with querying a database that already exists in the 'database' folder, in
+        # the homepage.html.
         elif form_type == "open_db":
+            # The 'existing_db' represents the database that the User selected from the dropdown menu on the homepage.
             selected_db = request.form.get("existing_db")
+            # Log which database is going to be queried.
+            logger.info(f'User is going to query the {selected_db} database.')
+            # Redirect the User to the query page where the chosen database can be queried.
             return redirect(url_for("query_page", db_name=selected_db))
 
-        # Uploading new database
+        # The 'upload_db' form-type corresponds with uploading a database so that it can be queried, in the
+        # homepage.html.
         elif form_type == "upload_db":
 
+            # Log that the User wants to create or add to a database.
+            logger.info(f'Form-type: upload_db. User is trying to upload a database to query.')
+
+            # The uploaded file is represented by 'database_file' in the homepage.html, which is assigned to the file
+            # 'variable'.
             file = request.files.get("database_file")
 
+            # The html provides many prompts preventing the User from not uploading a database. However, if somehow
+            # nothing has been assigned to the 'files' variable...
             if not file or file.filename == "":
-                flash("No file selected.")
+                # A warning appears at the top of the homepage, notifying the User.
+                flash("⚠ A database file was not uploaded.")
+                # The warning is also logged.
+                logger.warning('No database files were uploaded.')
+                # Render the output into the homepage.
                 return render_template("homepage.html", databases=databases)
 
+            # Assign the database's file name to the variable 'filename'.
             filename = file.filename
 
+            # If the filename does not end with the .DB database extension, it will be rejected from being uploaded.
             if not filename.endswith(".db"):
-                flash("❌ Invalid file type. Please upload a .db file.")
+                # Log the rejection.
+                logger.warning(f'{filename} does not contain a .db file extension. It is not recognised as a database '
+                               f'file.')
+                # Notify the User that their attempt to upload a database has been rejected.
+                flash('❌ Invalid file type. Please upload a .db file.')
                 return render_template("homepage.html", databases=databases)
 
-            filepath = os.path.join(app.config['db_upload_folder'], filename)
-            file.save(filepath)
+            # Test that the database can be saved to the 'database' folder, where the database can be queried from.
+            try:
+                # Create a filepath to the 'database' folder.
+                filepath = os.path.join(app.config['db_upload_folder'], filename)
+                # Save the uploaded file to the aforementioned filepath.
+                file.save(filepath)
+                # Log the name of the file that was saved to the 'temp' folder.
+                logger.info(f"{file.filename} uploaded to 'database' folder.")
 
+            # Raise an exception if the User lack permission to save the file.
+            except PermissionError as e:
+                # Log the error, explaining the User's lack of permission, using the exception output.
+                logger.error(
+                    f"Failed to save {filename} to {app.config['db_upload_folder']} because the User lacks permissions:"
+                    f" {str(e)}")
+                # Notify the User that the file couldn't be saved to the 'database' folder because they lack permission.
+                flash(f'❌ Failed to save {filename} database. Permission denied.')
+                # Render this output into the homepage.
+                return render_template("homepage.html", databases=databases)
+
+            # Raise an exception if there is an error with the system, preventing the file from being saved.
+            except OSError as e:
+                # from ChatGPT.
+                if e.errno == errno.ENOSPC:
+                    # Log the error, explaining there isn't enough disk space, using the exception output.
+                    logger.error(
+                        f"Failed to save {filename} to {app.config['db_upload_folder']} because there is not enough "
+                        f"disk space: {str(e)}")
+                    # Notify the User that the file couldn't be saved to the 'database' folder because there is not
+                    # enough disk.
+                    flash(f'❌ Failed to save {filename}. Not enough disk space.')
+                    # Render this output into the homepage.
+                    return render_template("homepage.html", databases=databases)
+
+                else:
+                    # Log that there was an error with the operating system, using the exception output.
+                    logger.error(
+                        f"Failed to save {filename} to {app.config['db_upload_folder']} because there is an issue with "
+                        f"the operating system: {str(e)}")
+                    # Notify the User that the file couldn't be saved to the 'database' folder.
+                    flash(
+                        f'❌ Failed to save {filename}. There is an issue with the operating system: '
+                        f'{str(e)}')
+                    # Render this output into the homepage.
+                    return render_template("homepage.html", databases=databases)
+
+            # Raise an exception if the file cannot be saved.
+            except Exception as e:
+                # Log the error, describing the reason why the test failed, using the exception output.
+                logger.error(
+                    f"Failed to save {filename} to {app.config['db_upload_folder']}: {str(e)}")
+                # Notify the User that the file couldn't be saved to the 'database' folder.
+                flash(f'❌ Failed to save {filename}: {str(e)}')
+                # Render this output into the homepage.
+                return render_template("homepage.html", databases=databases)
+
+            # validate_database() function ensures that the database conforms with the expected schema that allows the
+            # database file to be queried.
             if not validate_database(filepath):
-                flash("❌ Inappropriate headers in database.")
+                # Log that the database contains inappropriate headers.
+                logger.warning(f'{filename} does not contain the appropriate headers and cannot be queried.')
+                # Notify the User that the database has not passed validation.
+                flash(f'❌ Inappropriate headers in {filename} database.')
+                # Remove the database file from the 'database' folder.
                 os.remove(filepath)
+                # Log that the database file was removed.
+                logger.info(f"Removed {filename} from 'database' folder.")
             else:
+                # Log that the database was successfully uploaded and validated.
+                logger.info(f"Successfully uploaded and validated {filename} database.")
+                # Notify the User that the database was successfully uploaded and validated.
                 flash("✅ Database uploaded and validated successfully.")
+                # Redirect the User to the query page where the uploaded database can be queried.
                 return redirect(url_for("query_page", db_name=filename))
 
+    # Render the output from this function into the homepage.
     return render_template("homepage.html", databases=databases)
 
 # ---------------------------------------------------------------
