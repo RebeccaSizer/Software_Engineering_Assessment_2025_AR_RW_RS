@@ -2,6 +2,10 @@
 *.vcf
 *.csv
 *.db
+logs/*
+
+# Unecessary files
+test.py
 
 # Downloaded databases
 app/clinvar/

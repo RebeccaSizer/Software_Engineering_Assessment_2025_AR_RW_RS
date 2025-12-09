@@ -44,6 +44,9 @@ os.makedirs(app.config['variant_files_upload_folder'], exist_ok=True)
 @app.route("/", methods=["GET", "POST"])
 def choose_create_or_add():
 
+    for variant_file in os.listdir(app.config['variant_files_upload_folder']):
+        os.remove(os.path.join(app.config['variant_files_upload_folder'], variant_file))
+
     databases = []
 
     for f in os.listdir(app.config['db_upload_folder']):

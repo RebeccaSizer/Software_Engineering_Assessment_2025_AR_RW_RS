@@ -31,6 +31,17 @@
 <body>
     <h1>Database: {{ db_name }}</h1>
 
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flash-messages">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+
     <!-- Switch database -->
     <form id="dbForm" method="POST" action="/switch_db">
         <label for="db_name"><strong>Select Database:</strong></label>
