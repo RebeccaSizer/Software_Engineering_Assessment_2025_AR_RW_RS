@@ -116,7 +116,7 @@ def json_decoder_error(e, variant, API, url):
 
 
 
-
+"""
 
 for attempt in range(7):
 
@@ -133,7 +133,7 @@ for attempt in range(7):
         print(error_message)
 
 
-"""
+
 
     # Catch any network or HTTP errors raised by 'requests'.
     except requests.exceptions.HTTPError as e:

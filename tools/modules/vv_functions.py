@@ -7,7 +7,7 @@ import json
 import requests  # Import the 'requests' library to handle HTTP requests to the VariantValidator API
 from flask import flash
 from tools.utils.logger import logger
-from tools.utils.error_handlers import request_status_codes, connection_error, remote_connection_error, json_decoder_error
+from tools.utils.error_handlers import request_status_codes, connection_error, json_decoder_error
 
 def fetch_vv(variant: str):
     """
