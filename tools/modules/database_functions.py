@@ -198,7 +198,7 @@ def patient_variant_table(filepath, db_name):
             # If the response received from fetch_vv is a string and not the tuple, log the error and notify the User
             # through the flask app. Then move onto the next varaiant.
             elif type(variant_info) == str:
-                logger.error(f'patient_variant_table: {file}: {variant_info}. Variant not added to {db_name}.db.')
+                logger.warning(f'patient_variant_table: {file}: {variant_info}. Variant not added to {db_name}.db.')
                 flash(f'{file}: {variant_info}')
                 continue
 
@@ -425,7 +425,7 @@ def variant_annotations_table(filepath, db_name):
                 # If no response was received from fetch_vv or the length of the tuple is less than 5, log the error
                 # and notify the User through the flask app. Then move onto the next varaiant.
                 if not vv_response or len(vv_response) != 5:
-                    logger.error(f'variant_annotations_table: {file}: {variant}: Failed to receive a response from fetch_vv.')
+                    logger.warning(f'variant_annotations_table: {file}: {variant}: Failed to receive a response from fetch_vv.')
                     flash(f'{file}: {variant}: ❌ Irregular response from VariantValidator. Variant not added to {db_name}.db.')
                     continue
 
@@ -433,7 +433,7 @@ def variant_annotations_table(filepath, db_name):
                 # and notify the User through the flask app. Then move onto the next varaiant.
                 elif type(vv_response) == str:
                     flash(f'{file}: {vv_response}')
-                    logger.error(f'variant_annotations_table: {file}: {vv_response}. Variant not added to {db_name}.db.')
+                    logger.warning(f'variant_annotations_table: {file}: {vv_response}. Variant not added to {db_name}.db.')
                     continue
 
                 else:
@@ -472,14 +472,14 @@ def variant_annotations_table(filepath, db_name):
                 # If no response was received from clinvar_annotations or the function returned a blank response, log
                 # the error and notify the User through the flask app. Then move onto the next varaiant.
                 if not clinvar_response or len(clinvar_response) == 0:
-                    logger.error(f'variant_annotations_table: {file}: {variant}: Variant summary record for {nc_variant} not found in clinvar.db.')
+                    logger.warning(f'variant_annotations_table: {file}: {variant}: Variant summary record for {nc_variant} not found in clinvar.db.')
                     flash(f'{file}: {variant}: ❌ Variant summary record could not be found in clinvar.db. Variant not added to {db_name}.db.')
                     continue
 
                 # If the response received from fetch_vv is a string and not the tuple, log the error and notify the
                 # User through the flask app. Then move onto the next varaiant.
                 elif type(clinvar_response) == str:
-                    logger.error(f'variant_annotations_table: {file}: {clinvar_response}.')
+                    logger.warning(f'variant_annotations_table: {file}: {clinvar_response}.')
                     flash(f'{file}: {clinvar_response}. Variant not added to {db_name}.db')
                     continue
 
