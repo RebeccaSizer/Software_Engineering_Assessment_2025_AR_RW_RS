@@ -112,7 +112,7 @@ def json_decoder_error(e, variant, API, url):
 
 
 
-def regex_error(e, variant, message):
+def regex_error(e, variant):
     # Log the error if it occurs, using the exception output message.
     logger.error(f'{variant}: The Regex pattern was invalid: {e.pattern}')
     # Log a debug message describing why and where the Regex pattern broke.

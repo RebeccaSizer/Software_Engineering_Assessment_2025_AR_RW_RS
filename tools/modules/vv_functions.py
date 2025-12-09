@@ -344,9 +344,9 @@ def fetch_vv(variant: str):
 def get_mane_nc(variant: str):
     """
     Convert a variant search term in the flask app into its corresponding HGVS genomic description using the
-    VariantValidator REST API. If the User provides a gene symbol this function uses recursion to find the HGVS genomic
-    description. All c. variant queries are contextualised within the MANE select before providing the genomic
-    description.
+    VariantValidator REST API. If the User provides a gene symbol this function recursively finds the HGVS genomic
+    description. All c. variant queries are contextualised within the MANE select transcript before providing the
+    genomic description.
 
     :params: variant: A variant described by the gene it is located in followed by the variant, in HGVS nomenclature.
                       The User can describe the gene using a RefSeq accession number, Ensemble transcript ID or gene

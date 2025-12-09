@@ -13,7 +13,7 @@ def clinvar_vs_download():
     '''
     This function retrieves the most recent ClinVar variant summary records from NCBI and loads them into a database.
     The records are parsed into the clinvar.db database because it is much quicker to query and annotate variants than
-    querying a zip file.
+    querying the downloaded zip file.
 
     :outputs: clinvar_db_summary.txt.gz: A compressed .txt file which contains the variant summaries from ClinVar.
 
@@ -43,7 +43,8 @@ def clinvar_vs_download():
             clinvar_db.raise_for_status()
 
             # Log that the download was successful and when the records were last modified.
-            logger.info(f"Request OK. ClinVar variant summary records last modified: {requests.head(url).headers['Last-Modified']}")
+            logger.info(f"Request OK. ClinVar variant summary records last modified: "
+                        f"{requests.head(url).headers['Last-Modified']}")
 
         # Catch any network or HTTP errors raised by 'requests'.
         except requests.exceptions.HTTPError as e:
@@ -74,7 +75,8 @@ def clinvar_vs_download():
 
     # Test if the clinvar subdirectory can be made in the app folder.
     try:
-        # Retrieve the path to this script and create a relative path to where the variant summary records will be stored.
+        # Retrieve the path to this script and create a relative path to where the variant summary records will be
+        # stored.
         script_dir = os.path.dirname(os.path.abspath(__file__))
         clinvar_dir = os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar"))
 
@@ -91,10 +93,22 @@ def clinvar_vs_download():
         # Log that the clinvar directory was built.
         logger.info(f'Successfully created clinvar directory to store the variant summary records: {clinvar_dir}')
 
+    # Raise an exception if the User lacks permission to create these directories.
+    except PermissionError as e:
+        # Log the error, explaining the User's lack of permission, using the exception output.
+        logger.error(f'Failed to create directories to store the variant summary records because the User lacks '
+                     f'permissions: {str(e)}')
+
+    # Raise an exception if the User lacks permission to create these directories.
+    except PermissionError as e:
+    # Log the error, explaining the User's lack of permission, using the exception output.
+    logger.error(f'Failed to create directories to store the variant summary records because the User lacks '
+                 f'permissions to create directory to store the variant summary records: {str(e)}')
+
     # Raise an exception if the clinvar directory could not be built.
-    except Exception as e:
+    except OSError as e:
         # Log the error, describing the reason why the test failed, using the exception output.
-        logger.error(f'Failed to create a directory to store the variant summary records: {str(e)}', exc_info=True)
+        logger.error(f'Failed to create a directory to store the variant summary records: {str(e)}')
 
     # Test if the variant summary records could be downloaded into a zip file.
     try:
@@ -106,7 +120,7 @@ def clinvar_vs_download():
         # Consider changing chunk_size to chunk_size=65536 if bandwidth is medium.
         # Consider changing chunk_size to chunk_size=1024*1024 if bandwidth is high.
         # Or let the requests module decide by using: clinvar_db.iter_content(chunk_size=None).
-        # Code from lines 81 to 84 from ChatGPT.
+        # (from ChatGPT).
         with open(clinvar_file_path, "wb") as f:
             for chunk in clinvar_db.iter_content(chunk_size=65536):
                 if chunk:
@@ -118,7 +132,7 @@ def clinvar_vs_download():
     # Raise an exception if the variant summary records could not be downloaded into the zip file.
     except Exception as e:
         # Log the error, describing why the records could not be downloaded, using the exception output.
-        logger.error(f'Failed to download the ClinVar variant summary records: {str(e)}', exc_info=True)
+        logger.error(f'Failed to download the ClinVar variant summary records: {str(e)}')
 
     # The records are parsed into the clinvar.db database because it is much quicker to query and annotate variants
     # than querying a zip file.
