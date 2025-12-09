@@ -83,7 +83,7 @@ def connection_error(e, variant, API, url):
         return f'{variant}: ❌ NewConnectionError [101]: There was a problem with your internet connection. Please check your WiFi, VPN or ethernet connection.'
 
     # Log RemoteDisconnected exceptions.
-    elif isinstance(cause, RemoteDisconnected):
+    if isinstance(cause, RemoteDisconnected):
         logger.error(f'{variant}: RemoteDisconnected: {API} server dropped the connection. Request: {url}. {e}')
         # Return a flash message to the function in database_functions.py, so that it can be appended to
         # the file name. This will help the User understand where along the API request process failed.
@@ -120,6 +120,17 @@ def regex_error(e, variant):
     # Return the description so that the functions in database_functions.py can attach the description
     # to the file name where the queried variant comes from. This will help the User.
     return f'{variant}: ❌ Internal error: Regex validation failed. Please report this to your friendly neighbourhood Developer.'
+
+
+# Error handler executed in exceptions related to sqlite3.
+def sqlite_error(e, db_name):
+    # Log the error if an OperationalError occurs, using the exception output message.
+    if isinstance(e, sqlite3.OperationalError):
+        logger.error(f'{db_name} is not working properly: {e}')
+    # Log the error if a DatabaseError occurs, using the exception output message.
+    if isinstance(e, sqlite3.DatabaseError):
+        logger.error(f'There is a problem with {db_name}: {e}')
+
 
 
 

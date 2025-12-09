@@ -1,4 +1,5 @@
 import time
+from tools.utils.logger import logger
 
 def timer(func):
     '''
@@ -17,8 +18,9 @@ def timer(func):
     def wrapper(*args, **kwargs):
         '''
         This function creates a wrapper around a function to apply the timer.
-        It replaces the function that it is supposed to time, extracts the arguments of that function
-        and uses them in the original function, within the wrapper's script.
+        It replaces the function that it is supposed to time, extracts the arguments of that function and uses them in
+        the original function, within the wrapper's script.
+        The time if logged.
 
         :params: *args: Arguments to pass to the function.
                   E.g.: variable_x, variable_y
@@ -46,8 +48,8 @@ def timer(func):
         # Stop the timer.
         end = time.perf_counter()
 
-        # Message describes how long the process took to complete.
-        print(f"{func.__name__} took {end - start:.4f} seconds")
+        # Log how long the process took to complete.
+        logger.debug(f"{func.__name__} took {end - start:.4f} seconds")
 
         # Returns the result of the original function.
         return result

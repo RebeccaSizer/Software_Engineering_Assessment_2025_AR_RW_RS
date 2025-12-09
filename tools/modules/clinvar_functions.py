@@ -6,7 +6,7 @@ import sqlite3
 import requests
 from ..utils.timer import timer
 from tools.utils.logger import logger
-from tools.utils.error_handlers import request_status_codes, connection_error
+from tools.utils.error_handlers import request_status_codes, connection_error, sqlite_error
 
 @timer
 def clinvar_vs_download():
@@ -62,15 +62,18 @@ def clinvar_vs_download():
             # Handle HTTP errors that do not need to be tried again.
             else:
                 request_status_codes(e, 'ClinVar_Download', url, 'ClinVar', attempt)
+            return
 
         # Raise an exception if there is a problem with the connection to the remote server.
         except requests.exceptions.ConnectionError as e:
             connection_error(e, 'ClinVar_Download', 'ClinVar', url)
+            return
 
         # Raise an exception if any other errors occurred.
         except Exception as e:
             # Log the error using the exception output message.
             logger.error(f'ClinVar_Download: Failed to download variant summary records from {url}. {e}')
+            return
 
 
     # Test if the clinvar subdirectory can be made in the app folder.
@@ -93,22 +96,32 @@ def clinvar_vs_download():
         # Log that the clinvar directory was built.
         logger.info(f'Successfully created clinvar directory to store the variant summary records: {clinvar_dir}')
 
-    # Raise an exception if the User lacks permission to create these directories.
+    # Raise an exception if the User lacks permission to create clinvar directory.
     except PermissionError as e:
         # Log the error, explaining the User's lack of permission, using the exception output.
-        logger.error(f'Failed to create directories to store the variant summary records because the User lacks '
+        logger.error(f'Failed to create clinvar directory to store the variant summary records because the User lacks '
                      f'permissions: {str(e)}')
+        return
 
-    # Raise an exception if the User lacks permission to create these directories.
-    except PermissionError as e:
-    # Log the error, explaining the User's lack of permission, using the exception output.
-    logger.error(f'Failed to create directories to store the variant summary records because the User lacks '
-                 f'permissions to create directory to store the variant summary records: {str(e)}')
+    # Raise an exception if there is an error with the system, preventing the clinvar directory from being made.
+    except OSError as e:
+        # from ChatGPT.
+        if e.errno == errno.ENOSPC:
+            # Log the error, explaining there isn't enough disk space, using the exception output.
+            logger.error(f'Failed to create clinvar directory because there is not enough disk space to store the '
+                         f'variant summary records: {str(e)}')
+
+        else:
+            # Log the error, explaining there isn't enough disk space, using the exception output.
+            logger.error(f'Failed to create clinvar directory to store the variant summary records because there is '
+                         f'an issue with the operating system: {str(e)}')
+        return
 
     # Raise an exception if the clinvar directory could not be built.
-    except OSError as e:
+    except Exception as e:
         # Log the error, describing the reason why the test failed, using the exception output.
-        logger.error(f'Failed to create a directory to store the variant summary records: {str(e)}')
+        logger.error(f'Failed to create clinvar directory to store the variant summary records: {str(e)}')
+        return
 
     # Test if the variant summary records could be downloaded into a zip file.
     try:
@@ -129,10 +142,32 @@ def clinvar_vs_download():
         # Log that the records were successfully downloaded.
         logger.info('ClinVar variant summary records downloaded successfully!')
 
+    # Raise an exception if the User lacks permission to create and/or write to the clinvar_db_summary.txt.gz file.
+    except PermissionError as e:
+        # Log the error, explaining the User's lack of permission, using the exception output.
+        logger.error(f'Failed to write ClinVar variant summary records to clinvar_db_summary.txt.gz because the User '
+                     f'lacks permissions: {str(e)}')
+        return
+
+    # Raise an exception if there is an error with the system, preventing clinvar_db_summary.txt.gz from being made or
+    # written to.
+    except OSError as e:
+        # from ChatGPT.
+        if e.errno == errno.ENOSPC:
+            # Log the error, explaining there isn't enough disk space, using the exception output.
+            logger.error(f'Failed to create clinvar_db_summary.txt.gz because there is not enough disk space: {str(e)}')
+
+        else:
+            # Log the error, explaining there isn't enough disk space, using the exception output.
+            logger.error(f'Failed to create clinvar_db_summary.txt.gz because there is an issue with the '
+                         f'operating system: {str(e)}')
+        return
+
     # Raise an exception if the variant summary records could not be downloaded into the zip file.
     except Exception as e:
         # Log the error, describing why the records could not be downloaded, using the exception output.
-        logger.error(f'Failed to download the ClinVar variant summary records: {str(e)}')
+        logger.error(f'Failed to write the ClinVar variant summary records to clinvar_db_summary.txt.gz: {str(e)}')
+        return
 
     # The records are parsed into the clinvar.db database because it is much quicker to query and annotate variants
     # than querying a zip file.
@@ -162,21 +197,36 @@ def clinvar_vs_download():
         # Log that a new database was built successfully.
         logger.info('Created new clinvar.db database.')
 
-        # Create a list to store all of the variant information that the user wants from each variant summary record.
-        # A list was chosen instead of a dictionary because it is easier to add the values from a list under the
-        # headers in the clinvar table, in the clinvar.db database.
-        variant_info = []
+    # Error handler executed when exceptions related to sqlite3 are raised.
+    except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+        # sqlite_error function logs the errors appropriately.
+        sqlite_error(e, 'clinvar.db')
+        return
 
-        # A counter to show how many records have been loaded into the database. This is to help users understand how
-        # likely it might be to annotate a variant.
-        # i.e. a 'high' number indicates a higher likelihood, whereas a 'low' number indicates a low likelihood.
-        record_counter = 0
+    # Raise an exception if the there was an issue creating clinvar.db.
+    except Exception as e:
+        # Log the error, describing why clinvar.db could not be made, using the exception output.
+        logger.error(f'Failed to create clinvar.db: {str(e)}')
+        return
 
+
+    # Create a list to store all of the variant information that the user wants from each variant summary record.
+    # A list was chosen instead of a dictionary because it is easier to add the values from a list under the
+    # headers in the clinvar table, in the clinvar.db database.
+    variant_info = []
+
+    # A counter to show how many records have been loaded into the database. This is to help users understand how
+    # likely it might be to annotate a variant.
+    # i.e. a 'high' number indicates a higher likelihood, whereas a 'low' number indicates a low likelihood.
+    record_counter = 0
+
+    # Test the zip file to ensure that it has integrity and records that can be written into clinvar.db.
+    try:
         # Each record in the zip file can be queried like its a dictionary. From each record in the zip file:
         #   - Get the NC_ accession number from 'ChromosomeAccession'. This is to help find the record using the
         #     variant validator output.
-        #   - Take the record's name and convert it into NM_ HGVS nomenclature. This is to help find the record using the
-        #     variant validator output.
+        #   - Take the record's name and convert it into NM_ HGVS nomenclature. This is to help find the record using
+        #     the variant validator output.
         #   - Get the variant's classification from 'ClinicalSignificance' because the user wants this.
         #   - Get the conditions associated with the variant from 'PhenotypeList' because the user wants this.
         #   - Get the variant star-rating from 'ReviewStatus' because the user wants this.
@@ -251,6 +301,19 @@ def clinvar_vs_download():
                 else:
                     continue
 
+    # Raise an exception if clinvar_db_summary.txt.gz is corrupted.
+    except gzip.BadGzipFile as e:
+        # Log an error if clinvar_db_summary.txt.gz is corrupted.
+        logger.error(f'clinvar_db_summary.txt.gz is corrupted: {e}')
+        return
+
+    # Raise an exception if the compressed .csv cannot be converted into a dictionary.
+    except csv.Error as e:
+        # Log an error if the .csv file is malformed.
+        logger.error(f'The .CSV file compressed in clinvar_db_summary.txt.gz is malformed: {e}')
+        return
+
+    try:
         # Populate the database with the information from the variant_info list.
         cur.executemany("""
                 INSERT INTO clinvar VALUES (?, ?, ?, ?, ?, ?)
@@ -263,10 +326,17 @@ def clinvar_vs_download():
         # Log the number of variant summary records that the database was successfully populated by.
         logger.info(f'clivar.db successfully populated by {record_counter} variant summary records.')
 
+    # Error handler executed when exceptions related to sqlite3 are raised.
+    except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+        # sqlite_error function logs the errors appropriately.
+        sqlite_error(e, 'clinvar.db')
+        return
+
     # Raise an exception if the database could not be successfully populated with variant summary records.
     except Exception as e:
         # Log the error, describing why the database could not be successfully populated, using the exception output.
         logger.error(f'Failed to write ClinVar variant summary records into clinvar.db database.')
+        return
 
 
 @timer

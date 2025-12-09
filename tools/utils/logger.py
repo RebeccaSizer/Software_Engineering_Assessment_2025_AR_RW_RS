@@ -1,4 +1,4 @@
-# logger.py
+# logger.py taken straight from Pete's SeqToolKit git.
 import os
 import logging
 from logging.handlers import RotatingFileHandler
