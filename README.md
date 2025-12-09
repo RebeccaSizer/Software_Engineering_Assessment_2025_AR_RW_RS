@@ -3,7 +3,7 @@
 # SEA_2025
 <img src="assets/SEA_logo.png" width="200" height="227" />
 
-**Notice: This piece of software is in development as a university project and as yet is not a fully functioning or tested product. Additionally, ongoing maintenance and contributions to this code by the original developers will cease after 08/01/2025. Use of this software is at your own risk.**
+**Notice: This piece of software is in development as a university project and as yet is not a fully functioning or tested product. Additionally, ongoing maintenance and contributions to this code by the original developers will cease after 08/01/2026. Use of this software is at your own risk.**
 
 SEA is a webapp prototype tool for annotating germline variant data using information from ClinVar. It uses API queries to get up to date information regarding NGS panels for alzheimers disease. It is designed to support clinical researchers (not bioinformaticians) working with experimental variant data from the Parkinson’s disease panel.
 
@@ -30,10 +30,10 @@ SEA is a webapp prototype tool for annotating germline variant data using inform
 - View all matching variants and their annotations through the web interface
 
 ## Quick Start
-1. [Index](https://SEA_2025.readthedocs.io/en/latest/)
-2. [Installation Guide](https://SEA_2025.readthedocs.io/en/latest/installation/)
-3. [User Manual](https://SEA_2025.readthedocs.io/en/latest/user_manual/)
-4. [Technical Manual](https://SEA_2025.readthedocs.io/en/latest/technical_manual/)
+1. [Index](index.md)
+2. [Installation Guide](installation.md)
+3. [User Manual](user_manual.md)
+4. [Technical Manual](technical_manual.md)
 
 
 ## Continuous Integration

@@ -35,7 +35,7 @@ docker build -t SEA_2025 .
 docker run -it SEA_2025
 ```
 
-#### 4. Test PanelPal is installed:
+#### 4. Test SEA_2025 is installed:
 
 ```
 SEA_2025
