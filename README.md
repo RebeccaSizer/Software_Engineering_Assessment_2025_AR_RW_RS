@@ -14,7 +14,7 @@ SEA is a webapp prototype tool for annotating germline variant data using inform
 - Send variants to the Variant Validator API to:
     - normalise the variant
     - generate the correct RefSeq NC_ accession numbers
-    - Use the NC_ numbers to query ClinVar for:
+- Use the NC_ numbers to query ClinVar for:
     - clinical significance
     - associated conditions
     - review status and supporting evidence
