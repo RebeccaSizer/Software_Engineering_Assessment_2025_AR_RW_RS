@@ -1,4 +1,4 @@
-# Panel Pal
+# SEA_2025
 
 <img src="images/SEA_logo.png" width="200" height="227" />
 
