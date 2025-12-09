@@ -2,6 +2,7 @@ import os
 import re
 import csv
 import gzip
+import errno
 import sqlite3
 import requests
 from ..utils.timer import timer
@@ -112,7 +113,7 @@ def clinvar_vs_download():
                          f'variant summary records: {str(e)}')
 
         else:
-            # Log the error, explaining there isn't enough disk space, using the exception output.
+            # Log that there was an error with the operating system, using the exception output.
             logger.error(f'Failed to create clinvar directory to store the variant summary records because there is '
                          f'an issue with the operating system: {str(e)}')
         return
@@ -158,7 +159,7 @@ def clinvar_vs_download():
             logger.error(f'Failed to create clinvar_db_summary.txt.gz because there is not enough disk space: {str(e)}')
 
         else:
-            # Log the error, explaining there isn't enough disk space, using the exception output.
+            # Log that there was an error with the operating system, using the exception output.
             logger.error(f'Failed to create clinvar_db_summary.txt.gz because there is an issue with the '
                          f'operating system: {str(e)}')
         return

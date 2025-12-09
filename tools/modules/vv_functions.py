@@ -110,14 +110,14 @@ def fetch_vv(variant: str):
             # Handle unexpected null responses from the VariantValidator API.
             if data is None:
                 # Log an error that VariantValidator did not return a result.
-                logger.error(f'{variant}: VariantValidator did not return a result.')
+                logger.warning(f'{variant}: VariantValidator did not return a result.')
                 # Return the description so that the functions in database_functions.py can attach the description to
                 # the file name where the queried variant comes from. This will help the User.
                 return f'{variant}: ❌ VariantValidator did not return a response.'
 
             elif not isinstance(data, dict):
                 # Log an error that VariantValidator did not return a dictionary.
-                logger.error(f'{variant}: VariantValidator did not return a dictionary.')
+                logger.warning(f'{variant}: VariantValidator did not return a dictionary.')
                 # Return the description so that the functions in database_functions.py can attach the description to
                 # the file name where the queried variant comes from. This will help the User.
                 return f'{variant}: ❌ VariantValidator did not return a response.'
@@ -128,7 +128,7 @@ def fetch_vv(variant: str):
             elif data.get('flag') == 'empty_result':
 
                 # Log an error that VariantValidator returned an 'empty result'.
-                logger.error(f'{variant}: VariantValidator did not recognise variant or could not map it to a '
+                logger.warning(f'{variant}: VariantValidator did not recognise variant or could not map it to a '
                              f'reference sequence.')
 
                 # Return the description so that the functions in database_functions.py can attach the description to
@@ -148,7 +148,7 @@ def fetch_vv(variant: str):
                             return_warnings = '|'.join(warnings)
 
                             # Log the warnings produced by VariantValidator.
-                            logger.debug(f'{variant}: VariantValidator warning: {return_warnings}')
+                            logger.warning(f'{variant}: VariantValidator warning: {return_warnings}')
 
                             # Return the warnings so that the functions in database_functions.py can attach the
                             # description to the file name where the queried variant comes from. This will help the
@@ -208,7 +208,7 @@ def fetch_vv(variant: str):
                     if not re.match('^NC_\d+.\d{1,2}:g[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nc_variant):
 
                         # Log the error if anything but the HGVS genomic description was returned.
-                        logger.error(f'{variant}: Genomic variant description from VariantValidator is not in valid '
+                        logger.warning(f'{variant}: Genomic variant description from VariantValidator is not in valid '
                                      f'HGVS nomenclature. Variant not added to database.')
                         # Log what was extracted from the response to support debugging.
                         logger.debug(f'{variant}: Genomic variant description from VariantValidator: {nc_variant}')
@@ -222,7 +222,7 @@ def fetch_vv(variant: str):
                     elif not re.match('^NM_\d+.\d{1,2}:c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nm_variant):
 
                         # Log the error if anything but the HGVS transcript description was returned.
-                        logger.error(
+                        logger.warning(
                             f'{variant}: Transcript variant description from VariantValidator is not in valid '
                             f'HGVS nomenclature.')
                         # Log what was extracted from the response to support debugging.
@@ -546,7 +546,7 @@ def get_mane_nc(variant: str):
     # If the URL in the request sent to VariantValidator has not changed from a None data type, log a warning
     # and notify the User.
     if not url_vv:
-        logger.error(f'{variant}: Variant Query Error: Variant rejected because of invalid format.')
+        logger.warning(f'{variant}: Variant Query Error: Variant rejected because of invalid format.')
         flash(f"{variant}: ⚠ Variant Query Error: Unrecognized variant format. Please describe variant using HGVS nomenclature.")
         return
 
@@ -624,14 +624,14 @@ def get_mane_nc(variant: str):
             # Handle unexpected null responses from the VariantValidator API.
             if data is None:
                 # Log an error that VariantValidator did not return a result.
-                logger.error(f'{variant}: Variant Query Error: VariantValidator did not return a result.')
+                logger.warning(f'{variant}: Variant Query Error: VariantValidator did not return a result.')
                 # Display a flash message to the User that will help them understand why the API request process failed.
                 flash(f'{variant}: ❌ Variant Query Error: VariantValidator did not return a response.')
                 return
 
             elif not isinstance(data, dict):
                 # Log an error that VariantValidator did not return a dictionary.
-                logger.error(f'{variant}: Variant Query Error: VariantValidator did not return a dictionary.')
+                logger.warning(f'{variant}: Variant Query Error: VariantValidator did not return a dictionary.')
                 # Display a flash message to the User that will help them understand why the API request process failed.
                 flash(f'{variant}: ❌ Variant Query Error: VariantValidator did not return a response.')
                 return
@@ -640,7 +640,7 @@ def get_mane_nc(variant: str):
             # map it to a reference sequence.
             elif data.get('flag') == 'empty_result':
                 # Log an error that VariantValidator returned an 'empty result'.
-                logger.error(
+                logger.warning(
                     f'{variant}: Variant Query Error: VariantValidator did not recognise variant or '
                     f'could not map it to a reference sequence.')
                 # Display a flash message to the User that will help them understand why the API request process failed.
@@ -662,7 +662,7 @@ def get_mane_nc(variant: str):
 
                             for warning in warnings:
                                 # Log the warnings produced by VariantValidator.
-                                logger.warnings(f'{variant}: ⚠ VariantValidator warning: {warning}')
+                                logger.warning(f'{variant}: ⚠ VariantValidator warning: {warning}')
                                 # Relay the VariantValidator warnings to the User that will help them understand why
                                 # the API request process failed.
                                 flash(f"\t\t-{warning}")
@@ -833,7 +833,7 @@ def get_mane_nc(variant: str):
 
             else:
                 # Log that there was an issue with the gene symbol or accession number.
-                logger.error(f'{variant}: VariantValidator was unable to recognise the gene symbol or accession number '
+                logger.warning(f'{variant}: VariantValidator was unable to recognise the gene symbol or accession number '
                              f'in the variant query, entered by the User: {transcript}')
                 # Notify the User that there was an issue with the gene symbol or accession number.
                 flash(f"❌ {variant}: Variant Query Error: VariantValidator was unable to recognise the gene symbol or "
