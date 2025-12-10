@@ -199,7 +199,7 @@ def clinvar_vs_download():
         logger.info('Created new clinvar.db database.')
 
     # Error handler executed when exceptions related to sqlite3 are raised.
-    except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
         # sqlite_error function logs the errors appropriately.
         sqlite_error(e, 'clinvar.db')
         return
@@ -328,7 +328,7 @@ def clinvar_vs_download():
         logger.info(f'clivar.db successfully populated by {record_counter} variant summary records.')
 
     # Error handler executed when exceptions related to sqlite3 are raised.
-    except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
         # sqlite_error function logs the errors appropriately.
         sqlite_error(e, 'clinvar.db')
         return
@@ -404,7 +404,7 @@ def clinvar_annotations(nc_variant, nm_variant):
         conn.close()
 
     # Error handler executed when exceptions related to sqlite3 are raised.
-    except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
         # sqlite_error function logs the errors appropriately and returns an error message which can be implemented
         # into a flash message.
         error_message = sqlite_error(e, 'clinvar.db')
@@ -414,7 +414,7 @@ def clinvar_annotations(nc_variant, nm_variant):
     except Exception as e:
         # Log the error, describing why clinvar.db could not be queried, using the exception output.
         logger.error(f'{nc_variant}: Failed to prepare clinvar.db to be queried: {str(e)}')
-        #
+        # Return a flash message to the User, notifying them of the error.
         return f'{nc_variant}: ❌ clinvar.db query error: Failed to prepare clinvar.db to be queried: {str(e)}'
 
     # Log which variant's summary record could not be found in clinvar.db.

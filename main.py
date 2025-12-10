@@ -1,7 +1,7 @@
 import os
 import webbrowser
-from threading import Timer
 from app.app import app
+from threading import Timer
 from tools.utils.logger import logger
 from tools.modules.clinvar_functions import clinvar_vs_download
 

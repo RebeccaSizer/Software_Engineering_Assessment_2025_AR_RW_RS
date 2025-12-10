@@ -25,6 +25,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from tools.utils.logger import logger
 from tools.modules.vv_functions import get_mane_nc
+from tools.utils.error_handlers import request_status_codes, connection_error, sqlite_error
 from tools.modules.database_functions import (
     patient_variant_table,
     variant_annotations_table,
@@ -335,46 +336,150 @@ def choose_create_or_add():
 # ---------------------------------------------------------------
 @app.route("/query/<db_name>", methods=["GET", "POST"])
 def query_page(db_name):
-    """Main query interface for a specific database."""
-    # Get list of uploaded databases
-    databases = [
-        f for f in os.listdir(app.config["db_upload_folder"]) if f.endswith(".db")
-    ]
-    databases.sort()
+    """
+    This function facilitates the use of the Variant Query Database query page. Users are able to search their database
+    by patient, variant and by gene. They are also able to redirect to the display page where they can view their
+    database in its entirety.
 
+    :params: db_name: The name of the database being queried.
+               E.g.: sea.db
+
+    :query input: Patient: The name of the patient as it exists in the database.
+                           The database's schema names patients after the filename used to upload their respective
+                           variant data.
+
+                     E.g.: Variants derived from a file named, 'Patient_X.csv".
+                           Patient = Patient_X
+
+    :query output: Table: A table consisting of all the variants successfully uploaded into the database, from the
+                          queried patient's variant file. Each variant constitutes a row in the table which comprises
+                          of the Patient ID; HGVS genomic description; HGVS transcript description; HGVS protein
+                          consequence description; gene symbol; HGNC ID; Classification; Associated conditions; ClinVar
+                          star-rating; Clinvar review status.
+
+                    E.g.   patient_ID	       | variant_NC	                 | variant_NM	            | variant_NP	               | gene  | HGNC_ID | Classification	 | Conditions	                                                                                                        | Stars | Review_status
+                          ---------------------|-----------------------------|----------------------- --|-------|----------------------|-------|---------|-------------------|----------------------------------------------------------------------------------------------------------------------|-------|--------------------------------------
+                           Patient_X	       | NC_000005.10:g.150056311C>T | NM_001288705.3:c.2350G>A | NP_001275634.1:p.(Val784Met) | CSF1R | 2433    | Likely pathogenic | Hereditary diffuse leukoencephalopathy with spheroids; Brain abnormalities, neurodegeneration, and dysosteosclerosis | ★	    | criteria provided, single submitter
+
+    :query input: Variant: HGVS genomic descriptions, HGVS transcript descriptions and gene symbols followed by a
+                           variant in HGVS nomenclature are all accepted queries because the get_mane_nc() function is
+                           leveraged to return the HGVS genomic description, relative to the MANE select transcript.
+                           This is then searched for in the database to find the variant.
+
+                     E.g.: NC_000005.10:g.150056311C>T
+                           NM_001288705.3:c.2350G>A
+                           CSF1R:c.301G>A
+
+    :query output: Table: A table consisting of the variant. The variant occupies a single row in the table which
+                          comprises of the HGVS genomic description; HGVS transcript description; HGVS protein
+                          consequence description; gene symbol; HGNC ID; Classification; Associated conditions; ClinVar
+                          star-rating; Clinvar review status; Number of patients in the database with the variant.
+
+                    E.g.:  variant_NC	               | variant_NM	              | variant_NP	                 | gene  | HGNC_ID | Classification	   | Conditions	                                                                                                          | Stars | Review_status                       | Patient_Count
+                          -----------------------------|----------------------- --|------------------------------|-------|---------|-------------------|----------------------------------------------------------------------------------------------------------------------|-------|-------------------------------------|----------------
+                           NC_000005.10:g.150056311C>T | NM_001288705.3:c.2350G>A | NP_001275634.1:p.(Val784Met) | CSF1R | 2433    | Likely pathogenic | Hereditary diffuse leukoencephalopathy with spheroids; Brain abnormalities, neurodegeneration, and dysosteosclerosis | ★	  | criteria provided, single submitter | 1
+
+    :query input:   Gene: The gene symbol of a gene. Some genes have multiple gene symbols. Each gene is associated with
+                          a specific HGNC ID. When searching by the gene symbol, the app actually searches the database
+                          by the associated HGNC ID so it can find all the variants in the corresponding gene, regardless
+                          of the gene symbol.
+
+                    E.g.: CSF1R
+
+    :query output: Table: A table consisting of all the variants in the database that are associated with the queried
+                          gene symbol's HGNC ID . Each variant occupies a row in the table which comprises of the HGVS
+                          genomic description; HGVS transcript description; HGVS protein consequence description; gene
+                          symbol; HGNC ID; Classification; Associated conditions; ClinVar star-rating; Clinvar review
+                          status; Number of patients in the database with the variant.
+
+                    E.g.   variant_NC	               | variant_NM	              | variant_NP	                 | gene  | HGNC_ID | Classification	   | Conditions	                                                                                                          | Stars | Review_status                       | Patient_Count
+                          -----------------------------|----------------------- --|------------------------------|-------|---------|-------------------|----------------------------------------------------------------------------------------------------------------------|-------|-------------------------------------|----------------
+                           NC_000005.10:g.150056311C>T | NM_001288705.3:c.2350G>A | NP_001275634.1:p.(Val784Met) | CSF1R | 2433    | Likely pathogenic | Hereditary diffuse leukoencephalopathy with spheroids; Brain abnormalities, neurodegeneration, and dysosteosclerosis | ★	  | criteria provided, single submitter | 1
+    """
+
+    # Check that there are databases in the 'database' folder, that can be queried.
+    try:
+        # Add the names of the databases in the 'databases' folder to the databases list.
+        databases = [
+            f for f in os.listdir(app.config["db_upload_folder"]) if f.endswith(".db")
+        ]
+
+        # Sort the list into alphabetical order.
+        databases.sort()
+
+    # Raise an Exception if a file that ends in .DB (a database file) cannot be found in the 'databases' folder.
+    except FileNotFoundError as e:
+        logger.error(f'Failed to find any databases. Redirecting User back to homepage: {e}')
+        flash('❌ Failed to find any databases. Please upload a database on the homepage.')
+        return redirect(url_for("choose_create_or_add"))
+
+    # Check that the filepath to the database file that was selected or uploaded on the homepage exists.
+    # Assign the filepath to the selected databse to 'db_path' variable.
     db_path = os.path.join(app.config["db_upload_folder"], db_name)
+    # If the filepath to the database file does not exist...
     if not os.path.exists(db_path):
-        flash("Database not found.")
-        return redirect(url_for("homepage.html"))
+        # ...Log a warning that the database does not exist.
+        logger.warning(f"{db_name} database could not be found in: {db_path}")
+        # Notify the User that the database was not found in the database folder.
+        flash("⚠ Database not found. Please select a database to query on the homepage.")
+        # Redirect the User back to the homepage.
+        return redirect(url_for("choose_create_or_add"))
+
+    # Check that the patient IDs, HGVS genomic descriptions and gene symbols can be parsed from the tables in the database
+    # into the dropdown menus on the query page.
+    try:
+        # Load the selected database using the filepath to the database file.
+        with sqlite3.connect(db_path) as conn:
+            cur = conn.cursor()
+            # Retrieve all of the patient IDs in the patient_variant table, only once.
+            cur.execute(
+                "SELECT DISTINCT patient_ID FROM patient_variant ORDER BY patient_ID ASC;"
+            )
+            # Store the patient IDs into a list assigned to the 'patient_list' variable.
+            patient_list = [row[0] for row in cur.fetchall()]
+            # Retrieve all of the HGVS genomic descriptions in the variant_annotations table, only once.
+            cur.execute(
+                "SELECT DISTINCT variant_NC FROM variant_annotations ORDER BY variant_NC ASC;"
+            )
+            # Store the HGVS genomic descriptions into a list assigned to the 'variant_list' variable.
+            variant_list = [row[0] for row in cur.fetchall()]
+            # Retrieve all of the gene symbols in the variant_annotations table, only once.
+            cur.execute("SELECT DISTINCT gene FROM variant_annotations ORDER BY gene ASC;")
+            # Store the gene symbols into a list assigned to the 'gene_list' variable.
+            gene_list = [row[0] for row in cur.fetchall()]
+
+    # Error handler executed when exceptions related to sqlite3 are raised.
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
+        # sqlite_error function logs the errors appropriately and returns an error message which can be implemented
+        # into a flash message.
+        error_message = sqlite_error(e, {db_name})
+        flash(f'❌ {db_name} error: {error_message}')
+        return redirect(url_for("choose_create_or_add"))
+
+    # Raise an exception if the there was an issue querying clinvar.db.
+    except Exception as e:
+        # Log the error, describing why clinvar.db could not be queried, using the exception output.
+        logger.error(f'Database error: Failed to prepare {db_name} to be queried: {str(e)}')
+        # Return a flash message to the User, notifying them of the error.
+        flash(f'❌ {db_name} error: Failed to prepare {db_name} to be queried: {str(e)}')
+        return redirect(url_for("choose_create_or_add"))
 
     data = None
     result_type = None
 
-    # Load dropdown values (from annotations / patients)
-    with sqlite3.connect(db_path) as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT DISTINCT patient_ID FROM patient_variant ORDER BY patient_ID ASC;"
-        )
-        patient_list = [row[0] for row in cur.fetchall()]
-
-        cur.execute(
-            "SELECT DISTINCT variant_NC FROM variant_annotations ORDER BY variant_NC ASC;"
-        )
-        variant_list = [row[0] for row in cur.fetchall()]
-
-        cur.execute("SELECT DISTINCT gene FROM variant_annotations ORDER BY gene ASC;")
-        gene_list = [row[0] for row in cur.fetchall()]
-
-    # Handle search submission
+    # Handle search term from User's query
     if request.method == "POST":
         patient_ID = request.form.get("patient_ID")
         variant_nc = request.form.get("variant_NC")
-        variant_search_term = get_mane_nc(variant_nc)
         gene = request.form.get("gene")
 
+        # If the User is performing a patient query...
         if patient_ID:
-            # Join on pv.variant = v.variant_NC, but show only variant_NC
+            # Log that they are trying to retrieve the variants for a patient.
+            logger.info(f'User querying variants from {patient_ID}...')
+            # Assign a table containing the queried patient IDa dn corresponding HGVS genomic description, HGVS transcript description, HGVS
+            # protein description, gene symbol, HGNC ID, Classification, Associated conditions, ClinVar star-rating,
+            # and Clinvar review status of variants to the 'query' variable.
             query = """
             SELECT
                 pv.patient_ID,
@@ -396,6 +501,9 @@ def query_page(db_name):
             result_type = "patient"
 
         elif variant_nc:
+
+            variant_search_term = get_mane_nc(variant_nc)
+
             query = """
             SELECT
                 v.variant_NC,

@@ -3,6 +3,23 @@
 <head>
     <title>Query Database - {{ db_name }}</title>
     <style>
+        /* Tiny 10px spinner */
+        .spinner-tiny {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #24bf96;  /* SAME as background */
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            animation: spin 0.6s linear infinite;
+            display: none;
+        }
+
+        .flash-messages li {
+            font-size: 14px;
+            color: #7A1F5C;
+            font-weight: bold;
+        }
+
         body {
             background-color: #24bf96;
             color: white;
@@ -59,7 +76,7 @@
 
     <hr>
 
-    <form method="POST">
+    <form id="query" method="POST">
         <h3>Search by Patient ID</h3>
         <input list="patient_list" name="patient_ID" placeholder="Enter or select Patient ID" autocomplete="off">
         <datalist id="patient_list">
@@ -68,7 +85,7 @@
             {% endfor %}
         </datalist>
 
-        <h3>Search by Variant (variant_NC)</h3>
+        <h3>Search by Variant (gene/transcript:variant)</h3>
         <input list="variant_list" name="variant_NC" placeholder="Enter or select Variant NC" autocomplete="off">
         <datalist id="variant_list">
             {% for v in variant_list %}
@@ -85,7 +102,10 @@
         </datalist>
 
         <br><br>
-        <button type="submit">Run Query</button>
+        <button type="submit">
+            Run Query
+            <span id="buttonSpinner" class="spinner-tiny"></span>
+        </button>
     </form>
 
     <hr>
@@ -128,5 +148,15 @@
             {% endfor %}
         </table>
     {% endif %}
+
+    <script>
+        const form = document.getElementById("query");
+        const buttonSpinner = document.getElementById("buttonSpinner")
+
+        form.addEventListener("submit", () => {
+            buttonSpinner.style.display = "inline-block"
+        });
+    </script>
+
 </body>
 </html>
