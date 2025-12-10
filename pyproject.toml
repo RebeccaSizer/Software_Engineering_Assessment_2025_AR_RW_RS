@@ -38,4 +38,4 @@ Issues = "https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_A
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["SEA_toolkit*"]
+include = ["app*, tools*, flask_app*"]

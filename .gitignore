@@ -1,3 +1,15 @@
+# Sensitive information
+*.vcf
+*.csv
+*.db
+logs/*
+
+# Unecessary files
+test.py
+
+# Downloaded databases
+app/clinvar/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
