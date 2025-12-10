@@ -190,7 +190,7 @@ def choose_create_or_add():
             # created/selected by the User. These functions parse the files and populate the database with the relevant
             # information.
             # Log the start of when the variant files are being loaded into the User-specified database.
-            logger.info(f"Starting to load variant files in 'temp' folder, into {database_name} database.")
+            logger.info(f"Starting to load variant files from 'temp' folder, into {database_name} database.")
             patient_variant_table(app.config['variant_files_upload_folder'], database_name)
             variant_annotations_table(app.config['variant_files_upload_folder'], database_name)
             # Log when the variant files have been loaded into the database.
@@ -331,6 +331,7 @@ def choose_create_or_add():
     # Render the output from this function into the homepage.
     return render_template("homepage.html", databases=databases)
 
+
 # ---------------------------------------------------------------
 # Route: Query page - patient, variant_NC, or gene searches
 # ---------------------------------------------------------------
@@ -357,7 +358,7 @@ def query_page(db_name):
                           consequence description; gene symbol; HGNC ID; Classification; Associated conditions; ClinVar
                           star-rating; Clinvar review status.
 
-                    E.g.   patient_ID	       | variant_NC	                 | variant_NM	            | variant_NP	               | gene  | HGNC_ID | Classification	 | Conditions	                                                                                                        | Stars | Review_status
+                    E.g.:  patient_ID	       | variant_NC	                 | variant_NM	            | variant_NP	               | gene  | HGNC_ID | Classification	 | Conditions	                                                                                                        | Stars | Review_status
                           ---------------------|-----------------------------|----------------------- --|-------|----------------------|-------|---------|-------------------|----------------------------------------------------------------------------------------------------------------------|-------|--------------------------------------
                            Patient_X	       | NC_000005.10:g.150056311C>T | NM_001288705.3:c.2350G>A | NP_001275634.1:p.(Val784Met) | CSF1R | 2433    | Likely pathogenic | Hereditary diffuse leukoencephalopathy with spheroids; Brain abnormalities, neurodegeneration, and dysosteosclerosis | ★	    | criteria provided, single submitter
 
