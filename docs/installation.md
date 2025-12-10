@@ -26,29 +26,26 @@ docker --version
 This can take a few minutes.
 
 ```
-cd PanelPal
-docker build -t SEA_2025 .
+cd Software_Engineering_Assessment_2025_AR_RW_RS
+docker build -t sea_app .
 ```
 #### 3. Run the docker container:
 
 ```
-docker run -it SEA_2025
+docker run -p 5000:5000 sea_app
 ```
 
-#### 4. Test SEA_2025 is installed:
+#### 4. Successful installation:
 
-```
-SEA_2025
-```
-This will provide you will the help message for SEA_2025 which explains the usage of each command.<br>
-This message also tells you the version number of SEA_2025. E.g.:
-```
-SEA_2025: A webapp toolkit ClinVar annotation
-version: 1.0.0 
-...
-```
+If Docker runs successfully, you will see the following printout in the terminal: 
 
-#### 5. Start using SEA_2025
-Congratulations, SEA_2025 has been installed successfully and you can now start implementing the National Test Directory for Rare Disease for your NGS Tests.
+   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+   |                                                 |
+   *   Welcome to the Variant Database Query Tool!   *
+   |                                                 |
+   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
-Please refer to the [User Manual](https://SEA_2025.readthedocs.io/en/latest/user_manual/) for instructions on how to use SEA_2025.
+#### 6. Start using SEA_2025
+Congratulations, SEA_2025 has been installed successfully and you can now start annotating vcfs with variant information from ClinVar.
+
+Please refer to the [User Manual](user_manual.md) for instructions on how to use SEA_2025.
