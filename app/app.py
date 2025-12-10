@@ -658,13 +658,29 @@ def export_csv():
     columns = json.loads(request.form["columns"])
     rows = json.loads(request.form["rows"])
 
+        # Fix for Excel auto-formatting - this should stop excel converting numbers or genes
+        # to dates 
+    def excel_safe(value):
+        if value is None:
+            return ""
+        value = str(value)
+
+        # Prefix values Excel may auto-format
+        if value.startswith(("=", "+", "-", "@", "*")):
+            return "'" + value
+
+        return value
+
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(columns)
-    for r in rows:
-        writer.writerow(r)
+    for row in rows:
+        writer.writerow([excel_safe(v) for v in row])
 
     mem = io.BytesIO()
+    # this should ensure that characters are properly coded so 
+    # * is interpreted as * in the csv rather than being converted to letters
+    mem.write("\ufeff".encode("utf-8"))  # UTF-8 BOM
     mem.write(output.getvalue().encode("utf-8"))
     mem.seek(0)
 
