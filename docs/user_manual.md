@@ -3,7 +3,7 @@
 ### Installation
 To install and set up SEA_2025, see the [Installation Guide](installation.md).
 
-### Boot Up PanelPal's Docker Container
+### Boot Up SEA_2025's Docker Container
 If SEA_2025 is already installed, then run the docker container.
 ```bash
 docker run -it SEA_2025
