@@ -126,12 +126,18 @@ def regex_error(e, variant):
 
 # Error handler executed in exceptions related to sqlite3.
 def sqlite_error(e, db_name):
-    # Log the error if an OperationalError occurs, using the exception output message.
     if isinstance(e, sqlite3.OperationalError):
-        logger.error(f'{db_name} is not working properly: {e}')
+        # Log the error if an OperationalError occurs, using the exception output message.
+        logger.error(f'{db_name} cannot be used properly: {e}')
+        # Return a message to be used in a flash message.
+        return f'{e}'
+
     # Log the error if a DatabaseError occurs, using the exception output message.
     if isinstance(e, sqlite3.DatabaseError):
+        # Log the error if an DatabaseError occurs, using the exception output message.
         logger.error(f'There is a problem with {db_name}: {e}')
+        # Return a message to be used in a flash message.
+        return f'{e}'
 
 
 
