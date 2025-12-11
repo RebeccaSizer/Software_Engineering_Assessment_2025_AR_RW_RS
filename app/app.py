@@ -398,6 +398,9 @@ def query_page(db_name):
                            NC_000005.10:g.150056311C>T | NM_001288705.3:c.2350G>A | NP_001275634.1:p.(Val784Met) | CSF1R | 2433    | Likely pathogenic | Hereditary diffuse leukoencephalopathy with spheroids; Brain abnormalities, neurodegeneration, and dysosteosclerosis | ★	  | criteria provided, single submitter | 1
     """
 
+    # log that the query page is being used.
+    logger.info('User has accessed the Query page.')
+
     # Check that there are databases in the 'database' folder, that can be queried.
     try:
         # Add the names of the databases in the 'databases' folder to the databases list.
@@ -412,6 +415,7 @@ def query_page(db_name):
     except FileNotFoundError as e:
         logger.error(f'Failed to find any databases. Redirecting User back to homepage: {e}')
         flash('❌ Failed to find any databases. Please upload a database on the homepage.')
+        # Redirect the User back to the homepage.
         return redirect(url_for("choose_create_or_add"))
 
     # Check that the filepath to the database file that was selected or uploaded on the homepage exists.
@@ -426,19 +430,19 @@ def query_page(db_name):
         # Redirect the User back to the homepage.
         return redirect(url_for("choose_create_or_add"))
 
-    # Check that the patient IDs, HGVS genomic descriptions and gene symbols can be parsed from the tables in the database
-    # into the dropdown menus on the query page.
+    # Check that the patient IDs, HGVS genomic descriptions and gene symbols can be parsed from the tables in the
+    # database into the dropdown menus on the query page.
     try:
-        # Load the selected database using the filepath to the database file.
+        # Load the selected database using the absolute filepath to the database file.
         with sqlite3.connect(db_path) as conn:
             cur = conn.cursor()
-            # Retrieve all of the patient IDs in the patient_variant table, only once.
+            # Retrieve all the patient IDs in the patient_variant table, only once.
             cur.execute(
                 "SELECT DISTINCT patient_ID FROM patient_variant ORDER BY patient_ID ASC;"
             )
             # Store the patient IDs into a list assigned to the 'patient_list' variable.
             patient_list = [row[0] for row in cur.fetchall()]
-            # Retrieve all of the HGVS genomic descriptions in the variant_annotations table, only once.
+            # Retrieve all the HGVS genomic descriptions in the variant_annotations table, only once.
             cur.execute(
                 "SELECT DISTINCT variant_NC FROM variant_annotations ORDER BY variant_NC ASC;"
             )
@@ -452,19 +456,20 @@ def query_page(db_name):
     # Error handler executed when exceptions related to sqlite3 are raised.
     except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
         # sqlite_error function logs the errors appropriately and returns an error message which can be implemented
-        # into a flash message.
-        error_message = sqlite_error(e, {db_name})
-        flash(f'❌ {db_name} error: {error_message}')
-        return redirect(url_for("choose_create_or_add"))
+        # into a flash message, on the query page.
+        error_message = sqlite_error(e, db_name)
+        flash(f'❌ {db_name} Error: {error_message}')
+        return render_template("db_query_page.html", db_name=db_name)
 
     # Raise an exception if the there was an issue querying clinvar.db.
     except Exception as e:
         # Log the error, describing why clinvar.db could not be queried, using the exception output.
-        logger.error(f'Database error: Failed to prepare {db_name} to be queried: {str(e)}')
-        # Return a flash message to the User, notifying them of the error.
-        flash(f'❌ {db_name} error: Failed to prepare {db_name} to be queried: {str(e)}')
-        return redirect(url_for("choose_create_or_add"))
+        logger.error(f'Database Error: Failed to prepare {db_name} to be queried: {str(e)}')
+        # Return a flash message to the User, notifying them of the error, on the query page.
+        flash(f'❌ {db_name} Error: Failed to prepare {db_name} to be queried: {str(e)}')
+        return render_template("db_query_page.html", db_name=db_name)
 
+    # Create the data variable to
     data = None
     result_type = None
 
@@ -474,75 +479,63 @@ def query_page(db_name):
         variant_nc = request.form.get("variant_NC")
         gene = request.form.get("gene")
 
-        # If the User is performing a patient query...
-        if patient_ID:
-            # Log that they are trying to retrieve the variants for a patient.
-            logger.info(f'User querying variants from {patient_ID}...')
-            # Assign a table containing the queried patient IDa dn corresponding HGVS genomic description, HGVS transcript description, HGVS
-            # protein description, gene symbol, HGNC ID, Classification, Associated conditions, ClinVar star-rating,
-            # and Clinvar review status of variants to the 'query' variable.
-            query = """
-            SELECT
-                pv.patient_ID,
-                v.variant_NC,
-                v.variant_NM,
-                v.variant_NP,
-                v.gene,
-                v.HGNC_ID,
-                v.Classification,
-                v.Conditions,
-                v.Stars,
-                v.Review_status
-            FROM patient_variant pv
-            JOIN variant_annotations v
-              ON pv.variant = v.variant_NC
-            WHERE pv.patient_ID = ?
-            """
-            data = query_db(db_path, query, (patient_ID,))
-            result_type = "patient"
+        try:
+            # If the User is performing a patient query...
+            if patient_ID:
+                # Log that they are trying to retrieve the variants for a patient.
+                logger.info(f'User querying variants from {patient_ID}...')
+                # Assign the queried patient ID and corresponding HGVS genomic descriptions, HGVS transcript
+                # descriptions, HGVS protein descriptions of the variants that derive from that patient, the gene
+                # symbol, HGNC ID, Classification, Associated conditions, ClinVar star-rating, and ClinVar review
+                # status of those variants, to the 'query' string. The patient ID and HGVS genomic descriptions are
+                # taken from the patient_variant table. The HGVS genomic descriptions of the variants are mapped to the
+                # descriptions in the variant_annotations table, to find the additional information to append to the
+                # patient ID and HGVS genomic descriptions in the table that will be returned to the User
+                # through the UI.
+                query = """
+                SELECT
+                    pv.patient_ID,
+                    v.variant_NC,
+                    v.variant_NM,
+                    v.variant_NP,
+                    v.gene,
+                    v.HGNC_ID,
+                    v.Classification,
+                    v.Conditions,
+                    v.Stars,
+                    v.Review_status
+                FROM patient_variant pv
+                JOIN variant_annotations v
+                  ON pv.variant = v.variant_NC
+                WHERE pv.patient_ID = ?
+                """
+                # Use the query_db() function from database_functions.py to convert each entry returned by the sqlite3
+                # query into dictionary format and assign the output to the 'data' variable.
+                data = query_db(db_path, query, (patient_ID,))
+                # Label this query by its type so that it is easily identifiable and callable later on.
+                result_type = "patient"
+                # If the patient query cannot be found in the selected database, the 'data' variable will remain as
+                # None. In such a case, log a warning and notify the User that the patient could not be found in the
+                # selected database, on the query page.
+                if not data:
+                    logger.warning(f'{patient_ID} could not be found in {db_name} database.')
+                    flash(f'⚠ Patient Query Error: {patient_ID} could not be found in {db_name} database.')
+                    return render_template("db_query_page.html", db_name=db_name)
 
-        elif variant_nc:
 
-            variant_search_term = get_mane_nc(variant_nc)
-
-            query = """
-            SELECT
-                v.variant_NC,
-                v.variant_NM,
-                v.variant_NP,
-                v.gene,
-                v.HGNC_ID,
-                v.Classification,
-                v.Conditions,
-                v.Stars,
-                v.Review_status,
-                COUNT(pv.patient_ID) AS Patient_Count
-            FROM variant_annotations v
-            LEFT JOIN patient_variant pv
-              ON v.variant_NC = pv.variant
-            WHERE v.variant_NC = ?
-            GROUP BY
-                v.variant_NC,
-                v.variant_NM,
-                v.variant_NP,
-                v.gene,
-                v.HGNC_ID,
-                v.Classification,
-                v.Conditions,
-                v.Stars,
-                v.Review_status
-            """
-            data = query_db(db_path, query, (variant_search_term,))
-            result_type = "variant_NC"
-
-        elif gene:
-            lookup_query = (
-                "SELECT DISTINCT HGNC_ID FROM variant_annotations WHERE gene = ?"
-            )
-            hgnc_row = query_db(db_path, lookup_query, (gene,), one=True)
-
-            if hgnc_row:
-                hgnc_id = hgnc_row["HGNC_ID"]
+            # If the User is performing a variant query...
+            elif variant_nc:
+                # Log that they are trying to retrieve the variant information.
+                logger.info(f'User querying information about {variant_nc}...')
+                # Use the get_mane_nc() function from vv_functions.py to convert ensembl, non-MANE select or gene symbol
+                # gene descriptions into the HGVS genomic description. This is used to look up the variant in the
+                # selected database.
+                variant_search_term = get_mane_nc(variant_nc)
+                # Assign the HGVS genomic description, HGVS transcript description, HGVS protein description, gene
+                # symbol, HGNC ID, Classification, Associated conditions, ClinVar star-rating, and ClinVar review
+                # status, to the 'query' string. The number of patients with the HGVS genomic description from the
+                # get_mane_nc() function output, in the patient_variant table, is counted and
+                # returned.
                 query = """
                 SELECT
                     v.variant_NC,
@@ -558,7 +551,7 @@ def query_page(db_name):
                 FROM variant_annotations v
                 LEFT JOIN patient_variant pv
                   ON v.variant_NC = pv.variant
-                WHERE v.HGNC_ID = ?
+                WHERE v.variant_NC = ?
                 GROUP BY
                     v.variant_NC,
                     v.variant_NM,
@@ -569,23 +562,152 @@ def query_page(db_name):
                     v.Conditions,
                     v.Stars,
                     v.Review_status
-                ORDER BY Patient_Count DESC
                 """
-                data = query_db(db_path, query, (hgnc_id,))
-                result_type = "gene"
-            else:
-                flash(f"No HGNC_ID found for gene '{gene}'.")
-                data = None
+                # Use the query_db() function from database_functions.py to convert each entry returned by the
+                # sqlite3 query into dictionary format and assign the output to the 'data' variable.
+                data = query_db(db_path, query, (variant_search_term,))
+                # Label this query by its type so that it is easily identifiable and callable later on.
+                result_type = "variant_NC"
 
-    # Prepare export JSON for query results
-    export_columns_json = "[]"
-    export_rows_json = "[]"
-    if data:
-        cols = list(data[0].keys())
-        rows_for_export = [[row[c] for c in cols] for row in data]
-        export_columns_json = json.dumps(cols)
-        export_rows_json = json.dumps(rows_for_export)
+            # If the User is performing a gene query...
+            elif gene:
+                # Log that they are trying to retrieve information about variants that derive from the gene that they
+                # are querying.
+                logger.info(f'User querying information about variants from {gene}...')
+                # Look for the gene symbol in the variant_annotations table of the selected database and retrieve the
+                # associated HGNC ID.
+                # *** CURRENTLY THE HGNC ID IS FOUND IF THE GENE SYMBOL EXISTS IN THE DATABASE.THE GENE SYMBOL SHOULD
+                # HAVE BEEN RUN THROUGH VARIANTVALIDATOR (VV) TO FIND THE HGNC ID. THE HGNC ID FROM VV SHOULD HAVE BEEN
+                # USED TO FIND THE ROW. THIS CODE WON'T RETURN THE VARIANTS THAT DERIVE FROM A GENE WITH THE SAME HGNC
+                # ID BUT WITH DIFFERENT GENE SYMBOL TO THE QUERIED GENE.***
+                lookup_query = (
+                    "SELECT DISTINCT HGNC_ID FROM variant_annotations WHERE gene = ?"
+                )
+                # Assign the row with the corresponding HGNC ID to the variable, 'hgnc_row'
+                hgnc_row = query_db(db_path, lookup_query, (gene,), one=True)
 
+                # If the gene symbol was found and a corresponding HGNC ID was retrieved...
+                if hgnc_row:
+                    # Parse the HGNC ID out of the row.
+                    hgnc_id = hgnc_row["HGNC_ID"]
+                    # Assign the HGVS genomic descriptions, HGVS transcript descriptions and the HGVS protein
+                    # descriptions of the variants that derived from the queried gene, the gene symbol, HGNC ID,
+                    # Classification, Associated conditions, ClinVar star-rating, and ClinVar review status, to the
+                    # 'query' string. The number of patients with the HGVS genomic descriptions of the variants
+                    # returned by the query, in the patient_variant table, are also counted and returned.
+                    query = """
+                    SELECT
+                        v.variant_NC,
+                        v.variant_NM,
+                        v.variant_NP,
+                        v.gene,
+                        v.HGNC_ID,
+                        v.Classification,
+                        v.Conditions,
+                        v.Stars,
+                        v.Review_status,
+                        COUNT(pv.patient_ID) AS Patient_Count
+                    FROM variant_annotations v
+                    LEFT JOIN patient_variant pv
+                      ON v.variant_NC = pv.variant
+                    WHERE v.HGNC_ID = ?
+                    GROUP BY
+                        v.variant_NC,
+                        v.variant_NM,
+                        v.variant_NP,
+                        v.gene,
+                        v.HGNC_ID,
+                        v.Classification,
+                        v.Conditions,
+                        v.Stars,
+                        v.Review_status
+                    ORDER BY Patient_Count DESC
+                    """
+                    # Use the query_db() function from database_functions.py to convert each entry returned by the
+                    # sqlite3 query into dictionary format and assign the output to the 'data' variable.
+                    data = query_db(db_path, query, (hgnc_id,))
+                    # Label this query by its type so that it is easily identifiable and callable later on.
+                    result_type = "gene"
+                # If the gene symbol could not be found in the database, a warning message is logged and an error
+                # message is returned, indicating that the gene symbol could not be found.
+                else:
+                    logger.warning(f"User's gene query could not be found: {gene}")
+                    flash(f"{gene}: ⚠ Gene Query Error: gene symbol could not be found.")
+                    return render_template("db_query_page.html", db_name=db_name)
+
+        # Error handler executed when exceptions related to sqlite3 are raised.
+        except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
+            # sqlite_error function logs the errors appropriately and returns an error message which can be implemented
+            # into a flash message, on the query page.
+            error_message = sqlite_error(e, db_name)
+            flash(f'❌ {db_name} Query Error: {error_message}')
+            return render_template("db_query_page.html", db_name=db_name)
+
+        # Raise an exception if the there was an issue querying clinvar.db.
+        except Exception as e:
+            # Log the error, describing why the selected database could not be queried, using the exception output.
+            logger.error(f'Database Query Error: Failed to prepare {db_name} to be queried: {str(e)}')
+            # Return a flash message to the User, notifying them of the error, on the query page.
+            flash(f'❌ {db_name} Query Error: Failed to prepare {db_name} to be queried: {str(e)}')
+            return render_template("db_query_page.html", db_name=db_name)
+
+    # Prepare JSON to export query results into a table that can be viewed by the User through the user interface.
+    try:
+        export_columns_json = "[]"
+        export_rows_json = "[]"
+        if data:
+            cols = list(data[0].keys())
+            rows_for_export = [[row[c] for c in cols] for row in data]
+            export_columns_json = json.dumps(cols)
+            export_rows_json = json.dumps(rows_for_export)
+
+    # Raise an exception if the 'data' variable remained as None.
+    except TypeError as e:
+        # Log the TypeError.
+        logger.error(f"Query TypeError: 'data' variable remained as None: {e}")
+        # Return a flash message to help the User understand why they have not received the expected response, on the
+        # query page.
+        flash(f'❌ Query Error: An error occurred while processing the query. It is not your fault. '
+              f'Please contact your nearest friendly neighbourhood Bioinformatician')
+        return render_template("db_query_page.html", db_name=db_name)
+
+    # Raise an exception if the keys in the 'data' are not iterable (specific to 'cols' variable).
+    except IndexError as e:
+        # Log the IndexError.
+        logger.error(f"Query IndexError: 'data' variable is not iterable: {e}")
+        # Return a flash message to help the User understand why they have not received the expected response, on the
+        # query page.
+        flash(f'❌ Query Error: An error occurred while processing the query. It is not your fault. '
+              f'Please contact your nearest friendly neighbourhood Bioinformatician')
+        return render_template("db_query_page.html", db_name=db_name)
+
+    # Raise an exception if any of the keys in 'data' are missing.
+    except KeyError as e:
+        # KeyError message contains the missing key (from ChatGPT).
+        missing_key = e.args[0]
+        # Log the KeyError.
+        logger.error(f"Query KeyError: The {missing_key} key is missing from 'data'. "
+                     f"Variant info could not be parsed from {db_name}. {e}")
+        # Return a flash message to help the User understand why they have not received the expected response, on the
+        # query page.
+        flash(f'❌ Query Error: An error occurred while processing the query. It is not your fault. '
+              f'Please contact your nearest friendly neighbourhood Bioinformatician')
+        return render_template("db_query_page.html", db_name=db_name)
+
+    # Raise an exception if an error occurs while extracting information from data.
+    except Exception as e:
+        # Log the error using the exception output message.
+        logger.error(f'Query Error: An error occurred while extracting the information from the {db_name} database: '
+                     f'{e}')
+        # Log the value assigned to the 'data' variable, to help with debugging.
+        logger.debug(f'Query Error: data:\n{json.dumps(data, indent=4)}')
+        # Return a flash message to help the User understand why they have not received the expected response, on the
+        # query page.
+        flash(f'❌ Query Error: An error occurred while processing the query. It is not your fault. '
+              f'Please contact your nearest friendly neighbourhood Bioinformatician')
+        return render_template("db_display_page.html", db_name=db_name)
+
+    # Render the information extracted from 'data' into a table that is viewable on the query page.
     return render_template(
         "db_query_page.html",
         db_name=db_name,
@@ -606,16 +728,59 @@ def query_page(db_name):
 @app.route("/display/<db_name>", methods=["GET", "POST"])
 def display_database(db_name):
     """
-    Display one giant joined table:
-    patient_ID + all variant annotation fields,
-    with optional sort & filter, plus export.
-    """
-    db_path = os.path.join(app.config["db_upload_folder"], db_name)
-    if not os.path.exists(db_path):
-        flash("Database not found.")
-        return redirect(url_for("homepage.html"))
+    This function combines the patient_variant and variant_annotations tables from the database selected by the User
+    to display a single table containing the patient IDs, the HGVS genomic, transcript and protein consequence
+    descriptions, gene symbols, HGNC IDs, ClinVar variant classifications, associated conditions, ClinVar star-ratings,
+    and ClinVar Review statuses. The table is displayed on the display webpage.
 
-    # Columns we show (no duplicate 'variant', we show variant_NC)
+    Filter options are also available on the display page, which enable the User to select a column in the table
+    to filter by, values in the column to filter by and another column to sort by. Each filter and sorting option is
+    selected from three dropdown menus.
+
+    :param db_name: The name of the database being queried.
+              E.g.: sea.db
+
+    :filter/sort by options:    Filter By: The column which contains the values to filter-into the table, named after
+                                           the header of the respective column.
+                                     E.g.: Classification
+
+                             Filter Value: All the values under the selected column to filter by. If a column to filter
+                                           by has not been selected, the only option in this column will be 'none'.
+                                     E.g.: Pathogenic
+
+                                  Sort By: The column with the values that you want to sort by. Values are sorted in
+                                           ascending value.
+                                     E.g.: patient_ID
+
+    :output: Table: A table consisting of all the variants successfully uploaded into the database, Each variant
+                    constitutes a row in the table which comprises of the Patient ID; HGVS genomic description; HGVS
+                    transcript description; HGVS protein consequence description; gene symbol; HGNC ID; Classification;
+                    Associated conditions; ClinVar star-rating; ClinVar review status.
+
+              E.g.:  patient_ID | variant_NC	| variant_NM   | variant_NP	   | gene   | HGNC_ID | Classification | Conditions	                 | Stars | Review_status
+                    ------------|---------------|--------------|---------------|--------|---------|----------------|-----------------------------|-------|-------------------
+                     Patient1   | NC_000019.10: | NM_152296.5: | NP_689509.1:  | ATP1A3 | 801     | Pathogenic     | Dystonia 12                 | ★    | criteria provided,
+                                | g.41968837C>G | c.2767G>C    | p.(Asp923His) |        |         |                |                             | 	     | single submitter
+                    ------------|---------------|--------------|---------------|--------|---------|----------------|-----------------------------|-------|-------------------
+                     Patient2	| NC_000019.10:	| NM_152296.5: | NP_689509.1:  | ATP1A3	| 801	  | Pathogenic	   | Developmental and epileptic | 0★	 | no assertion
+                                | g.41985036A>C | c.875T>G	   | p.(Leu292Arg) |        |         |                |  encephalopathy 99          |       | criteria provided
+    """
+    # Log that the display page is being used.
+    logger.info('User has accessed the Query page.')
+
+    # Check that the filepath to the database file that was selected or uploaded on the homepage exists.
+    # Assign the filepath to the selected databse to 'db_path' variable.
+    db_path = os.path.join(app.config["db_upload_folder"], db_name)
+    # If the filepath to the database file does not exist...
+    if not os.path.exists(db_path):
+        # ...Log a warning that the database does not exist.
+        logger.warning(f"{db_name} database could not be found in: {db_path}")
+        # Notify the User that the database was not found in the database folder.
+        flash("⚠ Database not found. Please select a database to query on the homepage.")
+        # Redirect the User back to the homepage.
+        return redirect(url_for("choose_create_or_add"))
+
+    # A list of the column headers that are shown to the User.
     all_columns = [
         "patient_ID",
         "variant_NC",
@@ -629,78 +794,167 @@ def display_database(db_name):
         "Review_status",
     ]
 
-    # Read filter / sort from form
-    filter_column = request.form.get("filter_column") or ""
-    filter_value = request.form.get("filter_value") or ""
-    sort_column = request.form.get("sort_column") or ""
+    # Check that the filter queries work.
+    try:
+        # Retrieve the filter-in column, filter-in value and column to sort by, that the User selected on the display page.
+        filter_column = request.form.get("filter_column") or ""
+        filter_value = request.form.get("filter_value") or ""
+        sort_column = request.form.get("sort_column") or ""
 
-    # Build base query (join patient_variant + variant_annotations)
-    base_query = """
-    SELECT
-        pv.patient_ID,
-        v.variant_NC,
-        v.variant_NM,
-        v.variant_NP,
-        v.gene,
-        v.HGNC_ID,
-        v.Classification,
-        v.Conditions,
-        v.Stars,
-        v.Review_status
-    FROM patient_variant pv
-    JOIN variant_annotations v
-      ON pv.variant = v.variant_NC
-    """
+        # Assign the HGVS genomic descriptions, HGVS transcript descriptions and the HGVS protein descriptions of the
+        # variants in the database, the gene symbol, HGNC ID, Classification, Associated conditions, ClinVar star-rating,
+        # and ClinVar review status, to the 'base_query' string.
+        base_query = """
+        SELECT
+            pv.patient_ID,
+            v.variant_NC,
+            v.variant_NM,
+            v.variant_NP,
+            v.gene,
+            v.HGNC_ID,
+            v.Classification,
+            v.Conditions,
+            v.Stars,
+            v.Review_status
+        FROM patient_variant pv
+        JOIN variant_annotations v
+          ON pv.variant = v.variant_NC
+        """
 
-    where_clauses = []
-    params = []
+        # Create an empty list to store the column header that the User wants to filter by.
+        where_clauses = []
+        # Create an empty list to store the value that the User wants to filter by.
+        params = []
 
-    # Apply filter if provided
-    if filter_column and filter_value:
-        where_clauses.append(f"{filter_column} = ?")
-        params.append(filter_value)
+        # If a column and value was chosen by the User...
+        if filter_column and filter_value:
+            # Add the column to the 'where_clauses' list with additional sqlite3 syntax so that it is easily integrated
+            # within the sqlite query code.
+            where_clauses.append(f"{filter_column} = ?")
+            # Add the value to the 'params' list.
+            params.append(filter_value)
+            # Log which column and value the user wants to filter by.
+            logger.info(f"User wants to filter by '{filter_column}': '{filter_value}'.")
 
-    query = base_query
-    if where_clauses:
-        query += " WHERE " + " AND ".join(where_clauses)
 
-    # Apply sort if provided
-    if sort_column:
-        query += f" ORDER BY {sort_column}"
+        # Assign the original query to a new query where the filters and sort by values can be applied.
+        query = base_query
+        # Apply the filter column to the sqlite3 query with additional syntax to make it logical in the code.
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
 
-    # Get data for table
-    data = query_db(db_path, query, tuple(params))
+        # If the User selected a column to sort by apply it to the sqlite3 query with additional syntax to make it logical
+        # in the code.
+        if sort_column:
+            query += f" ORDER BY {sort_column}"
+            # Log which column the User wants to sort by.
+            logger.info(f"User wants to sort by '{sort_column}'.")
 
-    # Build filter value lists for each column
-    filter_values = {}
-    with sqlite3.connect(db_path) as conn:
-        cur = conn.cursor()
-        for col in all_columns:
-            cur.execute(
-                f"""
-                SELECT DISTINCT {col}
-                FROM patient_variant pv
-                JOIN variant_annotations v
-                  ON pv.variant = v.variant_NC
-                WHERE {col} IS NOT NULL
-                ORDER BY {col}
-                """
-            )
-            vals = [r[0] for r in cur.fetchall()]
-            filter_values[col] = vals
+        # Convert each entry returned from the sqlite3 query into a dictionary using the query_db() function from the
+        # database_functions.py script and assign it to the 'data' variable.
+        data = query_db(db_path, query, tuple(params))
 
-    # JSON for JS dynamic dropdown
+        # Build a dictionary of filter values that the User can view in the dropdown menu, after selecting a column to
+        # filter by.
+        filter_values = {}
+        # Connect to the User-selected database using the absolute path to it.
+        with sqlite3.connect(db_path) as conn:
+            cur = conn.cursor()
+            # Iterate through each column header in the 'all_columns' list.
+            for col in all_columns:
+                # Retrieve each distinct value under each column header.
+                cur.execute(
+                    f"""
+                    SELECT DISTINCT {col}
+                    FROM patient_variant pv
+                    JOIN variant_annotations v
+                      ON pv.variant = v.variant_NC
+                    WHERE {col} IS NOT NULL
+                    ORDER BY {col}
+                    """
+                )
+                # Assign the filter value to the 'val' variable.
+                vals = [r[0] for r in cur.fetchall()]
+                # Add the filter value to a keyword in the 'filter_values' dictionary, named after the corresponding column
+                # header.
+                filter_values[col] = vals
+
+    # Error handler executed when exceptions related to sqlite3 are raised.
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
+        # sqlite_error function logs the errors appropriately and returns an error message which can be implemented
+        # into a flash message, on the display page.
+        error_message = sqlite_error(e, db_name)
+        flash(f'❌ {db_name} Filter Error: {error_message}')
+        return render_template("db_display_page.html", db_name=db_name)
+
+    # Raise an exception if there was an issue filtering the selected database.
+    except Exception as e:
+        # Log the error, describing why the selected database could not be filtered, using the exception output.
+        logger.error(f'Database Filter Error: Failed to prepare {db_name} to be filtered: {str(e)}')
+        # Return a flash message to the User, notifying them of the error, on the display page.
+        flash(f'❌ {db_name} Filter Error: Failed to prepare {db_name} to be filtered: {str(e)}')
+        return render_template("db_display_page.html", db_name=db_name)
+
+    # 'filter_values' dictionary converted into a JSON.
     filter_values_json = json.dumps(filter_values)
 
-    # Prepare export JSON
-    export_columns_json = "[]"
-    export_rows_json = "[]"
-    if data:
-        cols = all_columns[:]  # fixed order
-        rows_for_export = [[row[c] for c in cols] for row in data]
-        export_columns_json = json.dumps(cols)
-        export_rows_json = json.dumps(rows_for_export)
+    # Prepare JSON to export query results into a table that can be viewed by the User through the user interface.
+    try:
+        export_columns_json = "[]"
+        export_rows_json = "[]"
+        if data:
+            cols = all_columns[:]  # fixed order
+            rows_for_export = [[row[c] for c in cols] for row in data]
+            export_columns_json = json.dumps(cols)
+            export_rows_json = json.dumps(rows_for_export)
 
+    # Raise an exception if the 'data' variable is None.
+    except TypeError as e:
+        # Log the TypeError.
+        logger.error(f"Filter TypeError: No data was returned to the 'data' variable: {e}")
+        # Return a flash message to help the User understand why they have not received the expected response, on the
+        # display page.
+        flash(f'❌ Filter Error: An error occurred while processing the query. It is not your fault. '
+              f'Please contact your nearest friendly neighbourhood Bioinformatician')
+        return render_template("db_display_page.html", db_name=db_name)
+
+    # Raise an exception if the keys in the 'data' are not iterable (specific to 'cols' variable).
+    except IndexError as e:
+        # Log the IndexError.
+        logger.error(f"Filter IndexError: 'data' variable is not iterable: {e}")
+        # Return a flash message to help the User understand why they have not received the expected response, on the
+        # display page.
+        flash(f'❌ Filter Error: An error occurred while processing the query. It is not your fault. '
+              f'Please contact your nearest friendly neighbourhood Bioinformatician')
+        return render_template("db_display_page.html", db_name=db_name)
+
+    # Raise an exception if any of the keys in 'data' are missing.
+    except KeyError as e:
+        # KeyError message contains the missing key (from ChatGPT).
+        missing_key = e.args[0]
+        # Log the KeyError.
+        logger.error(f"Filter KeyError: The {missing_key} key is missing from 'data'. "
+                     f"Variant info could not be parsed from {db_name}. {e}")
+        # Return a flash message to help the User understand why they have not received the expected response, on the
+        # display page.
+        flash(f'❌ Filter Error: An error occurred while processing the query. It is not your fault. '
+              f'Please contact your nearest friendly neighbourhood Bioinformatician')
+        return render_template("db_display_page.html", db_name=db_name)
+
+    # Raise an exception if an error occurs while extracting information from data.
+    except Exception as e:
+        # Log the error using the exception output message.
+        logger.error(f'Filter Error: An error occurred while extracting the information from the {db_name} database: '
+                     f'{e}')
+        # Log the value assigned to the 'data' variable, to help with debugging.
+        logger.debug(f'Filter Error: data:\n{json.dumps(data, indent=4)}')
+        # Return a flash message to help the User understand why they have not received the expected response, on the
+        # display page.
+        flash(f'❌ Filter Error: An error occurred while processing the query. It is not your fault.'
+              f'Please contact your nearest friendly neighbourhood Bioinformatician')
+        return render_template("db_display_page.html", db_name=db_name)
+
+    # Render the information extracted from 'data' into a table that is viewable on the query page.
     return render_template(
         "db_display_page.html",
         db_name=db_name,

@@ -121,7 +121,7 @@ def regex_error(e, variant):
     logger.debug(f'Reason: {e.msg}; Regex pattern broke as position: {e.pos}.')
     # Return the description so that the functions in database_functions.py can attach the description
     # to the file name where the queried variant comes from. This will help the User.
-    return f'{variant}: ❌ Internal error: Regex validation failed. Please report this to your friendly neighbourhood Developer.'
+    return f'{variant}: ❌ Internal Error: Regex validation failed. Please report this to your friendly neighbourhood Developer.'
 
 
 # Error handler executed in exceptions related to sqlite3.
@@ -129,7 +129,6 @@ def sqlite_error(e, db_name):
     if isinstance(e, sqlite3.OperationalError):
         # Log the error if an OperationalError occurs, using the exception output message.
         logger.error(f'{db_name} is not working properly: {e}')
-
 
     # Log the error if a DatabaseError occurs, using the exception output message.
     if isinstance(e, sqlite3.DatabaseError):

@@ -57,7 +57,7 @@ def clinvar_vs_download():
                 # Once the error message has been received, return.
                 if error_message:
                     return
-
+                # Move to the next attempt to see if the 408 or 429 error response can be avoided.
                 continue
 
             # Handle HTTP errors that do not need to be tried again.

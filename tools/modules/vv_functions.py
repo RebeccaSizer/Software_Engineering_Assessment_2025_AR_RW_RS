@@ -74,16 +74,16 @@ def fetch_vv(variant: str):
                     # process failed.
                     if error_message:
                         return error_message
-
+                    # Move to the next attempt to see if the 408 or 429 error response can be avoided.
                     continue
 
                 # Handle HTTP errors that do not need to be tried again.
                 else:
                     error_message = request_status_codes(e, variant, url_vv, 'VariantValidator', attempt)
 
-                # Return any flash messages to the function in database_functions.py, so that it can be appended to
-                # the file name. This will help the User understand where along the API request process failed.
-                return error_message
+                    # Return any flash messages to the function in database_functions.py, so that it can be appended to
+                    # the file name. This will help the User understand where along the API request process failed.
+                    return error_message
 
             # Raise an exception if there is a problem with the connection to the remote server.
             except requests.exceptions.ConnectionError as e:
@@ -505,7 +505,7 @@ def get_mane_nc(variant: str):
             # Variant must follow the pattern captured by this Regex code in order to find a corresponding variant in
             # the database.
             elif not re.match('^[cg][.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', genetic_change):
-                # Log the error if it does not conform with the Regex pattern.
+                # Log a warning if it does not conform with the Regex pattern.
                 logger.warning(f'Irregular variant nomenclature: {variant}')
                 # Show the User a message that will help them search for the variant.
                 flash(f'⚠ Variant Query Error: Irregular variant nomenclature. {genetic_change} does not work.')
@@ -521,6 +521,14 @@ def get_mane_nc(variant: str):
         # Gene symbol - VariantValidator/tools/gene2transcripts_v2 end point
         elif not transcript.startswith('ENST') and '_' not in transcript and re.match(r'^[A-Za-z0-9]{1,10}$', transcript):
             gene_symbol, genetic_change = variant.split(':')
+
+            if not genetic_change.startswith('c.') or not genetic_change.startswith('g.'):
+                # Log a warning if it does not conform with the Regex pattern.
+                logger.warning(f'Irregular variant nomenclature: {genetic_change}')
+                # Show the User a message that will help them search for the variant.
+                flash(f'⚠ Variant Query Error: Irregular variant nomenclature. {genetic_change} does not work.')
+                return
+
             url_vv = f"{base_url_vv}tools/gene2transcripts/{gene_symbol}?content-type=application%2Fjson"  # Gene symbol - gene
 
         # If the variant query input has not met any of the previous criteria, log a warning and notify the User.
@@ -539,8 +547,10 @@ def get_mane_nc(variant: str):
     # Raise an exception if a URL could not be created.
     except Exception as e:
         # Log an error if a URL could not be made using the exception output message.
-        logger.error(f'{variant}: Variant Query Error: Failed to construct a valid VariantValidator URL from {variant}: {e}')
-        flash(f"{variant}: ❌ Variant Query Error: Unrecognized variant format. Please describe variant using HGVS nomenclature.")
+        logger.error(f'{variant}: Variant Query Error: '
+                     f'Failed to construct a valid VariantValidator URL from {variant}: {e}')
+        flash(f"{variant}: ❌ Variant Query Error: Unrecognized variant format. "
+              f"Please describe variant using HGVS nomenclature.")
         return
 
     # If the URL in the request sent to VariantValidator has not changed from a None data type, log a warning
@@ -586,16 +596,15 @@ def get_mane_nc(variant: str):
                 if error_message:
                     flash(f'Variant Query Error: {error_message}')
                     return
-
+                # Move to the next attempt to see if the 408 or 429 error response can be avoided.
                 continue
 
             # Handle HTTP errors that do not need to be tried again.
             else:
                 error_message = request_status_codes(e, variant, url_vv, 'VariantValidator', attempt)
-
-            # Display a flash message to the User that will help them understand why the API request process failed.
-            flash(f'Variant Query Error: {error_message}')
-            return
+                # Display a flash message to the User that will help them understand why the API request process failed.
+                flash(f'Variant Query Error: {error_message}')
+                return
 
         # Raise an exception if there is a problem with the connection to the remote server.
         except requests.exceptions.ConnectionError as e:
@@ -614,7 +623,8 @@ def get_mane_nc(variant: str):
         # Raise an exception if any other errors occurred.
         except Exception as e:
             # Log the error using the exception output message.
-            logger.error(f'{variant}: Variant Query Error: Failed to receive a valid response from VariantValidator: {url_vv}. {e}')
+            logger.error(f'{variant}: Variant Query Error: '
+                         f'Failed to receive a valid response from VariantValidator: {url_vv}. {e}')
             # Display a flash message to the User that will help them understand why the API request process failed.
             flash(f'{variant}: ❌ Variant Query Error: Failed to receive a valid response from VariantValidator.')
             return
@@ -749,7 +759,8 @@ def get_mane_nc(variant: str):
                                             genomic_ref = item
 
                         # Log the output from querying VariantValidator using the gene symbol entered by the User.
-                        logger.info(f'{variant}: HGVS genomic description successfully retrieved from {transcript} gene symbol: {genomic_ref}:{genetic_change}')
+                        logger.info(f'{variant}: HGVS genomic description successfully retrieved from {transcript} '
+                                    f'gene symbol: {genomic_ref}:{genetic_change}')
 
                         # Return the genomic description in HGVS nomenclature.
                         nc_variant = f'{genomic_ref}:{genetic_change}'
