@@ -426,7 +426,7 @@ def query_page(db_name):
         # ...Log a warning that the database does not exist.
         logger.warning(f"{db_name} database could not be found in: {db_path}")
         # Notify the User that the database was not found in the database folder.
-        flash("⚠ Database not found. Please select a database to query on the homepage.")
+        flash(f"⚠ {db_name} database not found. Please select a database to query on the homepage.")
         # Redirect the User back to the homepage.
         return redirect(url_for("choose_create_or_add"))
 
@@ -694,7 +694,7 @@ def query_page(db_name):
               f'Please contact your nearest friendly neighbourhood Bioinformatician')
         return render_template("db_query_page.html", db_name=db_name)
 
-    # Raise an exception if an error occurs while extracting information from data.
+    # Raise an exception if an error occurs while extracting information from 'data'.
     except Exception as e:
         # Log the error using the exception output message.
         logger.error(f'Query Error: An error occurred while extracting the information from the {db_name} database: '
@@ -776,7 +776,7 @@ def display_database(db_name):
         # ...Log a warning that the database does not exist.
         logger.warning(f"{db_name} database could not be found in: {db_path}")
         # Notify the User that the database was not found in the database folder.
-        flash("⚠ Database not found. Please select a database to query on the homepage.")
+        flash(f"⚠ {db_name} database not found. Please select a database to query on the homepage.")
         # Redirect the User back to the homepage.
         return redirect(url_for("choose_create_or_add"))
 
@@ -941,7 +941,7 @@ def display_database(db_name):
               f'Please contact your nearest friendly neighbourhood Bioinformatician')
         return render_template("db_display_page.html", db_name=db_name)
 
-    # Raise an exception if an error occurs while extracting information from data.
+    # Raise an exception if an error occurs while extracting information from 'data'.
     except Exception as e:
         # Log the error using the exception output message.
         logger.error(f'Filter Error: An error occurred while extracting the information from the {db_name} database: '
@@ -975,26 +975,83 @@ def display_database(db_name):
 # ---------------------------------------------------------------
 @app.route("/api/dropdown/<db_name>")
 def dropdown_data(db_name):
-    """Return JSON lists of patients, variants, and genes for the current database."""
+    """
+    This function generates the values that the User can see in the patient, variant and gene query dropdown menus, on
+    the query page. It does so by reading the database selected by the User on the homepage and extracting the unique
+    values under the 'patient_ID' header in the patient_variant table; the variant_NC header in the variant_annotations
+    table; and the gene header also in the variant_annotations table. It then returns a dictionary with all of these
+    distinct values stored in their respective lists, in JSON format.
+
+    :param: db_name: The name of the database selected by the User on the homepage.
+               E.g.: 'sea.db'
+
+    :output: Dictionary in JSON format with the following structure:
+                    {"patients": patient_list, "variants": variant_list, "genes": gene_list}
+
+               E.g.: {
+                            "patients": [Patient1, Patient2, Patient3],
+                            "variants": [NC_000019.10:g.41968837C>G,
+                                         NC_000019.10:g.41985036A>C,
+                                         NC_000017.11:g.44349216A>G],
+                               "genes": [ATP1A3, GRN]
+                     }
+    """
+    # Log that the dropdown menus are being generated for the query page.
+    logger.debug('Generating dropdown menus for the query page...')
+
+    # Check that the filepath to the database file that was selected or uploaded on the homepage exists.
+    # Assign the filepath to the selected databse to 'db_path' variable.
     db_path = os.path.join(app.config["db_upload_folder"], db_name)
+    # If the filepath to the database file does not exist...
     if not os.path.exists(db_path):
-        return jsonify({"error": "Database not found"}), 404
+        # ...Log a warning that the database does not exist.
+        logger.warning(f"{db_name} database could not be found in: {db_path}")
+        # Notify the User that the database was not found in the database folder.
+        flash(f"⚠ {db_name} database not found. Please select a database to query on the homepage.")
+        # Redirect the User back to the homepage.
+        return redirect(url_for("choose_create_or_add"))
 
-    with sqlite3.connect(db_path) as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT DISTINCT patient_ID FROM patient_variant ORDER BY patient_ID ASC;"
-        )
-        patient_list = [row[0] for row in cur.fetchall()]
+    # Check that the information from the sqlite3 database can be accessed.
+    try:
+        # Connect to the database specified by the User using the absolute filepath.
+        with sqlite3.connect(db_path) as conn:
+            cur = conn.cursor()
+            # Extract the patient IDs (only once) from the patient_variant table and arrange them in ascending order.
+            cur.execute(
+                "SELECT DISTINCT patient_ID FROM patient_variant ORDER BY patient_ID ASC;"
+            )
+            # Store the patient IDs in a list and assign the list to the 'patient_list' variable.
+            patient_list = [row[0] for row in cur.fetchall()]
+            # Extract the HGVS genomic descriptions (only once) from the variant_annotations table and arrange them in
+            # ascending order.
+            cur.execute(
+                "SELECT DISTINCT variant_NC FROM variant_annotations ORDER BY variant_NC ASC;"
+            )
+            # Store the HGVS genomic descriptions in a list and assign the list to the 'variant_list' variable.
+            variant_list = [row[0] for row in cur.fetchall()]
+            # Extract the gene symbols (only once) from the variant_annotations table and arrange them in ascending
+            # order.
+            cur.execute("SELECT DISTINCT gene FROM variant_annotations ORDER BY gene ASC;")
+            # Store the gene symbols in a list and assign the list to the 'gene_list' variable.
+            gene_list = [row[0] for row in cur.fetchall()]
 
-        cur.execute(
-            "SELECT DISTINCT variant_NC FROM variant_annotations ORDER BY variant_NC ASC;"
-        )
-        variant_list = [row[0] for row in cur.fetchall()]
+    # Error handler executed when exceptions related to sqlite3 are raised.
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
+        # sqlite_error function logs the errors appropriately and returns an error message which can be implemented
+        # into a flash message, on the query page.
+        error_message = sqlite_error(e, db_name)
+        flash(f'❌ Dropdown Menu Error: {error_message}. Dropdown menus do not work.')
+        return render_template("db_query_page.html", db_name=db_name)
 
-        cur.execute("SELECT DISTINCT gene FROM variant_annotations ORDER BY gene ASC;")
-        gene_list = [row[0] for row in cur.fetchall()]
+    # Raise an exception if there was an error while trying to generate the dropdown menus.
+    except Exception as e:
+        # Log the error, describing why the selected database could not be filtered, using the exception output.
+        logger.error(f'Dropdown Menu Error: Could not access {db_name} to generate dropdown menus: {str(e)}')
+        # Return a flash message to the User, notifying them of the error, on the display page.
+        flash(f'❌ Dropdown Menu Error: Dropdown menus do not work.')
+        return render_template("db_query_page.html", db_name=db_name)
 
+    # Return a JSON dictionary with a list of the Patient IDs, HGVS genomic descriptions and gene symbols.
     return jsonify(
         {"patients": patient_list, "variants": variant_list, "genes": gene_list}
     )
@@ -1005,12 +1062,38 @@ def dropdown_data(db_name):
 # ---------------------------------------------------------------
 @app.route("/switch_db", methods=["POST"])
 def switch_db():
-    """Redirect to a different /query/<db_name> when user selects another database."""
-    db_name = request.form.get("db_name")
-    if db_name:
-        return redirect(url_for("query_page", db_name=db_name))
-    flash("No database selected.")
-    return redirect(url_for("homepage.html"))
+    """
+    This functions redirects the User to a different /query/<db_name> query page when they select another database from
+    the 'Select Database:' dropdown menu on the query page.
+    """
+    # Log that the User has selected a different database to query.
+    logger.info('The User has selected a different database to query.')
+
+    # Check that are no issues with switching databases.
+    try:
+        # Retrieve the name of the database that the User selected from the dropdown menu.
+        db_name = request.form.get("db_name")
+        if db_name:
+            # Log which database the user wants to query.
+            logger.info(f'The User has selected the {db_name} database to query. '
+                        f'Redirected to http://127.0.0.1:5000/query/{db_name}')
+            # Redirect the User to the query page for the database they selected.
+            return redirect(url_for("query_page", db_name=db_name))
+
+        # Log a warning if a database cannot be found.
+        logger.warning(f"Database could not be found.")
+        # Notify the User that the database was not found in the database folder.
+        flash(f"⚠ {db_name} database not found. Please select a database to query on the homepage.")
+        return redirect(url_for("homepage.html"))
+
+    # Raise an exception if an error arose while selecting a different database to query.
+    except Exception as e:
+        # Log a warning using the error message from the exception output.
+        logger.error(f'Failed to select a different database to query: {e}')
+        # Notify the User that the attempt to switch databases failed.
+        flash(f'❌ Failed to select a different database to query.')
+        # Redirect the User to the homepage so that they can select or upload a database.
+        return redirect(url_for("homepage.html"))
 
 
 # ---------------------------------------------------------------
