@@ -6,42 +6,47 @@ from .vv_functions import fetch_vv
 from tools.utils.logger import logger
 from ..utils.parser import variant_parser
 from .clinvar_functions import clinvar_annotations
+from tools.utils.error_handlers import sqlite_error
 
 def patient_variant_table(filepath, db_name):
     """
     This function creates a database, if it doesn't already exist.
     It creates or updates a table in the database called 'patient_variant', which is populated by patients and their
-    respective variants. The patients' IDs are taken from the name of the .vcf files uploaded by the user on our flask
-    app, while the variants are extracted from each patient's .vcf file and validated through VariantValidator.
+    respective variants. The patients' IDs are taken from the names of the variant files uploaded by the user on our
+    flask app, while the variants are extracted from each patient's variant file and validated through VariantValidator.
 
-    :params: filepath: This leads to the 'temp' subdirectory where the .vcf files uploaded by the user are stored.
-                       'temp''is located in the base-directory of this software package.The filepath is not hardcoded
+    :params: filepath: This leads to the 'temp' subdirectory where the variant files uploaded by the User are stored.
+                       'temp' is located in the base-directory of this software package.The filepath is not hardcoded
                        into the script because it is the absolute filepath within the respective computer that this
                        software package was loaded in.
 
-                 E.g.: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/temp/'
+                 E.g.: '/<path>/<from>/<root>/<to>/<base>/<directory>/<of>/
+                         Software_Engineering_Assessment_2025_AR_RW_RS/temp/'
 
               db_name: The user-specified name of the database.
 
                  E.g.: 'my_database'
 
-    :output: my_database.db database: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/my_database.db'
+    :output: A database containing the patient_variant table.
+             The database will be saved at: '/<path>/<from>/<root>/<to>/<base>/<directory>/<of>/
+                                              Software_Engineering_Assessment_2025_AR_RW_RS/database/my_database.db'
 
-             patient_variant table:
-             No.|patient_ID|HGVS NC_ nomenclature
+             patient_variant table: A table consisting of a unique index number, the patient ID and the HGVS genomic
+                                    description of the variant parsed from the respective patient's variant file.
 
-             E.g.:
-
-             1|Patient2|NC_000017.11:g.45990019G>A
-             2|Patient2|NC_000012.12:g.40295535A>T
-             3|Patient2|NC_000012.12:g.40346849C>G
-             4|Patient2|NC_000017.11:g.44350271C>A
-             5|Patient2|NC_000004.12:g.89835580C>G
+                              E.g.:  No | patient_ID | variant
+                                    ----|------------|-----------------------------
+                                      1 | Patient2   | NC_000017.11:g.45990019G>A
+                                      2 | Patient2   | NC_000012.12:g.40295535A>T
+                                      3 | Patient3   | NC_000012.12:g.40346849C>G
+                                      4 | Patient3   | NC_000017.11:g.44350271C>A
+                                      5 | Patient4   | NC_000004.12:g.89835580C>G
 
     :command: filepath = '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/temp/'
               patientVariantTable(filepath, 'my_database.db')
 
-              To access database: sqlite3 /<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/my_database.db
+              To access database: sqlite3 /<path>/<from>/<root>/<to>/<base>/<directory>/<of>/
+                                           Software_Engineering_Assessment_2025_AR_RW_RS/database/my_database.db
 
               To view table: SELECT * FROM patientVariantTable;
     """
@@ -50,43 +55,42 @@ def patient_variant_table(filepath, db_name):
     logger.info('Preparing patient_variant_table()...')
     # Log the absolute filepath to the 'temp' directory where the data is going to be pulled into the database from.
     # And the name of the database being updated/created by the user.
-    logger.debug(f'patient_variant_table: Filepath to data: {filepath}; database to be populated: {db_name}')
+    logger.debug(f'patient_variant_table: Filepath to variant files: {filepath}; database to be populated: {db_name}')
 
     # Create a list of the filepaths to all the variant files in the 'temp' subdirectory.
-    vcf_paths = []
+    variant_paths = []
 
     # Iterate through the files in the filepath provided by the user and add the files with a .vcf or .csv extension to
     # the vcf_paths list.
     for file in os.listdir(filepath):
         if file.endswith('.vcf') or file.endswith('.csv'):
-            vcf_paths.append(f'{filepath}/{file}')
+            variant_paths.append(f'{filepath}/{file}')
         else:
             continue
 
     # If there aren't any variant files in the 'temp' folder (i.e. files that do not have a .vcf or .csv extension),
     # notify the user through a flash message and log the warning.
-    if len(vcf_paths) == 0:
-        flash(' ⚠ No varaint files have been uploaded. Please upload a .VCF or .CSV file or select a database to query.')
+    if len(variant_paths) == 0:
         logger.warning(f"patient_variant_table: No VCF/CSV files detected in 'temp' directory: {filepath}")
+        flash(
+            '⚠ No variant files have been uploaded. Please upload a .VCF or .CSV file or select a database to query.')
 
     # Log the number of variant files in temp directory.
-    logger.info(f'{len(vcf_paths)} variant files in {filepath}.')
+    logger.info(f'{len(variant_paths)} variant files in {filepath}.')
 
     # Log the variant file names that will be processed.
-    for file in vcf_paths:
+    for file in variant_paths:
         logger.debug(f"patient_variant_table: Uploaded files: {file.split('/')[-1]}")
 
     # Create (or connect to) the database file:
-
     # Get the filepath to the directory of this script
     script_dir = os.path.dirname(os.path.abspath(__file__))
-
     # Build absolute path to the database
     db_path = os.path.abspath(os.path.join(script_dir, '..', '..', 'databases', f'{db_name}.db'))
-
     # Make the databases folder if it does not exist
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
+    # Check that the sqlite3 database is operational and has integrity.
     try:
         # Connect to the database
         conn = sqlite3.connect(db_path)
@@ -95,16 +99,8 @@ def patient_variant_table(filepath, db_name):
         # Log the filepath to the database.
         logger.info(f'patient_variant_table: Connected to {db_name}.db: {db_path}')
 
-    # Raise an error if the database cannot be connected to. This may happen if the databse is locked.
-    except Exception as e:
-        # Log the error using the exceptions output.
-        logger.error(f'patient_variant_table: Could not connect to database: {db_path}. {e}', exc_info=True)
-        # Notify the user that there was an issue creating/connectig to the databsae that they specified.
-        flash(f'❌ {db_name}: Unable to connect to database.')
-
-    # Create the patient_variant table if it does not already exist. UNIQUE groups the patient_ID and variant together
-    # to ensure that they can only appear once in the table together.
-    try:
+        # Create the patient_variant table if it does not already exist. UNIQUE groups the patient_ID and variant
+        # together to ensure that they can only appear together, once, in the table.
         cursor.execute("""
                            CREATE TABLE IF NOT EXISTS patient_variant (
                                                                           No INTEGER PRIMARY KEY,
@@ -115,17 +111,30 @@ def patient_variant_table(filepath, db_name):
                            """)
 
         # Log that the patient_table exists and can be populated.
-        logger.info('patient_variant_table: Successfully prepared patient_variant table to be populated by patients and their respective variants.')
+        logger.info(
+            'patient_variant_table: '
+            'Successfully prepared patient_variant table to be populated by patients and their respective variants.')
+
+    # Error handler executed when exceptions related to sqlite3 are raised.
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
+        # sqlite_error function logs the errors appropriately and returns an error message which can be implemented
+        # into a flash message, on the homepage page.
+        error_message = sqlite_error(e, db_name)
+        logger.error(f'patient_variant_table Error: Failed to create/check patient_variant table.')
+        flash(f'❌ patient_variant_table Error: {error_message}.')
+        # Close the connection to the database.
+        conn.close()
 
     # Raise an exception if the headers cannot be created.
     except Exception as e:
-        logger.error(f'patient_variant_table: Failed to create/check patient_variant table: {e}', exc_info=True)
+        logger.error(f'patient_variant_table Error: Failed to create/check patient_variant table: {e}')
         # Notify the user of that there was an error while preparing the database.
-        flash(f'❌ Error while preparing {db_name}.')
+        flash(f'❌ patient_variant_table Error occurred while preparing {db_name}.')
+        # Close the connection to the database.
         conn.close()
 
     # Iterate through the absolute filepaths to the .vcf files.
-    for path in vcf_paths:
+    for path in variant_paths:
 
         # Take the file name from the filepath to annotate the flash messages and logs.
         file = path.split('/')[-1]
@@ -135,8 +144,6 @@ def patient_variant_table(filepath, db_name):
         patient_name = path.split('/')[-1].split('.')[0]
 
         # Log the patient's name being added to the table.
-        logger.info(f'patient_variant_table: Processing variants from {patient_name}...')
-        # Log the file path where the variants derive from.
         logger.debug(f'patient_variant_table: Parsing variants from {path}...')
 
         # Try to apply the variant_parser function to extract the variants listed in the files.
@@ -144,7 +151,7 @@ def patient_variant_table(filepath, db_name):
             variant_list = variant_parser(path)
 
             # Log how many variants were parsed and from which file.
-            logger.info(f'patient_variant_table: {len(variant_list)} variants parsed from {file}')
+            logger.info(f'patient_variant_table: {len(variant_list)} variants parsed from {path}')
 
             # Log which variants have been parsed.
             logger.debug(f'patient_variant_table: Parsed from {file}: {variant_list}')
@@ -152,15 +159,18 @@ def patient_variant_table(filepath, db_name):
         # If an exception arises, log the error using the exception output and notify the user. Then move to the next
         # variant file.
         except Exception as e:
-            logger.error(f'patient_variant_table: variant_parser error while parsing variants in {path}: {e}', exc_info=True)
-            flash(f" ❌ Could not parse variants in {path}. Please check the file format or path to 'temp' directory.")
+            logger.error(
+                f'patient_variant_table Error: variant_parser error while parsing variants from {path}: {e}')
+            flash(
+                f"❌ patient_variant_table Error: Could not parse variants from {file}. "
+                f"Please check the file/variant format or path to 'temp' directory.")
             continue
 
         # If variant_parser does not parse any variants, log the filepath to the file which could not be parsed and
         # notify the user. Then move on to the next file.
         if not variant_list:
             logger.warning(f'patient_variant_table: No variants were parsed from {path}.')
-            flash(f"No variants were parsed from {file}")
+            flash(f"⚠ No variants were parsed from {file}")
             continue
 
         else:
@@ -175,24 +185,29 @@ def patient_variant_table(filepath, db_name):
             # Log the file and variant that is being queried on VariantValidator.
             logger.info(f"patient_variant_table: Querying VariantValidator for {file}: {variant}")
 
+            # Check that the HGVS genomic description can be retrieved from VariantValidator.
             try:
                 # Use the fetch_vv function to get the HGVS genomic description.
                 variant_info = fetch_vv(variant)
-                # The time module creates a 0.5s delay after each request to Variant Validator (VV), so that VV is not overloaded with requests.
+                # The time module creates a 0.5s delay after each request to VariantValidator , so that VV is not
+                # overloaded with requests.
                 time.sleep(0.5)
 
             # Raise an exception if fetch_vv is not working.
             except Exception as e:
                 # Log the error using the output from the exception.
-                logger.error(f'patient_variant_table: Failed to execute fetch_vv function: {file}: {variant}. {e}', exc_info=True)
+                logger.error(f'patient_variant_table: Failed to execute fetch_vv function: {file}: {variant}. {e}')
                 # Notify the User that VariantValidator cannot be queried.
-                flash(f'{file}: {variant}: ❌ Could retrieve a response from VariatnValidator. Variant not added to database.')
+                flash(f'{file}: {variant}: ❌ patient_variant_table Error: Could not retrieve a response from '
+                      f'VariantValidator. Variant not added to database.')
                 continue
 
             # If a response was not received from VariantValidator, it is logged and communicated to the user.
             if not variant_info:
-                logger.warning(f'patient_variant_table: {file}: {variant}: No response was received from VariantValidator. Variant not added to database.')
-                flash(f'{file}: {variant}: ❌ No response was received from VariantValidator. Variant not added to database.')
+                logger.warning(f'patient_variant_table: {file}: {variant}: '
+                               f'No response was received from VariantValidator. Variant not added to database.')
+                flash(f'{file}: {variant}: ⚠ No response was received from VariantValidator. '
+                      f'Variant not added to database.')
                 continue
 
             # If the response received from fetch_vv is a string and not the tuple, log the error and notify the User
@@ -202,86 +217,144 @@ def patient_variant_table(filepath, db_name):
                 flash(f'{file}: {variant_info}')
                 continue
 
+            # Check if the response from VariantValidator is valid. 'variant_info' should be a tuple containing the
+            # genomic description, transcript description and protein consequence all in HGVS nomenclature, followed by
+            # the gene symbol and HGNC ID.
             else:
-                # variant_info should be a tuple containing the genomic description, transcript description and protein
-                # consequence all in HGVS nomenclature, followed by the gene symbol and HGNC ID.
-                try:
-                    # Try to extract the genomic description in HGVS nomenclature from VariantValidator response.
-                    if variant_info[0].startswith('NC_') == True:
-                        logger.info(f'patient_variant_table: {file}: {variant}: VariantValidator returned {variant_info[0]}.')
-
                 # If the first variable in the response from fetch_vv is not the genomic description, an exception will
                 # be raised where the VariantValidator error will be logged and shown to the user. Then process the next
                 # variant in the list.
-                except Exception as e:
-                    logger.error(f'patient_variant_table: {file}: HGVS genomic description not retreived by fetch_vv: {e}.', exc_info=True)
-                    logger.debug(f'patient_variant_table: Output from fetch_vv:\n{variant_info}')
+                if not variant_info[0].startswith('NC_'):
+                    logger.error(
+                        f'patient_variant_table: {file}: HGVS genomic description not retreived by fetch_vv: {e}.')
+                    logger.debug(f'patient_variant_table: Output from fetch_vv: {variant_info}')
                     flash(f'{file}: {variant}: ❌ Could not retrieve HGVS description from VariantValidator.')
                     continue
+                # Extract the genomic description in HGVS nomenclature from VariantValidator response.
+                else:
+                    logger.info(
+                        f'patient_variant_table: {file}: {variant}: VariantValidator returned {variant_info[0]}.')
 
+                # Check that the patient ID and corresponding variant can be added to the patient_variant table.
                 try:
-                    # Check that the patient ID and corresponding variant can be added to the patient_variant table.
                     cursor.execute("INSERT OR IGNORE INTO patient_variant (patient_ID, variant) VALUES (?, ?)",
                                    (patient_name, variant_info[0]))
 
-                    logger.info(f'{file}: {variant}: {patient_name} and {variant_info[0]} successfully added to patient_variant table.')
+                    logger.info(f'{file}: {variant}: {patient_name} and {variant_info[0]} '
+                                f'successfully added to patient_variant table.')
 
-                # Raise an exception if the patient name and variant could not be entered into the patient_variant
-                # table.
-                except Exception as e:
-                    logger.error(f'Failed to enter {patient_name} and {variant_info[0]} into patient_variant table: {e}', exc_info=True)
-                    flash(f'{file}: {variant}: ❌ Could not add {patient_name} and {variant_info[0]} to {db_name}.db.')
+                # Error handler executed when exceptions related to sqlite3 are raised.
+                except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
+                    # sqlite_error function logs the errors appropriately.
+                    sqlite_error(e, db_name)
+                    logger.error(f'patient_variant_table Error: Failed to enter {patient_name} and {variant_info[0]} '
+                                 f'into patient_variant table.')
+                    flash(f'❌ patient_variant_table: SQLite3 Error: '
+                          f'Could not add {patient_name} and {variant_info[0]} to {db_name}.db.')
+                    # Continue to the next variant.
                     continue
 
-    # Save (commit) changes to the database and close connection
-    conn.commit()
-    conn.close()
+                # Raise an exception if the patient ID and/or variant description cannot be added to the
+                # patient_variant table.
+                except Exception as e:
+                    logger.error(f'patient_variant_table Error: Failed to enter {patient_name} and {variant_info[0]} '
+                                 f'into patient_variant table: {e}')
+                    # Notify the user of that there was an error while preparing the database.
+                    flash(f'❌ patient_variant_table Error: '
+                          f'Could not add {patient_name} and {variant_info[0]} to {db_name}.db.')
+                    # Continue to the next variant.
+                    continue
 
-    # A message is logged and shown to the user to indicate that the database was successfully created or updated.
-    logger.info(f'Patient_variant table in {db_name} created/updated successfully!')
+    # Save (commit) changes to the database.
+    conn.commit()
+
+    try:
+        cursor.execute(f"SELECT COUNT(*) FROM patient_variant")
+        row_count = cursor.fetchone()[0]
+
+        if row_count == 0:
+            logger.warning("patient_variant table in (db_name) is empty. Deleting database file…")
+            # Close the connection to the database.
+            conn.close()
+            # Delete the database.
+            os.remove(db_path)
+            flash(f'⚠ {file} did not contain any variants that could be loaded into patient_variant table. {db_name} '
+                  f'was deleted.')
+        else:
+            # A message is logged and shown to the user to indicate that the database was successfully created or updated.
+            logger.info(f'Patient_variant table in {db_name} created/updated successfully!')
+            # Close the connection to the database.
+            conn.close()
+
+    # Error handler executed when exceptions related to sqlite3 are raised.
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
+        # sqlite_error function logs the errors appropriately.
+        sqlite_error(e, db_name)
+        logger.error(f'patient_variant_table Error: Failed to check patient_variant table in {db_name}.')
+        flash(f'❌ patient_variant_table: SQLite3 Error: {db_name} may not have been processed correctly. '
+              f'Data may be compromised.')
+        # Close the connection to the database.
+        conn.close()
+
+    # Raise an exception if the patient_variant table could not be checked.
+    except Exception as e:
+        # Log the error.
+        logger.error(f'patient_variant_table Error: Failed to check patient_variant table in {db_name}: {e}')
+        # Notify the User that there was an error while preparing the database.
+        flash(f'❌ patient_variant_table Error: {db_name} may not have been processed correctly. '
+              f'Data may be compromised.')
+        # Close the connection to the database.
+        conn.close()
 
 
 def variant_annotations_table(filepath, db_name):
-    '''
+    """
     This function creates a database, if it doesn't already exist.
     It then creates or updates a table in the database called 'variant_annotations', which is populated by variants
-    extracted from .vcf files uploaded by the user on our flask website, denoted as HGVS genomic descriptions from
+    extracted from variant files uploaded by the User through our Flask app, denoted as HGVS genomic descriptions from
     VariantValidator.
-    It is further annotated by the HGVS transcript description, HGVS NP_ nomenclature, gene symbol and HGNC ID, also
-    from VariantValidator, as well as the cumulative variant classification, associated conditions, star-rating and
-    review status, from ClinVar.
+    Each variant is further annotated by the HGVS transcript description, HGVS protein description, gene symbol and
+    HGNC ID, also from VariantValidator, as well as the cumulative variant classification, associated conditions,
+    star-rating and review status, from ClinVar.
 
     :params: filepath: This leads to the subdirectory where the variant files uploaded by the user are stored.
                        The subdirectory is called 'temp' and is located in the base-directory of this software package.
                        The filepath is not hardcoded into the script because it is the absolute filepath within the
                        respective computer that this software package was loaded in.
 
-                 E.g.: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/temp/'
+                 E.g.: '/<path>/<from>/<root>/<to>/<base>/<directory>/<of>/
+                         Software_Engineering_Assessment_2025_AR_RW_RS/temp/'
 
               db_name: The user-specified name of the database.
 
                  E.g.: 'my_database'
 
-    :output: my_database.db database: '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/my_database.db'
+    :output: A database containing the variant_annotations table.
+             The database will be saved at: '/<path>/<from>/<root>/<to>/<base>/<directory>/<of>/
+                                              Software_Engineering_Assessment_2025_AR_RW_RS/database/my_database.db'
 
-             variant_annotations table:
-             No.|HGVS NC_ nomenclature|HGVS NM_ nomenclature|HGVS NP_ nomenclature|Gene symbol|HGNC ID|Classification|Conditions|Star-Rating|Review status
+             variant_annotations table: A table consisting of a unique index number, the HGVS genomic description, HGVS
+                                        transcript description, HGVS protein description, gene symbol and HGNC ID, of
+                                        the variants parsed from the respective patient's variant file. It also contains
+                                        the variant classification, associated conditions, star-rating and review
+                                        status, from ClinVar.
 
-             E.g.:
+             E.g.:  patient_ID | variant_NC	   | variant_NM   | variant_NP	  | gene   | HGNC_ID | Classification | Conditions	| Stars | Review_status
+                   ------------|---------------|--------------|---------------|--------|---------|----------------|-------------|-------|-------------------
+                    Patient1   | NC_000019.10: | NM_152296.5: | NP_689509.1:  | ATP1A3 | 801     | Pathogenic     | Dystonia 12 | ★    | criteria provided,
+                               | g.41968837C>G | c.2767G>C    | p.(Asp923His) |        |         |                |             | 	    | single submitter
 
-             1|NC_000017.11:g.45990019G>A|NM_007262.5:c.541G>C|NP_009193.2:p.(Val181Leu)|MAPT|6893|Pathogenic|Unknown|★★|criteria provided, multiple submitters, no conflicts
-             2|NC_000012.12:g.40295535A>T|NM_007262.5:c.541G>C|NP_009193.2:p.(Val181Leu)|LRRK2|18618|Pathogenic|Unknown|★★|criteria provided, multiple submitters, no conflicts
-             3|NC_000012.12:g.40346849C>G|NM_007262.5:c.541G>C|NP_009193.2:p.(Val181Leu)|LRRK2|18618|Pathogenic|Unknown|★★|criteria provided, multiple submitters, no conflicts
-             4|NC_000004.12:g.89835580C>G|NM_007262.5:c.541G>C|NP_009193.2:p.(Val181Leu)|SNCA|11138|Pathogenic|Unknown|★★|criteria provided, multiple submitters, no conflicts
-             5|NC_000019.10:g.41985036A>C|NM_007262.5:c.541G>C|NP_009193.2:p.(Val181Leu)|ATP1A3|801|Pathogenic|Unknown|★★|criteria provided, multiple submitters, no conflicts
 
-    :command: filepath = '/<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/temp/'
+    :command: filepath = '/<path>/<from>/<root>/<to>/<base>/<directory>/<of>/
+                           Software_Engineering_Assessment_2025_AR_RW_RS/temp/'
+
               variantAnnotationsTable(filepath, 'my_database')
 
-              To access database: sqlite3 /<path>/<to>/<base>/<directory>/<of>/Software_Engineering_Assessment_2025_AR_RW_RS/database/my_database.db
+              To access database: sqlite3 /<path>/<from>/<root>/<to>/<base>/<directory>/<of>/
+                                           Software_Engineering_Assessment_2025_AR_RW_RS/database/my_database.db
 
               To view table: SELECT * FROM variant_annotations;
-    '''
+    """
 
     # Log the start of the function.
     logger.info('Preparing variant_annotations_table()...')

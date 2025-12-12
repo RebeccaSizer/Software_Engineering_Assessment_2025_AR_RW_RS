@@ -193,8 +193,6 @@ def choose_create_or_add():
             logger.info(f"Starting to load variant files from 'temp' folder, into {database_name} database.")
             patient_variant_table(app.config['variant_files_upload_folder'], database_name)
             variant_annotations_table(app.config['variant_files_upload_folder'], database_name)
-            # Log when the variant files have been loaded into the database.
-            logger.info(f"Successfully loaded variant files into {database_name} database.")
 
             # Delete the files from the 'temp' folder otherwise every file in the 'temp' folder will be processed after
             # the User adds another file to the database.
@@ -1101,6 +1099,9 @@ def switch_db():
 # ---------------------------------------------------------------
 @app.route("/export_csv", methods=["POST"])
 def export_csv():
+    """
+    This function
+    """
     columns = json.loads(request.form["columns"])
     rows = json.loads(request.form["rows"])
 
