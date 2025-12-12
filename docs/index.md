@@ -25,7 +25,6 @@ SEA is a webapp prototype tool for annotating germline variant data using inform
     - patient/sample ID
     - gene symbol 
     - transcript
-    - clinical significance
 - View all matching variants and their annotations through the web interface
 
 ## Getting Started
