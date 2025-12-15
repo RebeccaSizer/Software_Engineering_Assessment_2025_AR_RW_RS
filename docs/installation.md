@@ -40,7 +40,7 @@ cd Software_Engineering_Assessment_2025_AR_RW_RS
 
 ## 4. Installation using Docker
 #### 4.1 Install Docker:
-SEA_2025 is configured to run using a docker container, and thus it is necessary that docker is installed on your system as a prerequisite.
+SEA_2025 is configured to run using a docker container, and thus it is necessary that docker is installed on your system as a prerequisite. 
 ```bash
 sudo apt update
 sudo apt install docker.io
@@ -54,6 +54,12 @@ This can take a few minutes.
 ```
 docker build -t sea_app .
 ```
+Note on Docker permissions:
+On some systems (particularly shared or managed machines), Docker commands may require
+administrative privileges. If you encounter a "permission denied while trying to connect
+to the Docker daemon" error, prefix Docker commands with `sudo`.
+
+If you do not have permission to use `sudo`, please contact your system administrator.
 #### 4.3 Run the docker container:
 
 ```
