@@ -857,12 +857,24 @@ def query_db(db_path, query, args=(), one=False):
                 E.g.: patient_ID = 'Patient1'
                       args = Patient_ID -> Variants identified in 'Patient1' will be returned.
 
-                 one: This flag indicates whether all the entries returned from the query should be returned by this
-                      function.
+                 one: This boolean flag indicates whether all the entries returned from the query will be returned by
+                      this function. It is set to False by default.
                 E.g.: False returns all the entries returned from the query.
                       True returns only the first row returned from the query or None. None type returns are error
                       handled in a particular, in app.py
 
+    :output: rv: A list of sqlite3.Row objects. Each object represents a response from the query. Values held within the
+                 object are in dictionary format, where the headers that they were stored under are assigned as the key
+                 to the value.
+
+       E.g.: [<sqlite3.Row object at 0x11000b2e0>, <sqlite3.Row object at 0x11000b340>,
+              <sqlite3.Row object at 0x11000b3a0>, <sqlite3.Row object at 0x11000b400>,
+              <sqlite3.Row object at 0x11000b460>, <sqlite3.Row object at 0x11000b4c0>,
+              <sqlite3.Row object at 0x11000b520>, <sqlite3.Row object at 0x11000b580>]
+
+             first_response = rv[0]
+             first_response[patient_ID] = 'Patient1'
+             first_response[Conditions] = 'Pathogenic'
     """
 
     # Assign the name of the database being queried to 'db_name'.
@@ -873,21 +885,21 @@ def query_db(db_path, query, args=(), one=False):
 
     # Check that the SQLite3 query can be applied to the specified database.
     try:
-        # The 'with' keyword opens a connection to the database being queried and closes it automatically after the query
-        # has been applied.
+        # The 'with' keyword opens a connection to the database being queried and closes it automatically after the
+        # query has been applied.
         with sqlite3.connect(db_path) as conn:
-            # Converts each row in the database into a dictionary type, where each value is assigned to a key named after
-            # the respective header that it was under.
+            # Converts each row in the database into a dictionary type, where each value is assigned to a key named
+            # after the respective header that it was under.
             conn.row_factory = sqlite3.Row
             # Apply the query to the database and return the entries returned by the query to the object 'cur'.
-            # args applies the search term entered by the User into the query..
+            # args inserts the search term entered by the User into the query.
             cur = conn.execute(query, args)
             # Fetch all the results returned by the query.
             rv = cur.fetchall()
             # 'one' is automatically set to False when query_db() starts.
             # If 'one' is False, query_db() will return all the rows returned by the query.
-            # If 'one' is True, query_db() will return None, if nothing was returned by the query and only the first row if
-            # something was.
+            # If 'one' is True, query_db() will return None if nothing was returned by the query, and only the first
+            # row if something was.
             return (rv[0] if rv else None) if one else rv
 
     # Error handler executed when exceptions related to sqlite3 are raised.

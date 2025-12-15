@@ -404,7 +404,7 @@ def query_page(db_name):
                            NC_000005.10:g.150056311C>T | NM_001288705.3:c.2350G>A | NP_001275634.1:p.(Val784Met) | CSF1R | 2433    | Likely pathogenic | Hereditary diffuse leukoencephalopathy with spheroids; Brain abnormalities, neurodegeneration, and dysosteosclerosis | ★	  | criteria provided, single submitter | 1
     """
 
-    # log that the query page is being used.
+    # Log that the query page is being used.
     logger.info('User has accessed the Query page.')
 
     # Check that there are databases in the 'database' folder, that can be queried.
@@ -425,7 +425,7 @@ def query_page(db_name):
         return redirect(url_for("choose_create_or_add"))
 
     # Check that the filepath to the database file that was selected or uploaded on the homepage exists.
-    # Assign the filepath to the selected databse to 'db_path' variable.
+    # Assign the filepath to the selected database to 'db_path' variable.
     db_path = os.path.join(app.config["db_upload_folder"], db_name)
     # If the filepath to the database file does not exist...
     if not os.path.exists(db_path):
@@ -454,7 +454,7 @@ def query_page(db_name):
             )
             # Store the HGVS genomic descriptions into a list assigned to the 'variant_list' variable.
             variant_list = [row[0] for row in cur.fetchall()]
-            # Retrieve all of the gene symbols in the variant_annotations table, only once.
+            # Retrieve all the different gene symbols in the variant_annotations table, only once.
             cur.execute("SELECT DISTINCT gene FROM variant_annotations ORDER BY gene ASC;")
             # Store the gene symbols into a list assigned to the 'gene_list' variable.
             gene_list = [row[0] for row in cur.fetchall()]
@@ -464,7 +464,7 @@ def query_page(db_name):
         # sqlite_error function logs the errors appropriately and returns an error message which can be implemented
         # into a flash message, on the query page.
         error_message = sqlite_error(e, db_name)
-        flash(f'❌ {db_name} Error: {error_message}')
+        flash(f'❌ {db_name} SQLite3 Error: Failed to prepare {db_name} to be queried: {error_message}')
         return render_template("db_query_page.html", db_name=db_name)
 
     # Raise an exception if the there was an issue querying clinvar.db.
@@ -525,7 +525,7 @@ def query_page(db_name):
                 # selected database, on the query page.
                 if not data:
                     logger.warning(f'{patient_ID} could not be found in {db_name} database.')
-                    flash(f'⚠ Patient Query Error: {patient_ID} could not be found in {db_name} database.')
+                    flash(f'⚠ Patient Query: {patient_ID} could not be found in {db_name} database.')
                     return render_template("db_query_page.html", db_name=db_name)
 
 
@@ -534,14 +534,13 @@ def query_page(db_name):
                 # Log that they are trying to retrieve the variant information.
                 logger.info(f'User querying information about {variant_nc}...')
                 # Use the get_mane_nc() function from vv_functions.py to convert ensembl, non-MANE select or gene symbol
-                # gene descriptions into the HGVS genomic description. This is used to look up the variant in the
-                # selected database.
+                # gene descriptions into the HGVS genomic descriptions of the RefSeq MANE select transcript. This is
+                # used to look up the variant in the User-selected database.
                 variant_search_term = get_mane_nc(variant_nc)
                 # Assign the HGVS genomic description, HGVS transcript description, HGVS protein description, gene
                 # symbol, HGNC ID, Classification, Associated conditions, ClinVar star-rating, and ClinVar review
                 # status, to the 'query' string. The number of patients with the HGVS genomic description from the
-                # get_mane_nc() function output, in the patient_variant table, is counted and
-                # returned.
+                # get_mane_nc() function output, in the patient_variant table, is counted and returned.
                 query = """
                 SELECT
                     v.variant_NC,
@@ -573,7 +572,14 @@ def query_page(db_name):
                 # sqlite3 query into dictionary format and assign the output to the 'data' variable.
                 data = query_db(db_path, query, (variant_search_term,))
                 # Label this query by its type so that it is easily identifiable and callable later on.
-                result_type = "variant_NC"
+                result_type = "variant"
+                # If the variant cannot be found in the selected database, the 'data' variable will remain as None.
+                # In such a case, log a warning and notify the User that the variant could not be found in the
+                # selected database, on the query page.
+                if not data:
+                    logger.warning(f'{variant_nc} could not be found in {db_name} database.')
+                    flash(f'⚠ Variant Query: {variant_nc} could not be found in {db_name} database.')
+                    return render_template("db_query_page.html", db_name=db_name)
 
             # If the User is performing a gene query...
             elif gene:
@@ -637,8 +643,8 @@ def query_page(db_name):
                 # If the gene symbol could not be found in the database, a warning message is logged and an error
                 # message is returned, indicating that the gene symbol could not be found.
                 else:
-                    logger.warning(f"User's gene query could not be found: {gene}")
-                    flash(f"{gene}: ⚠ Gene Query Error: gene symbol could not be found.")
+                    logger.warning(f"User's gene query could not be found in {db_name} database: {gene}")
+                    flash(f"⚠ Gene Query: {gene} could not be found in {db_name} database.")
                     return render_template("db_query_page.html", db_name=db_name)
 
         # Error handler executed when exceptions related to sqlite3 are raised.
@@ -646,15 +652,15 @@ def query_page(db_name):
             # sqlite_error function logs the errors appropriately and returns an error message which can be implemented
             # into a flash message, on the query page.
             error_message = sqlite_error(e, db_name)
-            flash(f'❌ {db_name} Query Error: {error_message}')
+            flash(f'❌ {db_name} Query Error: Failed to prepare {result_type} query. {error_message}')
             return render_template("db_query_page.html", db_name=db_name)
 
         # Raise an exception if the there was an issue querying clinvar.db.
         except Exception as e:
             # Log the error, describing why the selected database could not be queried, using the exception output.
-            logger.error(f'Database Query Error: Failed to prepare {db_name} to be queried: {str(e)}')
+            logger.error(f'Database Query Error: Failed to prepare {db_name} query string: {str(e)}')
             # Return a flash message to the User, notifying them of the error, on the query page.
-            flash(f'❌ {db_name} Query Error: Failed to prepare {db_name} to be queried: {str(e)}')
+            flash(f'❌ {db_name} Query Error: Failed to prepare {result_type} query.')
             return render_template("db_query_page.html", db_name=db_name)
 
     # Prepare JSON to export query results into a table that can be viewed by the User through the user interface.
@@ -670,10 +676,12 @@ def query_page(db_name):
     # Raise an exception if the 'data' variable remained as None.
     except TypeError as e:
         # Log the TypeError.
-        logger.error(f"Query TypeError: 'data' variable remained as None: {e}")
+        logger.error(f"Query TypeError: 'data' or 'result_type' remained as None: {e}")
+        # Log a debug message to help understand the issue.
+        logger.debug(f"data: {data}; result_type: {result_type}")
         # Return a flash message to help the User understand why they have not received the expected response, on the
         # query page.
-        flash(f'❌ Query Error: Your query did not return a response.')
+        flash(f'❌ Query Error: Query did not work.')
         return render_template("db_query_page.html", db_name=db_name)
 
     # Raise an exception if the keys in the 'data' are not iterable (specific to 'cols' variable).
