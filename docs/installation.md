@@ -63,13 +63,13 @@ docker run -p 5000:5000 sea_app
 #### 4.4 Successful installation:
 
 If Docker runs successfully, you will see the following printout in the terminal: 
-
+```
    *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
    |                                                 |
    *   Welcome to the Variant Database Query Tool!   *
    |                                                 |
    *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-
+```
 The application will now be available at:
 http://127.0.0.1:5000
 
@@ -128,12 +128,6 @@ pip install .
 python main.py
 ```
 
-or, if you provide an entry point:
-
-```bash
-sea_2025
-```
-
 #### 6. Access the web app
 
 By default, the app will run on:
@@ -145,10 +139,3 @@ http://localhost:5000
 You can now begin using SEA_2025 to annotate VCF files locally.
 
 ---
-
-
-
-
-
-
-#### Installation locally 
