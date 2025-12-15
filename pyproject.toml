@@ -24,7 +24,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License"
 ]
 
-[tools.setuptools.dynamic]
+[tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 
 [project.optional-dependencies]
@@ -38,4 +38,4 @@ Issues = "https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_A
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["app*, tools*, flask_app*"]
+include = ["app*, tools*"]
