@@ -320,14 +320,12 @@ def choose_create_or_add():
             # validate_database() function ensures that the database conforms with the expected schema that allows the
             # database file to be queried.
             if not validate_database(filepath):
-                # Log that the database contains inappropriate headers.
-                logger.warning(f'{filename} does not contain the appropriate headers and cannot be queried.')
-                # Notify the User that the database has not passed validation.
-                flash(f'❌ Inappropriate headers in {filename} database.')
                 # Remove the database file from the 'database' folder.
                 os.remove(filepath)
                 # Log that the database file was removed.
                 logger.info(f"Removed {filename} from 'database' folder.")
+                # Notify the User that the database cannot be queried.
+                flash(f'❌ Upload Error: {filename} cannot be queried. Please upload a different database.')
             else:
                 # Log that the database was successfully uploaded and validated.
                 logger.info(f"Successfully uploaded and validated {filename} database.")
@@ -675,8 +673,7 @@ def query_page(db_name):
         logger.error(f"Query TypeError: 'data' variable remained as None: {e}")
         # Return a flash message to help the User understand why they have not received the expected response, on the
         # query page.
-        flash(f'❌ Query Error: An error occurred while processing the query. It is not your fault. '
-              f'Please contact your nearest friendly neighbourhood Bioinformatician')
+        flash(f'❌ Query Error: Your query did not return a response.')
         return render_template("db_query_page.html", db_name=db_name)
 
     # Raise an exception if the keys in the 'data' are not iterable (specific to 'cols' variable).

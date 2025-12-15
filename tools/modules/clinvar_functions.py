@@ -47,6 +47,9 @@ def clinvar_vs_download():
             logger.info(f"Request OK. ClinVar variant summary records last modified: "
                         f"{requests.head(url).headers['Last-Modified']}")
 
+            # Break out fo the loop if the request to downloaded ClinVar summary records was successful
+            break
+
         # Catch any network or HTTP errors raised by 'requests'.
         except requests.exceptions.HTTPError as e:
 

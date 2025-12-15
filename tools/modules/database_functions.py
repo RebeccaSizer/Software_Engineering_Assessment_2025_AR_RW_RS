@@ -720,7 +720,25 @@ def variant_annotations_table(filepath, db_name):
 
 
 def validate_database(db_path):
+    """
+    This function checks that the databases uploaded by the User have the expected tables and headers so that they can
+    be queried and viewed, using the other programs included in this software package.
 
+    :params: db_path: Path to the database uploaded by the User, in this software package's 'databases' folder.
+                E.g.: '/<path>/<from>/<root>/<to>/<base>/<directory>/<of>/
+                         Software_Engineering_Assessment_2025_AR_RW_RS/databases/<uploaded_database>.db'
+
+    :output: True: If the validation process has been passed, True will be returned to app.py, where this function has
+                   been implemented. This will enable the uploaded database to be queried.
+
+            False: If the validation process has not been passed, False will be returned to app.py, where this function
+                   has been implemented. This will cause the uploaded database to be deleted from the 'database' folder.
+    """
+
+    db_name = db_path.split('/')[-1]
+    logger.info(f'Checking that the {db_name} database uploaded by the User conforms with the expected schema...')
+
+    # Define the headers to expect in the patient_variant and variant_annotations tables, in the uploaded database.
     EXPECTED_SCHEMA = {
         "patient_variant": {"No", "patient_ID", "variant"},
         "variant_annotations": {
@@ -737,30 +755,157 @@ def validate_database(db_path):
         },
     }
 
-    """Check whether the uploaded database matches expected tables and columns."""
+    # Check if the database specified in this function's argument can be connected to and queried using SQLite3.
     try:
+        # The 'with' keyword opens a connection to the uploaded database and closes it automatically after the
+        # validation check has been performed.
         with sqlite3.connect(db_path) as conn:
             cur = conn.cursor()
+            # Find the names of the tables in the database.
             cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            # Return the name of each table in the database.
             tables = {row[0] for row in cur.fetchall()}
 
+            # Check that the uploaded database contains a table called 'patient_variant' and another called
+            # 'variant_annotations'.
             if not EXPECTED_SCHEMA.keys() <= tables:
+                # If it does not contain the expected tables, log that the database does not contain the required
+                # tables.
+                logger.warning(f'The tables in {db_name} are not as expected: {tables}')
+                # Notify the User that the database does not have the right tables.
+                flash(f'⚠ Inappropriate tables in {db_name} database.')
+                # Return False. False will delete the uploaded database from this software package's 'databases'
+                # folder, using a boolean in app.py.
                 return False
 
+            # Iterate through the expected tables (table) and respective headers in each table (expected_cols).
             for table, expected_cols in EXPECTED_SCHEMA.items():
+                # Find the headers of the 'patient_variant' and 'variant_annotations' tables in the database.
                 cur.execute(f"PRAGMA table_info({table});")
+                # Return the name of each header in the aforementioned tables.
                 cols = {row[1] for row in cur.fetchall()}
+                # Check that the uploaded database contains the expected headers in its 'patient_variant' and
+                # 'variant_annotations' tables.
                 if not expected_cols <= cols:
+                    # If it does not contain the expected headers, log that the database contains inappropriate headers.
+                    logger.warning(f'The headers in {db_name} are not as expected: {cols}')
+                    # Notify the User that the database does not have the right headers.
+                    flash(f'⚠ Inappropriate headers in {db_name} database.')
+                    # Return False. False will delete the uploaded database from this software package's 'databases'
+                    # folder, using a boolean in app.py.
                     return False
+
+        # If the uploaded database consists of the expected schema, return True. True will pass the validation check
+        # and enable the database to be queried.
         return True
-    except Exception:
+
+    # Error handler executed when exceptions related to sqlite3 are raised.
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
+        # sqlite_error function logs the errors appropriately.
+        sqlite_error(e, f'{db_name}.db')
+        logger.error(
+            f'Database Validation SQLite3 Error: Failed to check table and headers in {db_name}.db.')
+        flash(f'❌ Database Validation: SQLite3 Error: {db_name}.db was not validated.')
+        # Return False. False will delete the uploaded database from this software package's 'databases' folder, using
+        # a boolean in app.py.
+        return False
+
+    # Raise an exception if the uploaded database could not be validated.
+    except Exception as e:
+        # Log the error.
+        logger.error(f'Database Validation Error: Failed to check table and headers in {db_name}.db: {e}')
+        # Notify the User that there was an error while preparing the database.
+        flash(f'❌ Database Validation Error: Failed to check table and headers in {db_name}.db.')
+        # Return False. False will delete the uploaded database from this software package's 'databases' folder, using
+        # a boolean in app.py.
         return False
 
 
 def query_db(db_path, query, args=(), one=False):
-    """Execute SQL query on a database and return results as sqlite3.Row objects."""
-    with sqlite3.connect(db_path) as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.execute(query, args)
-        rv = cur.fetchall()
-        return (rv[0] if rv else None) if one else rv
+    """
+    This function is applied on the query page of this software packages flask app (app.py).
+    This function applies the SQLite3 query formulated by the User when they query their selected database on the flask
+    app query page. The variants found in a specific patient, the number of times a variant occurs in the database, and
+    which variants occur in a specified gene can all be queried individually.
+
+    :params: db_path: Path to the database uploaded by the User, in this software package's 'databases' folder.
+                E.g.: '/<path>/<from>/<root>/<to>/<base>/<directory>/<of>/
+                         Software_Engineering_Assessment_2025_AR_RW_RS/databases/<uploaded_database>.db'
+
+               query: The SQLite3 query used to return specific entries from the database to a table in the flask app's
+                      user interface.
+                E.g.: query = '''
+                      SELECT
+                          pv.patient_ID,
+                          v.variant_NC,
+                          v.variant_NM,
+                          v.variant_NP,
+                          v.gene,
+                          v.HGNC_ID,
+                          v.Classification,
+                          v.Conditions,
+                          v.Stars,
+                         v.Review_status
+                      FROM patient_variant pv
+                      JOIN variant_annotations v
+                        ON pv.variant = v.variant_NC
+                      WHERE pv.patient_ID = ?
+                      '''
+
+                args: This parameter is set to an empty tuple by default. The empty tuple is replaced by the User's
+                      search term, which is used to specify which entries from the database should be returned.
+                E.g.: patient_ID = 'Patient1'
+                      args = Patient_ID -> Variants identified in 'Patient1' will be returned.
+
+                 one: This flag indicates whether all the entries returned from the query should be returned by this
+                      function.
+                E.g.: False returns all the entries returned from the query.
+                      True returns only the first row returned from the query or None. None type returns are error
+                      handled in a particular, in app.py
+
+    """
+
+    # Assign the name of the database being queried to 'db_name'.
+    db_name = db_path.split('/')[-1]
+    # Log the SQLite3 query being applied and that database that it is being applied to.
+    logger.info(f'Database: {db_name}')
+    logger.info(f'Query: {query}')
+
+    # Check that the SQLite3 query can be applied to the specified database.
+    try:
+        # The 'with' keyword opens a connection to the database being queried and closes it automatically after the query
+        # has been applied.
+        with sqlite3.connect(db_path) as conn:
+            # Converts each row in the database into a dictionary type, where each value is assigned to a key named after
+            # the respective header that it was under.
+            conn.row_factory = sqlite3.Row
+            # Apply the query to the database and return the entries returned by the query to the object 'cur'.
+            # args applies the search term entered by the User into the query..
+            cur = conn.execute(query, args)
+            # Fetch all the results returned by the query.
+            rv = cur.fetchall()
+            # 'one' is automatically set to False when query_db() starts.
+            # If 'one' is False, query_db() will return all the rows returned by the query.
+            # If 'one' is True, query_db() will return None, if nothing was returned by the query and only the first row if
+            # something was.
+            return (rv[0] if rv else None) if one else rv
+
+    # Error handler executed when exceptions related to sqlite3 are raised.
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
+    # sqlite_error function logs the errors appropriately.
+        error_message = sqlite_error(e, db_name)
+        logger.error(f"Database Query SQLite3 Error: Failed to apply the User's query to {db_name}")
+        flash(f'❌ Database Query: SQLite3 Error: {db_name}.db could not be queried. {error_message}')
+        # Return None. None type returns will be processed in a particular way in app.py.
+        return None
+
+    # Raise an exception if the SQLite3 query could not be applied.
+    except Exception as e:
+        # Log the error.
+        logger.error(f"Database Query Error: Failed to apply the User's query to {db_name}: {e}")
+        # Notify the User that there was an error while preparing the database.
+        flash(f'❌ Database Query Error: Failed to query {db_name}')
+        # Close the connection to the database.
+        conn.close()
+        # Return None. None type returns will be processed in a particular way in app.py.
+        return None
