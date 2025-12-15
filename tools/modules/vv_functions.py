@@ -506,7 +506,7 @@ def get_mane_nc(variant: str):
             # the database.
             elif not re.match('^[cg][.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', genetic_change):
                 # Log a warning if it does not conform with the Regex pattern.
-                logger.warning(f'Irregular variant nomenclature: {variant}')
+                logger.warning(f'Variant Query Error: Irregular variant nomenclature: {variant}')
                 # Show the User a message that will help them search for the variant.
                 flash(f'⚠ Variant Query Error: Irregular variant nomenclature. {genetic_change} does not work.')
                 return
@@ -522,9 +522,9 @@ def get_mane_nc(variant: str):
         elif not transcript.startswith('ENST') and '_' not in transcript and re.match(r'^[A-Za-z0-9]{1,10}$', transcript):
             gene_symbol, genetic_change = variant.split(':')
 
-            if not genetic_change.startswith('c.') or not genetic_change.startswith('g.'):
+            if not genetic_change.startswith(('c.', 'g.')):
                 # Log a warning if it does not conform with the Regex pattern.
-                logger.warning(f'Irregular variant nomenclature: {genetic_change}')
+                logger.warning(f'Variant Query Error: Irregular variant nomenclature: {genetic_change}')
                 # Show the User a message that will help them search for the variant.
                 flash(f'⚠ Variant Query Error: Irregular variant nomenclature. {genetic_change} does not work.')
                 return

@@ -74,6 +74,8 @@ def patient_variant_table(filepath, db_name):
         logger.warning(f"patient_variant_table: No VCF/CSV files detected in 'temp' directory: {filepath}")
         flash(
             '⚠ No variant files have been uploaded. Please upload a .VCF or .CSV file or select a database to query.')
+        # Return an 'error' message to be processed by app.py.
+        return 'error'
 
     # Log the number of variant files in temp directory.
     logger.info(f'{len(variant_paths)} variant files in {filepath}.')
@@ -119,19 +121,23 @@ def patient_variant_table(filepath, db_name):
     except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
         # sqlite_error function logs the errors appropriately and returns an error message which can be implemented
         # into a flash message, on the homepage page.
-        error_message = sqlite_error(e, db_name)
-        logger.error(f'patient_variant_table Error: Failed to create/check patient_variant table.')
-        flash(f'❌ patient_variant_table Error: {error_message}.')
+        error_message = sqlite_error(e, f'{db_name}.db')
+        logger.error(f'patient_variant_table SQLite3 Error: Failed to create/check patient_variant table.')
+        flash(f'❌ patient_variant_table SQLite3 Error: {error_message}.')
         # Close the connection to the database.
         conn.close()
+        # Return an 'error' message to be processed by app.py.
+        return 'error'
 
     # Raise an exception if the headers cannot be created.
     except Exception as e:
         logger.error(f'patient_variant_table Error: Failed to create/check patient_variant table: {e}')
         # Notify the user of that there was an error while preparing the database.
-        flash(f'❌ patient_variant_table Error occurred while preparing {db_name}.')
+        flash(f'❌ patient_variant_table Error occurred while preparing {db_name}.db.')
         # Close the connection to the database.
         conn.close()
+        # Return an 'error' message to be processed by app.py.
+        return 'error'
 
     # Iterate through the absolute filepaths to the .vcf files.
     for path in variant_paths:
@@ -246,9 +252,10 @@ def patient_variant_table(filepath, db_name):
                 # Error handler executed when exceptions related to sqlite3 are raised.
                 except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
                     # sqlite_error function logs the errors appropriately.
-                    sqlite_error(e, db_name)
-                    logger.error(f'patient_variant_table Error: Failed to enter {patient_name} and {variant_info[0]} '
-                                 f'into patient_variant table.')
+                    sqlite_error(e, f'{db_name}.db')
+                    logger.error(
+                        f'patient_variant_table SQLite3 Error: '
+                        f'Failed to enter {patient_name} and {variant_info[0]} into patient_variant table.')
                     flash(f'❌ patient_variant_table: SQLite3 Error: '
                           f'Could not add {patient_name} and {variant_info[0]} to {db_name}.db.')
                     # Continue to the next variant.
@@ -268,43 +275,55 @@ def patient_variant_table(filepath, db_name):
     # Save (commit) changes to the database.
     conn.commit()
 
+    # Check if a variant has been added to the patient_variant table.
     try:
+        # Query the patient_variant table for any entries.
         cursor.execute(f"SELECT COUNT(*) FROM patient_variant")
         row_count = cursor.fetchone()[0]
 
+        # If nothing has been added to the table...
         if row_count == 0:
-            logger.warning("patient_variant table in (db_name) is empty. Deleting database file…")
+            # Log that the patient_variant table is empty.
+            logger.warning(f"patient_variant table in {db_name}.db is empty. Deleting database file…")
             # Close the connection to the database.
             conn.close()
             # Delete the database.
             os.remove(db_path)
-            flash(f'⚠ {file} did not contain any variants that could be loaded into patient_variant table. {db_name} '
+            # Notify the User that the patient_variant table is empty and that the database will be deleted.
+            flash(f'⚠ {file} did not contain any variants that could be loaded into patient_variant table. {db_name}.db '
                   f'was deleted.')
+            # Return an 'error' message to be processed by app.py.
+            return 'error'
         else:
-            # A message is logged and shown to the user to indicate that the database was successfully created or updated.
-            logger.info(f'Patient_variant table in {db_name} created/updated successfully!')
+            # A message is logged and shown to the user to indicate that the database was successfully created or
+            # updated.
+            logger.info(f'Patient_variant table in {db_name}.db created/updated successfully!')
             # Close the connection to the database.
             conn.close()
 
     # Error handler executed when exceptions related to sqlite3 are raised.
     except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
         # sqlite_error function logs the errors appropriately.
-        sqlite_error(e, db_name)
-        logger.error(f'patient_variant_table Error: Failed to check patient_variant table in {db_name}.')
-        flash(f'❌ patient_variant_table: SQLite3 Error: {db_name} may not have been processed correctly. '
+        sqlite_error(e, f'{db_name}.db')
+        logger.error(f'patient_variant_table SQLite3 Error: Failed to check patient_variant table in {db_name}.db.')
+        flash(f'❌ patient_variant_table: SQLite3 Error: {db_name}.db may not have been processed correctly. '
               f'Data may be compromised.')
         # Close the connection to the database.
         conn.close()
+        # Return an 'error' message to be processed by app.py.
+        return 'error'
 
     # Raise an exception if the patient_variant table could not be checked.
     except Exception as e:
         # Log the error.
-        logger.error(f'patient_variant_table Error: Failed to check patient_variant table in {db_name}: {e}')
+        logger.error(f'patient_variant_table Error: Failed to check patient_variant table in {db_name}.db: {e}')
         # Notify the User that there was an error while preparing the database.
-        flash(f'❌ patient_variant_table Error: {db_name} may not have been processed correctly. '
+        flash(f'❌ patient_variant_table Error: {db_name}.db may not have been processed correctly. '
               f'Data may be compromised.')
         # Close the connection to the database.
         conn.close()
+        # Return an 'error' message to be processed by app.py.
+        return 'error'
 
 
 def variant_annotations_table(filepath, db_name):
@@ -377,17 +396,17 @@ def variant_annotations_table(filepath, db_name):
     # warning.
     if len(vcf_paths) == 0:
         logger.warning(f"No VCF/CSV files detected in 'temp' directory: {filepath}")
-        flash('⚠ variant_annotations_table:No data files have been uploaded. '
+        flash('⚠ variant_annotations_table: No data files have been uploaded. '
               'Please upload a .VCF or .CSV file or select a database to query.')
-
-        return
+        # Return an 'error' message to be processed by app.py.
+        return 'error'
 
     # Log the number of variant files in temp directory.
     logger.info(f'variant_annotations_table: {len(vcf_paths)} variant files in {filepath}.')
 
     # Log the variant file names that will be processed.
-    for file in vcf_paths:
-        logger.debug(f"variant_annotations_table: Variant files detected: {file.split('/')[-1]}")
+    for path in vcf_paths:
+        logger.debug(f"variant_annotations_table: Variant files detected: {path.split('/')[-1]}")
 
     # Get the filepath to the directory of this script
     script_dir = os.path.dirname(os.path.abspath(__file__))  # RS
@@ -395,7 +414,7 @@ def variant_annotations_table(filepath, db_name):
     # Absolute path to database
     db_path = os.path.abspath(os.path.join(script_dir, '..', '..', 'databases', f'{db_name}.db'))  # RS
 
-    # Make the databases folder if it does not exist
+    # Make the databases folder if it does not exist.
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
     try:
@@ -406,16 +425,8 @@ def variant_annotations_table(filepath, db_name):
         # Log the filepath to the database.
         logger.debug(f'variant_annotations_table: Connected to database: {db_path}')
 
-    # Raise an error if the database cannot be connected to. This may happen if the databse is locked.
-    except Exception as e:
-        # Log the error using the exceptions output.
-        logger.error(f'variant_annotations_table: Could not connect to database: {db_path}. {e}', exc_info=True)
-        # Notify the user that there was an issue creating/connectig to the databsae that they specified.
-        flash(f'❌ {db_name}.db: Unable to connect to database.')
-
-    # Create the variant_annotations table if it does not already exist. UNIQUE groups the variant_NC, variant_NM,
-    # and variant_NP together to ensure that they can only appear once in the table together.
-    try:
+        # Create the variant_annotations table if it does not already exist. UNIQUE groups the variant_NC, variant_NM,
+        # and variant_NP together to ensure that they can only appear once in the table together.
         cursor.execute("""
                    CREATE TABLE IF NOT EXISTS variant_annotations (
                                                                       No INTEGER PRIMARY KEY,
@@ -433,14 +444,31 @@ def variant_annotations_table(filepath, db_name):
                    """)
 
         # Log that the variant_annotations table exists and can be populated.
-        logger.info('variant_annotations_table: Successfully prepared variant_annotations table to be populated by patients and their respective variants.')
+        logger.info('variant_annotations_table: Successfully prepared variant_annotations table to be populated by '
+                    'patients and their respective variants.')
 
-    # Raise an exeption if the headers cannot be created.
-    except Exception as e:
-        logger.error(f'variant_annotations_table: Failed to create/check variant_annotations table: {e}', exc_info=True)
-        # Notify the user of that there was an error while preparing the database.
-        flash(f'❌ Error while preparing {db_name}.db.')
+    # Error handler executed when exceptions related to sqlite3 are raised.
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
+        # sqlite_error function logs the errors appropriately and returns an error message which can be implemented
+        # into a flash message, on the homepage page.
+        error_message = sqlite_error(e, f'{db_name}.db')
+        logger.error(f'variant_annotations_table SQLite3 Error: Failed to create/check variant_annotations table.')
+        flash(f'❌ variant_annotations_table SQLite3 Error: {error_message}.')
+        # Close the connection to the database.
         conn.close()
+        # Return an 'error' message to be processed by app.py.
+        return 'error'
+
+    # Raise an exception if the headers cannot be created in variant_annotations table.
+    except Exception as e:
+        logger.error(
+            f'variant_annotations_table Error: Failed to create/check headers in variant_annotations table: {e}')
+        # Notify the user of that there was an error while preparing the database.
+        flash(f'❌ variant_annotations_table Error occurred while preparing {db_name}.db.')
+        # Close the connection to the database.
+        conn.close()
+        # Return an 'error' message to be processed by app.py.
+        return 'error'
 
     # Iterate through the absolute filepaths to the .vcf files.
     for path in vcf_paths:
@@ -469,7 +497,7 @@ def variant_annotations_table(filepath, db_name):
 
         # Raise an exception if variant_parser failed.
         except Exception as e:
-            logger.error(f'variant_annotations_table: Failed to parse variants from {file}: {e}', exc_info=True)
+            logger.error(f'variant_annotations_table: Failed to parse variants from {file}: {e}')
             # Notify the User f variants could not be parsed.
             flash(f"❌ Could not parse variants from {file}. Please check the file format or path to 'temp' directory.")
             continue
@@ -491,25 +519,29 @@ def variant_annotations_table(filepath, db_name):
             # Raise an exception if fetch_vv is not working.
             except Exception as e:
                 # Log the error using the output from the exception.
-                logger.error(f'variant_annotations_table: {file}: {variant}: Failed to execute fetch_vv function: {e}', exc_info=True)
+                logger.error(f'variant_annotations_table: {file}: {variant}: Failed to execute fetch_vv function: {e}')
                 # Notify the User that VariantValidator cannot be queried.
-                flash(f'{file}: {variant}: ❌ Could retrieve a response from VariantValidator. Variant not added to {db_name}.db.')
+                flash(f'{file}: {variant}: ❌ Could not retrieve a response from VariantValidator. '
+                      f'Variant not added to {db_name}.db.')
                 continue
 
             # Try to accommodate for errors in the VariantValidator response.
             try:
-                # If no response was received from fetch_vv or the length of the tuple is less than 5, log the error
-                # and notify the User through the flask app. Then move onto the next varaiant.
-                if not vv_response or len(vv_response) != 5:
-                    logger.warning(f'variant_annotations_table: {file}: {variant}: Failed to receive a response from fetch_vv.')
-                    flash(f'{file}: {variant}: ❌ Irregular response from VariantValidator. Variant not added to {db_name}.db.')
+                # If no response was received from fetch_vv, log the error and notify the User through the flask app.
+                # Then move onto the next variant.
+                if not vv_response:
+                    logger.warning(
+                        f'variant_annotations_table: {file}: {variant}: Failed to receive a response from fetch_vv.')
+                    flash(
+                        f'{file}: {variant}: ⚠ No response from VariantValidator. Variant not added to {db_name}.db.')
                     continue
 
-                # If the response received from fetch_vv is a string and not the tuple, log the error
-                # and notify the User through the flask app. Then move onto the next varaiant.
+                # If the response received from fetch_vv is a string and not the tuple, log the error and notify the
+                # User through the flask app. Then move onto the next variant.
                 elif type(vv_response) == str:
+                    logger.warning(
+                        f'variant_annotations_table: {file}: {vv_response}. Variant not added to {db_name}.db.')
                     flash(f'{file}: {vv_response}')
-                    logger.warning(f'variant_annotations_table: {file}: {vv_response}. Variant not added to {db_name}.db.')
                     continue
 
                 else:
@@ -521,13 +553,13 @@ def variant_annotations_table(filepath, db_name):
             # Raise an exception if an error is not caught within the try statement.
             except Exception as e:
                 # Log the error using the output from the exception.
-                logger.error(f'variant_annotations_table: {file}: {variant}: Unable to process the response from fetch_vv function: {e}', exc_info=True)
+                logger.error(f'variant_annotations_table: {file}: {variant}: Unable to process the response from fetch_vv function: {e}')
                 # Notify the User that the variant cannot be queried through VariantValidator.
                 flash(f'{file}: {variant}: ❌ Unable to query this variant through VariantValidator. Variant not added to {db_name}.db.')
                 continue
 
-            # clinvar.db is queried using clinvar_annotations() to retrieve the variant classification, associated
-            # conditions, the star-ratings and the review statuses:
+            # clinvar.db is queried using clinvar_annotations() from clinvar_functions.py to retrieve the variant
+            # classification, associated conditions, the star-ratings and the review statuses:
 
             # Log that clinvar.db is being queried.
             logger.info(f'variant_annotations_table: {file}: {variant}: Querying clinvar.db for {nc_variant}...')
@@ -565,8 +597,8 @@ def variant_annotations_table(filepath, db_name):
                     stars = clinvar_response['stars']
                     review_status = clinvar_response['reviewstatus']
 
-                    # The HGVS nomenclatures, gene symbol, HGNC ID and ClinVar annotations for each variant are added to
-                    # the variant_annotations table. If the HGVS nomenclatures already exist in the table as a set,
+                    # The HGVS nomenclatures, gene symbol, HGNC ID and ClinVar annotations for each variant are added
+                    # to the variant_annotations table. If the HGVS descriptions already exist in the table as a set,
                     # another entry will not be created in the table.
                     try:
                         cursor.execute("""
@@ -589,33 +621,102 @@ def variant_annotations_table(filepath, db_name):
                         ))
 
                         # Log that the variant_annotations table exists and can be populated.
-                        logger.info(f'{file}: {variant}: Successfully populated variant_annotations table with ClinVar annotations.')
+                        logger.info(f'{file}: {variant}: Successfully populated variant_annotations table with ClinVar '
+                                    f'annotations.')
 
-                    # Raise an exception if the patient name and variant could not be entered into the patient_variant
-                    # table.
+                    # Error handler executed when exceptions related to sqlite3 are raised.
+                    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
+                        # sqlite_error function logs the errors appropriately and returns an error message which can be
+                        # implemented into a flash message, on the homepage page.
+                        sqlite_error(e, db_name)
+                        logger.error(f'variant_annotations_table SQLite3 Error: Failed to populate variant_annotations '
+                                     f'table with {variant} from {patient_name} and {clinvar_response}: {e}')
+                        flash(f'❌ variant_annotations_table SQLite3 Error: Variant annotations could be not be added '
+                              f'to variant_annotations table. Variant not added to {db_name}.db.')
+                        # Close the connection to the database.
+                        conn.close()
+                        continue
+
+                    # Raise an exception if the patient name and variant could not be entered into the
+                    # variant_annotations table.
                     except Exception as e:
-                        logger.error(f'Failed to populate variant_annotations table with {variant} from {patient_name} and {clinvar_response}: {e}', exc_info=True)
-                        flash(f'{file}: {variant}: ❌ Variant could not be annotated. Variant not added to {db_name}.db.')
+                        logger.error(
+                            f'variant_annotations_table Error: Failed to populate variant_annotations table with '
+                            f'{variant} from {patient_name} and {clinvar_response}: {e}')
+                        # Notify the user of that there was an error while preparing the database.
+                        flash(f'❌ variant_annotations_table Error: Variant annotations could be not be added to '
+                              f'variant_annotations table. Variant not added to {db_name}.db.')
+                        # Close the connection to the database.
+                        conn.close()
                         continue
 
             # Raise an exception if an error is not caught within the try statement.
             except Exception as e:
                 # Log the error using the output from the exception.
                 logger.error(
-                    f'variant_annotations_table: {file}: {variant}: Unable to process the response from clinvar_annotations function: {e}',
-                    exc_info=True)
-                # Notify the User that the variant cannot be queried through VariantValidator.
+                    f'variant_annotations_table: {file}: {variant}: Unable to process the response from '
+                    f'clinvar_annotations() function: {e}')
+                # Notify the User that the variant did not return a response from clinvar.db.
                 flash(
                     f'{file}: {variant}: ❌ Unable to query clinvar.db for this variant. Variant not added to {db_name}.db.')
                 continue
 
-    # Save (commit) changes and close connection
+    # Save (commit) changes.
     conn.commit()
-    conn.close()
 
-    # A message is logged and shown to the user to indicate that the database was successfully created or updated.
-    logger.info(f'Variant_annotations table in {db_name}.db created/updated successfully!')
-    flash(f'{db_name}.db created/updated successfully!')
+    # Check if a variant has been added to the variant_annotations table.
+    try:
+        # Query the variant_annotations table for any entries.
+        cursor.execute(f"SELECT COUNT(*) FROM patient_variant")
+        row_count = cursor.fetchone()[0]
+
+        # If nothing has been added to the table...
+        if row_count == 0:
+            # Log that the variant_annotations table is empty.
+            logger.warning(f"variant_annotations table in {db_name}.db is empty. Deleting database file…")
+            # Close the connection to the database.
+            conn.close()
+            # Delete the database.
+            os.remove(db_path)
+            # Notify the User that the variant_annotations table is empty and that the database will be deleted.
+            flash(f'⚠ {file} did not contain any variants that could be loaded into variant_annotations table. '
+                  f'{db_name}.db was deleted.')
+            # Return an 'error' message to be processed by app.py.
+            return 'error'
+
+        else:
+            # A message is logged and shown to the user to indicate that the database was successfully created or
+            # updated.
+            logger.info(f'variant_annotations table in {db_name}.db created/updated successfully!')
+            # Close the connection to the database.
+            conn.close()
+            # Notify the User that the variant_annotations table and database was created/updated successfully.
+            flash(f'{db_name}.db created/updated successfully!')
+
+    # Error handler executed when exceptions related to sqlite3 are raised.
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
+        # sqlite_error function logs the errors appropriately.
+        sqlite_error(e, f'{db_name}.db')
+        logger.error(
+            f'variant_annotations_table SQLite3 Error: Failed to check variant_annotations table in {db_name}.db.')
+        flash(f'❌ variant_annotations_table: SQLite3 Error: {db_name}.db may not have been processed correctly. '
+              f'Data may be compromised.')
+        # Close the connection to the database.
+        conn.close()
+        # Return an 'error' message to be processed by app.py.
+        return 'error'
+
+    # Raise an exception if the variant_annotations table could not be checked.
+    except Exception as e:
+        # Log the error.
+        logger.error(f'variant_annotations_table Error: Failed to check variant_annotations table in {db_name}.db: {e}')
+        # Notify the User that there was an error while preparing the database.
+        flash(f'❌ variant_annotations_table Error: {db_name}.db may not have been processed correctly. '
+              f'Data may be compromised.')
+        # Close the connection to the database.
+        conn.close()
+        # Return an 'error' message to be processed by app.py.
+        return 'error'
 
 
 def validate_database(db_path):

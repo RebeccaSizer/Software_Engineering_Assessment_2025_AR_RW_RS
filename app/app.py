@@ -191,8 +191,18 @@ def choose_create_or_add():
             # information.
             # Log the start of when the variant files are being loaded into the User-specified database.
             logger.info(f"Starting to load variant files from 'temp' folder, into {database_name} database.")
-            patient_variant_table(app.config['variant_files_upload_folder'], database_name)
-            variant_annotations_table(app.config['variant_files_upload_folder'], database_name)
+            error = patient_variant_table(app.config['variant_files_upload_folder'], database_name)
+            # If 'error' was returned from the patient_variant_table() function, the function errored. The User
+            # should be notified and app.py should stop processing.
+            if error == 'error':
+                flash(f'❌ {database_name}.db was not created/updated.')
+                return render_template("homepage.html", databases=databases)
+            error = variant_annotations_table(app.config['variant_files_upload_folder'], database_name)
+            # If 'error' was returned from the variant_annotations_table() function, the function errored. The User
+            # should be notified and app.py should stop processing.
+            if error == 'error':
+                flash(f'❌ {database_name}.db was not created/updated.')
+                return render_template("homepage.html", databases=databases)
 
             # Delete the files from the 'temp' folder otherwise every file in the 'temp' folder will be processed after
             # the User adds another file to the database.
