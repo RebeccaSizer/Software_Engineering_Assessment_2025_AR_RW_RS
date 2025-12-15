@@ -157,10 +157,10 @@ def choose_create_or_add():
                         # Log the error, explaining there isn't enough disk space, using the exception output.
                         logger.error(
                             f"Failed to save {file.filename} to {app.config['variant_files_upload_folder']} because "
-                            f"there is not enough disk space: {str(e)}")
+                            f"there is a problem with your disk space: {str(e)}")
                         # Notify the User that the file couldn't be saved to the 'temp' folder because there is not
                         # enough disk.
-                        flash(f'❌ Failed to save {file.filename}. Not enough disk space.')
+                        flash(f'❌ Failed to save {file.filename}. There is a problem with your disk space.')
                         # Render this output into the homepage.
                         return render_template("homepage.html", databases=databases)
 
@@ -277,11 +277,11 @@ def choose_create_or_add():
                 if e.errno == errno.ENOSPC:
                     # Log the error, explaining there isn't enough disk space, using the exception output.
                     logger.error(
-                        f"Failed to save {filename} to {app.config['db_upload_folder']} because there is not enough "
-                        f"disk space: {str(e)}")
+                        f"Failed to save {filename} to {app.config['db_upload_folder']} because there is a problem with "
+                        f"your disk space: {str(e)}")
                     # Notify the User that the file couldn't be saved to the 'database' folder because there is not
                     # enough disk.
-                    flash(f'❌ Failed to save {filename}. Not enough disk space.')
+                    flash(f'❌ Failed to save {filename}. There is a problem with your disk space.')
                     # Render this output into the homepage.
                     return render_template("homepage.html", databases=databases)
 
