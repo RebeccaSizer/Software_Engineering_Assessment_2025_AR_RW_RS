@@ -360,12 +360,13 @@ def variant_annotations_table(filepath, db_name):
     logger.info('Preparing variant_annotations_table()...')
     # Log the absolute filepath to the 'temp' directory where the data is going to be pulled into the database from.
     # And the name of the database being updated/created by the user.
-    logger.debug(f'variant_annotations_table: Filepath to data: {filepath}; database to be populated: {db_name}')
-
-    # Create a list of the filepaths to all of the variant files in the 'temp' subdirectory.
+    logger.debug(
+        f'variant_annotations_table: Filepath to variant files: {filepath}; database to be populated: {db_name}')
+    # Create a list of the filepaths to all the variant files in the 'temp' subdirectory.
     vcf_paths = []
 
-    # Iterate through the files in the filepath provided by the user and add the files with a .vcf or .csv extension to the vcf_paths list.
+    # Iterate through the files in the filepath provided by the user and add the files with a .vcf or .csv extension to
+    # the vcf_paths list.
     for file in os.listdir(filepath):
         if file.endswith('.vcf') or file.endswith('.csv'):
             vcf_paths.append(f'{filepath}/{file}')
@@ -375,8 +376,10 @@ def variant_annotations_table(filepath, db_name):
     # If there aren't any variant files in the 'temp' folder, notify the user through a flash message and log the
     # warning.
     if len(vcf_paths) == 0:
-        flash('No data files have been uploaded. Please upload a .VCF or .CSV file or select a database to query.')
-        logger.warning(f"variant_annotations_table: No VCF/CSV files detected in 'temp' directory: {filepath}")
+        logger.warning(f"No VCF/CSV files detected in 'temp' directory: {filepath}")
+        flash('⚠ variant_annotations_table:No data files have been uploaded. '
+              'Please upload a .VCF or .CSV file or select a database to query.')
+
         return
 
     # Log the number of variant files in temp directory.
