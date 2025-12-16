@@ -34,6 +34,5 @@ def create_logger():
 
     return logger
 
-
 # Instantiate the logger
 logger = create_logger()
