@@ -126,7 +126,6 @@ Once an existing database has been selected, it is possible to query the databas
         Patient1   | NC_000019.10: | NM_152296.5: | NP_689509.1:  | ATP1A3 | 801     | Pathogenic     | Dystonia 12 | ★    | criteria provided,
                    | g.41968837C>G | c.2767G>C    | p.(Asp923His) |        |         |                |             | 	    | single submitter
 ```
-- If the query does not run successfully, and error messge will appear. 
 ---
 
 ### 6.4 Filtering Existing Database page
@@ -162,25 +161,59 @@ After querying or selecting a database, you can filter and sort the results to f
     - `Conditions`  
     - `Stars`  
     - `Review_status`  
-  - This allows you to view filtered results in ascending or descending order based on the selected column.
+  - This allows you to view filtered results in ascending order based on the selected column.
 
+### 6.5 Downloading Annotated Output
 
-### 6.4 Downloading Annotated Output
+After running a query or filtering the database, you can save the annotated results to your local device:
 
-Click **Export CSV** to   
-Output saved as:
-annotated_<timestamp>.xlsx
+- Click **Export Excel** to download the output.  
+- The exported file will be saved in the following format:  
+  - `export(#).xlsx`  
 
-## 8. Troubleshooting
+> Note: Each export will create a new file with a sequential number if multiple exports are performed.
 
-"File type not supported" → Ensure .vcf or .vcf.gz  
-App not loading → Check Docker or activate conda environment  
-No ClinVar results → Variant absent or VCF format issue  
+---
 
-## 9. FAQ
+## 7. Troubleshooting
+```
 
-Does SEA modify my original VCF? → No  
-Does SEA store uploaded files? → No  
+| Issue                     | Possible Cause                                         | Suggested Action                                                               |
+|---------------------------|--------------------------------------------------------|--------------------------------------------------------------------------------|
+| "File type not supported" | Selected file is not `.vcf` or `.vcf.gz`               | Ensure your input file is in the correct format                                |
+| Application not loading   | Docker not running, or Conda environment not activated | Start Docker or activate the Conda environment using `conda activate sea_venv` |
+| No ClinVar results        | Variant absent in ClinVar or VCF formatting issue      | Verify the variant exists and the VCF file is correctly formatted              |
+```
+---
 
-## 10. Support
-Insert contact email or GitHub issues link here.
+## 8. Frequently Asked Questions (FAQ)
+
+- **Does SEA modify my original VCF file?**  
+  No, SEA does not modify the original input file. All annotations are saved in a separate output file.  
+
+- **Does SEA store uploaded files?**  
+  No, uploaded files are used temporarily for processing and are not stored permanently.
+
+- **Can I query multiple databases at once?**  
+  No, SEA allows querying one database at a time. You can switch between databases using the database selection dropdown.
+
+- **What file formats can I upload for creating a database?**  
+  SEA accepts `.vcf` and `.csv` files for creating or updating a database.  
+
+- **Can I filter or sort results after exporting?**  
+  No, exported Excel files are static. To apply filters or sorting, use the SEA interface before exporting.  
+
+- **How are ClinVar annotations added to my database?**  
+  SEA automatically queries ClinVar for each variant in the uploaded file and stores the annotations in the local database.  
+
+- **What do the stars in the database table represent?**  
+  Stars indicate the level of review for each variant in ClinVar, from one (single submitter) to four (expert panel).
+
+---
+
+## 9. Support
+
+For assistance, please contact the project maintainer or submit an issue on GitHub:  
+
+- **Email:** [rebecca.sizer@postgrad.manchester.ac.uk] 
+- **GitHub Issues:** [[insert GitHub repository issues link here](https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS.git)]
