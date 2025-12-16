@@ -1,5 +1,5 @@
 # Base image with Miniconda
-FROM continuumio/miniconda3:25.3.1-1
+FROM continuumio/miniconda3:25.11.1
 
 # Set working directory
 WORKDIR /app

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2", "wheel"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -11,6 +11,7 @@ authors = [
     { name = "Rebecca Sizer", email = "rebecca.sizer@postgrad.manchester.ac.uk"},
     { name = "Rachel Wellman", email = "rachel.wellman@postgrad.manchester.ac.uk"}
 ]
+
 description = "A web-based application tool for annotating germline variant data"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -39,7 +40,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest==7.4.3"]
+test = ["pytest==8.4.2"]
 
 [project.urls]
 Homepage = "https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS"
@@ -48,5 +49,5 @@ Issues = "https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_A
 
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["app*, tools*, flask_app*"]
+include = ["Software_Engineering_Assessment_2025_AR_RW_RS*"]
+exclude = ["tmp*", "assets*", "logging*"]
