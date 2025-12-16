@@ -11,9 +11,9 @@ def request_status_codes(e, variant, url, API, attempt):
     This function handles requests.exceptions.HTTPError exceptions that arise from requests.get responses that have one
     of the following status codes: 400, 404, 408, 429, 500, 503 or 504. These are some of the most common status codes
     to receive when an HTTPError exception is raised.
-    This function uses the exception (e), the variant, the API being queried and attempt (if multiple attempts are being
-    made to receive a response) to configure log messages and flash messages tailored around the response error being
-    handled.
+    This function uses the exception (e), the variant, the API being queried, the request URL and attempt (if multiple
+    attempts are being made to receive a response) to configure log messages and flash messages tailored around the
+    response error being handled.
     Flash messages appear to Users of the flask app while the log messages are either printed to the stdout or log file,
     depending on their log level.
     As requests.get is used to query APIs, this error handler function is implemented in vv_functions.py and
@@ -23,10 +23,11 @@ def request_status_codes(e, variant, url, API, attempt):
                 requests.exceptions.HTTPError, e will always be requests.exceptions.HTTPError. e is imported from the
                 exception so that the error message can be used in the log and flash messages.
           E.g.: requests.exceptions.HTTPError: 404 Client Error: Not Found for url:
-                https://api.example.com/nonexistent-resource
+                https://rest.variantvalidator.org/VariantValidator/variantvalidator/GRCh38/11-2164285-C-T
+                /mane?content-type=application%2Fjson'
 
        variant: The variant being queried in the request to the API. This may not always be a variant but in most cases
-                is. The value represented by 'variant' is used to denote what is being queried and provide context so
+                it is. The value represented by 'variant' is used to denote what is being queried and provide context so
                 that the User can understand where or why the exception was raised.
           E.g.: '11-2164285-C-T'
                 'ClinVar_Download'
@@ -65,8 +66,10 @@ def request_status_codes(e, variant, url, API, attempt):
 
     # Handle a 404 Not Found status error code. Log the error and return a message to notify the User.
     elif e.response.status_code == 404:
-        logger.error(f'{variant}: HTTPError 404: Not Found. {API} API could not locate an endpoint from this request: {url}')
-        return f'{variant}: ❌ HTTPError 404: Not Found. {API} API could not find a response to this variant description.'
+        logger.error(
+            f'{variant}: HTTPError 404: Not Found. {API} API could not locate an endpoint from this request: {url}')
+        return (f'{variant}: ❌ HTTPError 404: Not Found. '
+                f'{API} API could not find a response to this variant description.')
 
     # Handle a 408 Request Timeout status error code
     elif e.response.status_code == 408:
@@ -75,12 +78,14 @@ def request_status_codes(e, variant, url, API, attempt):
             # Create a delay between attempts if 408 error is raised.
             time.sleep(2 ** attempt)
             # Log a warning if another request needs to be sent.
-            logger.warning(f'{variant}: HTTPError 408: Request Timeout. Request could not reach {API} server in time: {url}')
+            logger.warning(
+                f'{variant}: HTTPError 408: Request Timeout. Request could not reach {API} server in time: {url}')
             # Log a description of which attempt out of 5 is going to be tried.
             logger.info(f'{variant}: Trying to retrieve variant information from {API} again. Attempt: {attempt + 2}/3')
 
         else:
-            logger.error(f'{variant}: HTTPError 408 status: Request Timeout. The remote server dropped the connection before {API} could receive the request: {url}')
+            logger.error(f'{variant}: HTTPError 408 status: Request Timeout. '
+                         f'The remote server dropped the connection before {API} could receive the request: {url}')
             return f'{variant}: ❌ HTTPError 408: {API} dropped the connection. Please try again later.'
 
     # Handle a 429 Too Many Requests status error code
@@ -90,28 +95,34 @@ def request_status_codes(e, variant, url, API, attempt):
             # Create a delay between attempts if 429 error is raised.
             time.sleep(2 ** attempt)
             # Log a warning if another request needs to be sent.
-            logger.warning(f'{variant}: HTTPError 429: Too Many Requests. {API} is currently overloaded with requests.{url}')
+            logger.warning(
+                f'{variant}: HTTPError 429: Too Many Requests. {API} is currently overloaded with requests.{url}')
             # Log a description of which attempt out of 5 is going to be tried.
             logger.info(f'{variant}: Trying to retrieve variant information from {API} again. Attempt: {attempt + 2}/5')
 
         else:
-            logger.error(f'{variant}: HTTPError 429 persisted: Too Many Requests. {API} was overloaded with requests.{url}')
+            logger.error(
+                f'{variant}: HTTPError 429 persisted: Too Many Requests. {API} was overloaded with requests.{url}')
             return f'{variant}: ❌ HTTPError 429: {API} is currently overloaded with requests. Please try again later.'
 
     # Handle a 500 Internal Server Error status error code. Log the error and return a message to notify the User.
     elif e.response.status_code == 500:
         logger.error(f'{variant}: HTTPError 500: Internal Server Error. {API} API server crashed. {url}')
-        return f'{variant}: ❌ HTTPError 500: Internal Server Error. {API} API server crashed. Its not your fault. Please try again later.'
+        return (f'{variant}: ❌ HTTPError 500: '
+                f'Internal Server Error. {API} API server crashed. Its not your fault. Please try again later.')
 
     # Handle a 503 Service Unavailable status error code. Log the error and return a message to notify the User.
     elif e.response.status_code == 503:
-        logger.error(f'{variant}: HTTPError 503: Service Temporarily Unavailable. {API} API is overloaded or down for maintenance. {url}')
-        return f'{variant}: ❌ HTTPError 503: Service Unavailable. {API} API is unavailable. Its not your fault. Please try again later.'
+        logger.error(f'{variant}: HTTPError 503: '
+                     f'Service Temporarily Unavailable. {API} API is overloaded or down for maintenance. {url}')
+        return (f'{variant}: ❌ HTTPError 503: '
+                f'Service Unavailable. {API} API is unavailable. Its not your fault. Please try again later.')
 
     # Handle a 504 Gateway Timeout status error code. Log the error and return a message to notify the User.
     elif e.response.status_code == 504:
         logger.error(f'{variant}: HTTPError 504: Gateway Timeout. {API} API took too long to respond.')
-        return f'{variant}: ❌ HTTPError 504: Gateway Timeout. {API} API response took too long. Its not your fault. Please try again later.'
+        return (f'{variant}: ❌ HTTPError 504: '
+                f'Gateway Timeout. {API} API response took too long. Its not your fault. Please try again later.')
 
     # Handle other HTTPErrors. Log the error and return a message to notify the User.
     else:
@@ -121,6 +132,54 @@ def request_status_codes(e, variant, url, API, attempt):
 
 
 def connection_error(e, variant, API, url):
+    """
+    This function handles requests.exceptions.ConnectionError exceptions that arise from using requests.get to query an
+    API. The connection errors that arise include NewConnectionError and RemoteDisconnected. This function also
+    generically handles all exceptions that come under the ConnectionError class.
+    This function uses the exception (e), the variant, the API being queried and request URL to configure log messages
+    and flash messages tailored around the response error being handled.
+    Flash messages appear to Users of the flask app while the log messages are either printed to the stdout or log file,
+    depending on their log level.
+    As requests.get is used to query APIs, this error handler function is implemented in vv_functions.py and
+    clinvar_functions.py.
+
+    :params: e: An abbreviation of the Exception that was raised. As this function is only used in response to
+                requests.exceptions.ConnectionError, e will always be requests.exceptions.ConnectionError. e is imported
+                from the exception so that the error message can be used in the log and flash messages.
+          E.g.: requests.exceptions.ConnectionError: HTTPConnectionPool(host='localhost', port=5000): Max retries
+                exceeded with url: /api/data (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at
+                0x7f8c2a1b2f10>: Failed to establish a new connection: [Errno 111] Connection refused'))
+
+                https://rest.variantvalidator.org/VariantValidator/variantvalidator/GRCh38/11-2164285-C-T
+                /mane?content-type=application%2Fjson'
+
+       variant: The variant being queried in the request to the API. This may not always be a variant but in most cases
+                it is. The value represented by 'variant' is used to denote what is being queried and provide context so
+                that the User can understand where or why the exception was raised.
+          E.g.: '11-2164285-C-T'
+                'ClinVar_Download'
+
+           url: The URL used in the request that raised the ConnectionError exception.
+          E.g.: 'https://rest.variantvalidator.org/VariantValidator/variantvalidator/GRCh38/11-2164285-C-T
+                 /mane?content-type=application%2Fjson'
+
+           API: The API being queried in the request that raised the ConnectionError exception.
+          E.g.: 'VariantValidator'
+                'ClinVar'
+
+    :output: A message that will be incorporated into a flash message that will be displayed to the User on the
+             flask app.
+       E.g.: '11-2164285-C-T: ❌ VariantValidator server dropped the connection before sending a response.'
+
+    :command: url = 'https://rest.variantvalidator.org/VariantValidator/variantvalidator/GRCh38/11-2164285-C-T'
+                    '/mane?content-type=application%2Fjson'
+              try:
+                response = requests.get(url)
+              except requests.exceptions.ConnectionError as e:
+                error_message = connection_error(e, '11-2164285-C-T', url, 'VariantValidator')
+                flash(error_message)
+    """
+
     # Retrieve the cause of the ConnectionError exception.
     cause = e.__cause__
     # Grab the error number if it exists by checking if the cause exists.
