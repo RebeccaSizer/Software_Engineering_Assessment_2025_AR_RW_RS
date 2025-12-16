@@ -7,7 +7,57 @@ from tools.utils.logger import logger
 
 
 def request_status_codes(e, variant, url, API, attempt):
+    """
+    This function handles requests.exceptions.HTTPError exceptions that arise from requests.get responses that have one
+    of the following status codes: 400, 404, 408, 429, 500, 503 or 504. These are some of the most common status codes
+    to receive when an HTTPError exception is raised.
+    This function uses the exception (e), the variant, the API being queried and attempt (if multiple attempts are being
+    made to receive a response) to configure log messages and flash messages tailored around the response error being
+    handled.
+    Flash messages appear to Users of the flask app while the log messages are either printed to the stdout or log file,
+    depending on their log level.
+    As requests.get is used to query APIs, this error handler function is implemented in vv_functions.py and
+    clinvar_functions.py.
 
+    :params: e: An abbreviation of the Exception that was raised. As this function is only used in response to
+                requests.exceptions.HTTPError, e will always be requests.exceptions.HTTPError. e is imported from the
+                exception so that the error message can be used in the log and flash messages.
+          E.g.: requests.exceptions.HTTPError: 404 Client Error: Not Found for url:
+                https://api.example.com/nonexistent-resource
+
+       variant: The variant being queried in the request to the API. This may not always be a variant but in most cases
+                is. The value represented by 'variant' is used to denote what is being queried and provide context so
+                that the User can understand where or why the exception was raised.
+          E.g.: '11-2164285-C-T'
+                'ClinVar_Download'
+
+           url: The URL used in the request that raised the HTTPError exception.
+          E.g.: 'https://rest.variantvalidator.org/VariantValidator/variantvalidator/GRCh38/11-2164285-C-T
+                 /mane?content-type=application%2Fjson'
+
+           API: The API being queried in the request that raised the HTTPError exception.
+          E.g.: 'VariantValidator'
+                'ClinVar'
+
+       Attempt: The number of the attempt when the HTTPError exception was raised. Requests are retried when a
+                response has either a 408 or 429 status code, by iterating through up to 5 attempts.
+          E.g.: '0', '1', '2', '3', '4'
+
+    :output: A message that will be incorporated into a flash message that will be displayed to the User on the
+             flask app.
+       E.g.: '11-2164285-C-T: ❌ HTTPError 400: Bad Request. VariantValidator API did not accept this variant
+             description.'
+
+    :command: url = 'https://rest.variantvalidator.org/VariantValidator/variantvalidator/GRCh38/11-2164285-C-T'
+                    '/mane?content-type=application%2Fjson'
+
+              for attempt in range(5):
+                  try:
+                    response = requests.get(url)
+                  except requests.exceptions.HTTPError as e:
+                    error_message = request_status_codes(e, '11-2164285-C-T', url, 'VariantValidator', attemnpt)
+                    flash(error_message)
+    """
     # Handle a 400 Bad Requests status error code. Log the error and return a message to notify the User.
     if e.response.status_code == 400:
         logger.error(f'{variant}: HTTPError 400: Bad Request. {API} API could not process this request: {url}')

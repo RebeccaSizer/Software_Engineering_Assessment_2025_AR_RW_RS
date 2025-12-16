@@ -31,9 +31,9 @@ def variant_parser(file):
     variant_list = []
     # A counter to count the lines.
     line_number = 0
-    # A counter to count the lines that were skipped.
+    # A counter to count the lines that were skipped (recommended by ChatGPT).
     skip_number = 0
-    # A counter to count the number of variants that were parsed.
+    # A counter to count the number of variants that were parsed (recommended by ChatGPT).
     parsed_number = 0
 
     # Check that the filepath at the end of the file path can be accessed.
