@@ -24,6 +24,7 @@ from flask import (
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from tools.utils.logger import logger
+from tools.utils.stringify import stringify
 from tools.modules.vv_functions import get_mane_nc
 from tools.utils.error_handlers import request_status_codes, connection_error, sqlite_error
 from tools.modules.database_functions import (
@@ -1128,127 +1129,96 @@ def export_csv():
                                 | g.41985036A>C | c.875T>G	   | p.(Leu292Arg) |        |         |                |  encephalopathy 99          |       | criteria provided
 
     """
-    # Log that the User wants to download a table.
-    logger.info('User has elected to download the table on the UI in .CSV format.')
 
-    # Parses the headers and rows from the table into 'columns' and 'rows' Python objects, respectively.
-    columns = json.loads(request.form["columns"])
-    rows = json.loads(request.form["rows"])
+    # Check if the process for exporting CSVs works properly.
+    try:
+        # Log that the User wants to download a table.
+        logger.info('User has elected to download the table on the UI in .CSV format.')
 
-    logger.info(f'Preparing CSV export: {len(columns)} columns x {len(rows)} rows')
+        # Check if the values can be parsed from the table.
+        try:
+            # Parses the headers and rows from the table into 'columns' and 'rows' Python objects, respectively.
+            columns = json.loads(request.form["columns"])
+            rows = json.loads(request.form["rows"])
 
-    def stringify(value):
-        """
-        This function processes values literally by converting them into strings, so that they can appear appropriately
-        in Microsoft Excel.
-        This function also accommodates for special characters that have secondary functions in Microsoft Excel that
-        might alter the original value parsed from the table: "=", "+", "-", "@", "*"
+            # Retrieve the name of the database that the information in the table derives from so that the User can be
+            # redirected back to the query page and query the same database again.
+            db_name = request.form.get("db_name")
 
-        :param value: A value displayed in the table viewable by the User on the flask app.
-                E.g.: Patient1
-                      NC_000001.11:g.7984999T>A
-                      NM_007262.5:c.515T>A
-                      NP_009193.2:p.(Leu172Gln)
-                      PARK7
-                      16369
-                      Uncertain significance
-                      Autosomal recessive early-onset Parkinson disease 7
-                      ★
-                      criteria provided, single submitter
+            logger.info(f'Preparing CSV export from {db_name}: {len(columns)} columns x {len(rows)} rows')
 
-        :return: string_value: A string of the value from the table viewable by the User on the flask app.
-                         E.g.: 'Patient1'
-                               'NC_000001.11:g.7984999T>A'
-                               'NM_007262.5:c.515T>A	'
-                               'NP_009193.2:p.(Leu172Gln)'
-                               'PARK7'
-                               '16369'
-                               'Uncertain significance'
-                               'Autosomal recessive early-onset Parkinson disease 7'
-                               '★'
-                               'criteria provided, single submitter'
-        """
+        # Raise an exception if the JSON cannot be loaded into columns or rows.
+        except json.JSONDecodeError as e:
+            # Log the exception as an error.
+            logger.error(f'CSV Export Error: Failed to decode JSON: {e}')
+            # Notify the User of the error.
+            flash(f'❌ CSV Export Error: Failed to parse values from the table for CSV export.')
+            return redirect(url_for("query_page"))
 
-        # Log that the values from the table are being converted into strings of those values.
-        logger.info(f'The following value from the table is being converted into a string: {value}')
+        try:
+            # The 'io' buffer saves text to the Random-Access Memory (RAM) using 'StringIo()'.
+            output = io.StringIO()
+            # Data is written to the text buffer in CSV format.
+            writer = csv.writer(output)
+            # Writes the headers from the table into the text buffer.
+            writer.writerow(columns)
 
-        # The values that start with "=", "+", "-", "@", or "*" are prefixed with an apostrophe to prevent Microsoft
-        # Excel from computing the value inappropriately.
-        if value.startswith(("=", "+", "-", "@", "*")):
-            return "'" + value
+            # Iterate through each row.
+            for row in rows:
 
-        # Other values are converted into a string.
-        return str(value)
+                # If the number of values in a row is not equal to the number of headers in 'columns', log a warning
+                if len(row) != len(columns):
+                    logger.warning(f'The number of values in this row is not as expected: {row}')
+                    logger.debug(f'No. of headers: {len(columns)}; No. of values: {len(row)}')
+                    continue
 
-    # The 'io' buffer saves text to the Random-Access Memory (RAM) using 'StringIo()'.
-    output = io.StringIO()
-    # Data is written to the text buffer in CSV format.
-    writer = csv.writer(output)
-    # Writes the headers from the table into the text buffer.
-    writer.writerow(columns)
-    
-    # Iterate through each row.
-    for row in rows:
+                # Write each value in the row into the text buffer after converting it into a string using the
+                # stringify() function.
+                writer.writerow([stringify(v) for v in row])
 
-        # If the number of values in a row is not equal to the number of headers in 'columns', log a warning
-        if len(row) != len(columns):
-            logger.warning(f'The number of values in this row is not as expected: {row}')
-            logger.debug(f'No. of headers: {len(columns)}; No. of values: {len(row)}')
+        # Raise and exception if there is an error generating the CSV.
+        except csv.Error as e:
+            # Log the exception as an error.
+            logger.error(f'CSV Export Error: Failed to write values into CSV: {e}')
+            # Notify the User of the error.
+            flash(f'❌ CSV Export Error: Failed to write values into CSV. CSV cannot be exported.')
+            return redirect(url_for("query_page"))
 
+        # 'BytesIO()' converts the 'io' buffer from text data into bytes. This will allow the send_file() function to
+        # download the data into a .CSV file on the client's computer.
+        mem = io.BytesIO()
 
-        # Write each value in the row into the text buffer after converting it into a string using the stringify()
-        # function.
-        writer.writerow([stringify(v) for v in row])
+        # Adds the Unicode characters 'U+FEFF' to the beginning of the 'io' buffer, indicating what needs to be encoded
+        # into UTF-8 for download. This ensures that characters such as * are interpreted as * in the csv rather than
+        # being converted into letters. Also known as 'Byte Order Mark'.
+        mem.write("\ufeff".encode("utf-8"))
+        # The text data written to the 'io' is converted into binary UTF-8 code.
+        mem.write(output.getvalue().encode("utf-8"))
+        # Cursor is set back to the beginning so that the flask app can read the binary buffer from the beginning.
+        mem.seek(0)
 
-    # 'BytesIO()' converts the 'io' buffer from text data into bytes. This will allow the send_file() function to
-    # download the data into a .CSV file.
-    mem = io.BytesIO()
+        # Log that the CSV was exported successfully.
+        logger.info('CSV successfully prepared for exportation.')
 
-    # Adds the Unicode characters 'U+FEFF' to the beginning of the 'io' buffer, indicating what needs to be encoded into
-    # UTF-8 for download. This ensures that characters such as * are interpreted as * in the csv rather than being
-    # converted into letters. Also known as 'Byte Order Mark'.
-    mem.write("\ufeff".encode("utf-8"))
-    # The text data written to the 'io' is converted into binary UTF-8 code.
-    mem.write(output.getvalue().encode("utf-8"))
-    # Cursor is set back to the beginning so that the flask app can read the binary buffer from the beginning.
-    mem.seek(0)
+        # Returns the output from the send_file() function. send_file() returns the binary data (mem) into a .CSV file
+        # which is exported to the User as a file called 'export.csv'.
+        return send_file(
+            mem,
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name=f"{db_name}_query.csv",
+        )
 
-    # Returns the output from the send_file() function. send_file() returns the binary data (mem) into a .CSV file
-    # which is exported to the User as a file called 'export.csv'.
-    return send_file(
-        mem,
-        mimetype="text/csv",
-        as_attachment=True,
-        download_name="export.csv",
-    )
-
+    # Raise and exception if there is an error generating the CSV.
+    except Exception as e:
+        # Log the exception as an error.
+        logger.error(f'CSV Export Error: Something went wrong: {e}')
+        # Notify the User of the error.
+        flash(f'❌ CSV Export Error: Failed to prepare CSV. CSV cannot be exported.')
+        return redirect(url_for("query_page", db_name=db_name))
 
 # ---------------------------------------------------------------
-# EXPORT: Excel of current results
+# Initialise flask app
 # ---------------------------------------------------------------
-@app.route("/export_excel", methods=["POST"])
-def export_excel():
-    columns = json.loads(request.form["columns"])
-    rows = json.loads(request.form["rows"])
-
-    wb = Workbook()
-    ws = wb.active
-    ws.append(columns)
-
-    for r in rows:
-        ws.append(r)
-
-    stream = io.BytesIO()
-    wb.save(stream)
-    stream.seek(0)
-
-    return send_file(
-        stream,
-        as_attachment=True,
-        download_name="export.xlsx",
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
-
-
-if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=True)
+#if __name__ == '__main__':
+#    app.run(host='127.0.0.1', port=5000, debug=True)

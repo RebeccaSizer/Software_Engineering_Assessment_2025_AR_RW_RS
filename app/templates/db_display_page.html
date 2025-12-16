@@ -80,15 +80,10 @@
 
 <!-- EXPORT BUTTONS -->
 <form action="/export_csv" method="POST" style="display:inline;">
+    <input type="hidden" name="db_name" value="{{ db_name }}">
     <input type="hidden" name="columns" value='{{ export_columns_json | safe }}'>
     <input type="hidden" name="rows" value='{{ export_rows_json | safe }}'>
     <button type="submit">Export CSV</button>
-</form>
-
-<form action="/export_excel" method="POST" style="display:inline;">
-    <input type="hidden" name="columns" value='{{ export_columns_json | safe }}'>
-    <input type="hidden" name="rows" value='{{ export_rows_json | safe }}'>
-    <button type="submit">Export Excel</button>
 </form>
 
 <table>
