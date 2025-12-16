@@ -181,8 +181,11 @@ After running a query or filtering the database, you can save the annotated resu
 | Issue                     | Possible Cause                                         | Suggested Action                                                               |
 |---------------------------|--------------------------------------------------------|--------------------------------------------------------------------------------|
 | "File type not supported" | Selected file is not `.vcf` or `.vcf.gz`               | Ensure your input file is in the correct format                                |
+|---------------------------|--------------------------------------------------------|--------------------------------------------------------------------------------|
 | Application not loading   | Docker not running, or Conda environment not activated | Start Docker or activate the Conda environment using `conda activate sea_venv` |
+|---------------------------|--------------------------------------------------------|--------------------------------------------------------------------------------|
 | No ClinVar results        | Variant absent in ClinVar or VCF formatting issue      | Verify the variant exists and the VCF file is correctly formatted              |
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ```
 ---
 
@@ -215,5 +218,5 @@ After running a query or filtering the database, you can save the annotated resu
 
 For assistance, please contact the project maintainer or submit an issue on GitHub:  
 
-- **Email:** [rebecca.sizer@postgrad.manchester.ac.uk] 
-- **GitHub Issues:** [[insert GitHub repository issues link here](https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS.git)]
+- **Email:** rebecca.sizer@postgrad.manchester.ac.uk
+- **GitHub Issues:** https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS/issues
