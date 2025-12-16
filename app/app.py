@@ -1129,11 +1129,13 @@ def export_csv():
 
     """
     # Log that the User wants to download a table.
-    logger.info('User has elected to download the table on the UI.')
+    logger.info('User has elected to download the table on the UI in .CSV format.')
 
-    # Parses the headers and rows from the table into Python objects, 'columns' and 'rows', respectively.
+    # Parses the headers and rows from the table into 'columns' and 'rows' Python objects, respectively.
     columns = json.loads(request.form["columns"])
     rows = json.loads(request.form["rows"])
+
+    logger.info(f'Preparing CSV export: {len(columns)} columns x {len(rows)} rows')
 
     def stringify(value):
         """
@@ -1184,9 +1186,17 @@ def export_csv():
     writer = csv.writer(output)
     # Writes the headers from the table into the text buffer.
     writer.writerow(columns)
-    # Iterates through each row and...
+    
+    # Iterate through each row.
     for row in rows:
-        # ...writes each value in the row into the text buffer after converting it into a string using the stringify()
+
+        # If the number of values in a row is not equal to the number of headers in 'columns', log a warning
+        if len(row) != len(columns):
+            logger.warning(f'The number of values in this row is not as expected: {row}')
+            logger.debug(f'No. of headers: {len(columns)}; No. of values: {len(row)}')
+
+
+        # Write each value in the row into the text buffer after converting it into a string using the stringify()
         # function.
         writer.writerow([stringify(v) for v in row])
 

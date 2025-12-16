@@ -513,7 +513,8 @@ def variant_annotations_table(filepath, db_name):
 
             try:
                 vv_response = fetch_vv(variant)
-                # The time module creates a 0.5s delay after each request to Variant Validator (VV), so that VV is not overloaded with requests.
+                # The time module creates a 0.5s delay after each request to Variant Validator (VV), so that VV is not
+                # overloaded with requests.
                 time.sleep(0.5)
 
             # Raise an exception if fetch_vv is not working.
@@ -553,9 +554,11 @@ def variant_annotations_table(filepath, db_name):
             # Raise an exception if an error is not caught within the try statement.
             except Exception as e:
                 # Log the error using the output from the exception.
-                logger.error(f'variant_annotations_table: {file}: {variant}: Unable to process the response from fetch_vv function: {e}')
+                logger.error(f'variant_annotations_table: {file}: {variant}: '
+                             f'Unable to process the response from fetch_vv function: {e}')
                 # Notify the User that the variant cannot be queried through VariantValidator.
-                flash(f'{file}: {variant}: ❌ Unable to query this variant through VariantValidator. Variant not added to {db_name}.db.')
+                flash(f'{file}: {variant}: ❌ Unable to query this variant through VariantValidator. '
+                      f'Variant not added to {db_name}.db.')
                 continue
 
             # clinvar.db is queried using clinvar_annotations() from clinvar_functions.py to retrieve the variant
@@ -570,7 +573,8 @@ def variant_annotations_table(filepath, db_name):
             # Raise an exception if clinvar_annotations is not working.
             except Exception as e:
                 # Log the error using the output from the exception.
-                logger.error(f'variant_annotations_table: {file}: {variant}: Failed to execute clinvar_annotations function: {e}', exc_info=True)
+                logger.error(f'variant_annotations_table: {file}: '
+                             f'{variant}: Failed to execute clinvar_annotations function: {e}')
                 # Notify the User that a variant summary record cannot be retrieved from clinvar.db.
                 flash(f'{file}: {variant}: ❌ Unable to query clinvar.db. Variant not added to {db_name}.db.')
                 continue
@@ -580,8 +584,10 @@ def variant_annotations_table(filepath, db_name):
                 # If no response was received from clinvar_annotations or the function returned a blank response, log
                 # the error and notify the User through the flask app. Then move onto the next varaiant.
                 if not clinvar_response or len(clinvar_response) == 0:
-                    logger.warning(f'variant_annotations_table: {file}: {variant}: Variant summary record for {nc_variant} not found in clinvar.db.')
-                    flash(f'{file}: {variant}: ❌ Variant summary record could not be found in clinvar.db. Variant not added to {db_name}.db.')
+                    logger.warning(f'variant_annotations_table: {file}: {variant}: '
+                                   f'Variant summary record for {nc_variant} not found in clinvar.db.')
+                    flash(f'{file}: {variant}: ❌ Variant summary record could not be found in clinvar.db. '
+                          f'Variant not added to {db_name}.db.')
                     continue
 
                 # If the response received from fetch_vv is a string and not the tuple, log the error and notify the

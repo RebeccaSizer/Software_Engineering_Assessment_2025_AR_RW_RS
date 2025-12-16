@@ -107,7 +107,7 @@ def connection_error(e, variant, API, url):
 
 def json_decoder_error(e, variant, API, url):
     # Log JSONDecodeError exceptions.
-    logger.error(f'{variant}: ValueError from {API}: Response was not in JSON format. Request: {url}')
+    logger.error(f'{variant}: JSONDecodeError from {API}: Response was not in JSON format. Request: {url}')
     # Return a flash message to the function in database_functions.py, so that it can be appended to the file name.
     # This will help the User understand where along the API request process failed.
     return f'{variant}: ❌ Response from {API} was not in JSON format.'
