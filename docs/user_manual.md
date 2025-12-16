@@ -4,34 +4,34 @@
 ## 1. Introduction
 
 ### What is SEA?
-SEA (Software Engineering Assessment 2025) is a web-based application designed to annotate VCF files with variant information retrieved from ClinVar.  
+SEA (Software Engineering Assessment 2025) is a web-based application designed to annotate VCF files with variant information retrieved from ClinVar. 
+
 The tool provides a simple interface for uploading variant files and generating annotated output.
 
 ### Who is this manual for?
 - Clinical scientists  
-- Bioinformaticians  
-- Trainees using SEA as part of genomic data interpretation  
-- Anyone installing or using the SEA application (Docker or local)
+- Trainees using SEA_2025 as part of genomic data interpretation  
+- Anyone installing or using the SEA_2025 application (Docker or local)
 
 ---
 
 ## 2. Key Features
 
-- Upload VCF files through a clean web interface  
+- Upload VCF files through a web interface  
 - Automated retrieval of ClinVar annotation  
-- Download annotated outputs in spreadsheet format  
+- Download annotated outputs in .csv format
+- Query and filter database of annotated variants 
 - Runs via Docker or directly on a local machine  
-- Lightweight and fast interface suitable for clinical environments
 
 ---
 
 ## 3. System Requirements
 
-- Ubuntu Linux recommended  
+- Python **3.13**
+- Git  
 - Conda (for local installation)  
-- Docker (optional, for containerised deployment)  
-- Python 3.13 (installed automatically via Conda)
-
+- Docker (optional but recommended)  
+- Internet connection 
 ---
 
 ## 4. Installation Options
@@ -71,11 +71,28 @@ http://localhost:5000
 
 ### 6.1 Home Page Overview
 
-- Create or Add to a Database
-    - Select Variant File button (Choose File)
-    - Option to enter or select a database name
-- Query an Existing Database
-- Upload a Database for Querying
+The Home Page provides access to the core functionality of SEA. From this page, users can create new databases, add variants to existing databases, or query existing data.
+
+#### Create or Add to a Database
+This option allows users to create a new database or add variants to an existing one.
+
+- Click **Choose files** to choose a local variant file (File must be in .csv or .vcf format).
+- Enter a new database name or select an existing database from the dropdown. 
+- Click **Create database** to create or update the database with the uploaded variants  
+- While the database is being created or updated, a status message (**“Loading database. Please wait…”**) will be displayed. Processing time may vary depending on file size.
+- 
+
+#### Query an Existing Database
+This option allows users to query a previously created database.
+
+- Select a database from the **Database Selection** dropdown menu  
+- Submit the query to retrieve variant annotations  
+
+#### Upload a Database for Querying
+This option allows users to upload an existing database file for use within SEA.
+
+- Click **Choose File** to select a local database file  
+- Upload the file to make the database available for querying  
 
 ### 6.2 Uploading a VCF File
 
