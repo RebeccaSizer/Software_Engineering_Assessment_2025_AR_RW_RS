@@ -35,6 +35,8 @@ def variant_parser(file):
     skip_number = 0
     # A counter to count the number of variants that were parsed (recommended by ChatGPT).
     parsed_number = 0
+    # The filename of the variant file that variants are being parsed from, including the file extension.
+    filename = file.split('/')[-1]
 
     # Check that the filepath at the end of the file path can be accessed.
     try:
@@ -47,24 +49,23 @@ def variant_parser(file):
 
             # Iterates through each line in the .vcf file.
             for line in lines:
-                # Identifies the line number of the line currently being processed through the loop.
-                line_number = line_number + 1
-
-                # Ignores lines that begin with '#'.
+                # Ignore lines that begin with '#'.
                 if line.startswith('#'):
                     line_number = line_number + 1
                     continue
 
-                # Identifies variant lines without at least CHROMOSOME; POSITION; ID; REF; ALT values and skips them.
+                # Identify variant lines without at least CHROMOSOME; POSITION; ID; REF; ALT values and skip them.
                 elif len(line.split('\t')) < 5:
+                    # Identify the line number of the line currently being processed through the loop.
+                    line_number = line_number + 1
                     # Increase the counter for the number of lines that were skipped by 1.
                     skip_number = skip_number + 1
                     # Log a message to help identify which line was skipped.
                     logger.warning(
                         f"Variant Parser Warning: "
-                        f"Variant in line {line_number} from {file.split('/')[-1]} is irregular and was not parsed.")
+                        f"Variant in line {line_number} from {filename} is irregular and was not parsed.")
                     # Notify the User which variant was not parsed.
-                    flash(f"⚠ Variant Parser Warning: Variant in line {line_number} from {file.split('/')[-1]} is "
+                    flash(f"⚠ Variant Parser Warning: Variant in line {line_number} from {filename} is "
                           f"irregular and was not parsed.")
                     continue
 
@@ -82,8 +83,10 @@ def variant_parser(file):
                         # Combines the above values into a format that will support queries to Variant Validator.
                         variant = f'{chromosome}-{position}-{ref}-{alt}'
 
+                        # Identify the line number of the line currently being processed through the loop.
+                        line_number = line_number + 1
                         # Log the variant that was parsed.
-                        logger.info(f'Variant Parser: {variant} parsed from line {line_number} in {file.split('/')[-1]}.')
+                        logger.info(f'Variant Parser: {variant} parsed from line {line_number} in {filename}.')
                         # Increase the counter that counts the number of variants that were parsed by 1.
                         parsed_number = parsed_number + 1
 
@@ -94,9 +97,9 @@ def variant_parser(file):
                         # Log a message to help identify which line was skipped.
                         logger.error(
                             f"Variant Parser ValueError: Variant information in line {line_number} from "
-                            f"{file.split('/')[-1]} is irregular and was not parsed: {e}")
+                            f"{filename} is irregular and was not parsed: {e}")
                         # Notify the User which variant was not parsed.
-                        flash(f"❌ Variant Parser Error: Variant in line {line_number} from {file.split('/')[-1]} is "
+                        flash(f"❌ Variant Parser Error: Variant in line {line_number} from {filename} is "
                               f"irregular and was not parsed.")
                         continue
 
@@ -131,9 +134,9 @@ def variant_parser(file):
                     # Print a message to help identify which line was skipped.
                     logger.warning(
                         f"Variant Parser Warning: "
-                        f"Variant in row {line_number} from {file.split('/')[-1]} is irregular and was not parsed.")
+                        f"Variant in row {line_number} from {filename} is irregular and was not parsed.")
                     # Notify the User which variant was not parsed.
-                    flash(f"⚠ Variant Parser Warning: Variant in row {line_number} from {file.split('/')[-1]} is "
+                    flash(f"⚠ Variant Parser Warning: Variant in row {line_number} from {filename} is "
                           f"irregular and was not parsed.")
                     continue
 
@@ -155,7 +158,7 @@ def variant_parser(file):
                         variant = f'{chromosome}-{position}-{ref}-{alt}'
 
                         # Log the variant that was parsed.
-                        logger.info(f'Variant Parser: {variant} parsed from row {line_number} in {file.split('/')[-1]}.')
+                        logger.info(f'Variant Parser: {variant} parsed from row {line_number} in {filename}.')
                         # Increase the counter that counts the number of variants that were parsed by 1.
                         parsed_number = parsed_number + 1
 
@@ -166,9 +169,9 @@ def variant_parser(file):
                         # Log a message to help identify which line was skipped.
                         logger.error(
                             f"Variant Parser ValueError: Variant information in row {line_number} from "
-                            f"{file.split('/')[-1]} is irregular and was not parsed: {e}")
+                            f"{filename} is irregular and was not parsed: {e}")
                         # Notify the User which variant was not parsed.
-                        flash(f"❌ Variant Parser Error: Variant in row {line_number} from {file.split('/')[-1]} is "
+                        flash(f"❌ Variant Parser Error: Variant in row {line_number} from {filename} is "
                               f"irregular and was not parsed.")
                         continue
 
@@ -178,28 +181,28 @@ def variant_parser(file):
     # Raise an exception if the variant file could not be found.
     except FileNotFoundError as e:
         # Log the error.
-        logger.error(f"Variant Parser Error: Uploaded variant file '{file.split('/')[-1]}' not found: {e}")
+        logger.error(f"Variant Parser Error: Uploaded variant file '{filename}' not found: {e}")
         # Notify the User.
-        flash(f'❌ Variant Parser Error: {file.split('/')[-1]} could not be found. Please try again.')
+        flash(f'❌ Variant Parser Error: {filename} could not be found. Please try again.')
         return
 
     # Raise an exception if the User does not have permission to access the variant file.
     except PermissionError as e:
         # Log the error.
-        logger.error(f"Variant Parser Error: Permission denied from accessing uploaded variant file '{file.split('/')[-1]}': {e}")
+        logger.error(f"Variant Parser Error: Permission denied from accessing uploaded variant file '{filename}': {e}")
         # Notify the User.
-        flash(f'❌ Variant Parser Error: You do not have permission to access {file.split('/')[-1]}.')
+        flash(f'❌ Variant Parser Error: You do not have permission to access {filename}.')
         return
 
     if not variant_list or len(variant_list) == 0:
         # Log that no variants were parsed.
-        logger.warning(f'Variant Parser: Nothing was parsed from {file.split('/')[-1]}.')
+        logger.warning(f'Variant Parser: Nothing was parsed from {filename}.')
         # Notify the User.
-        flash(f'⚠ Variant Parser: Nothing was parsed from {file.split('/')[-1]}.')
+        flash(f'⚠ Variant Parser: Nothing was parsed from {filename}.')
         return
 
     # Log the number of variants that were parsed and the number of variants that were skipped.
-    logger.info(f'Variant Parser: {file.split('/')[-1]}: Parsed: {parsed_number}; Skipped: {skip_number}.')
+    logger.info(f'Variant Parser: {filename}: Parsed: {parsed_number}; Skipped: {skip_number}.')
 
     # Returns the patient ID and the list of variants from the input file.
     return variant_list
