@@ -43,5 +43,5 @@ def stringify(value):
     if string_value.startswith(("=", "+", "-", "@", "*")):
         return "'" + value
 
-    # Other values are converted into a string.
+    # Return the string value.
     return string_value
