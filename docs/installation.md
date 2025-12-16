@@ -7,7 +7,7 @@
 SEA_2025 is a web application designed to annotate VCF files with ClinVar variant information.  
 This guide explains how to install SEA_2025 using **Docker (recommended)** or **locally on your machine**.
 
-#### Operating System:
+### Operating System:
 SEA_2025 has been developed on Ubuntu linux systems.<br>
 We cannot guarantee it's compatibility with other operating systems.
 
@@ -39,7 +39,7 @@ cd Software_Engineering_Assessment_2025_AR_RW_RS
 ---
 
 ## 4. Installation using Docker
-#### 4.1 Install Docker:
+### 4.1 Install Docker:
 SEA_2025 is configured to run using a docker container, and thus it is necessary that docker is installed on your system as a prerequisite. 
 ```bash
 sudo apt update
@@ -48,7 +48,7 @@ docker --version
 ```
 If Docker prints a version number, installation was successful.
 
-#### 4.2 Build the docker image:
+### 4.2 Build the docker image:
 This can take a few minutes.
 
 ```
@@ -60,13 +60,13 @@ administrative privileges. If you encounter a "permission denied while trying to
 to the Docker daemon" error, prefix Docker commands with `sudo`.
 
 If you do not have permission to use `sudo`, please contact your system administrator.
-#### 4.3 Run the docker container:
+### 4.3 Run the docker container:
 
 ```
 docker run -p 5000:5000 sea_app
 ```
 
-#### 4.4 Successful installation:
+### 4.4 Successful installation:
 
 If Docker runs successfully, you will see the following printout in the terminal: 
 ```
@@ -79,7 +79,7 @@ If Docker runs successfully, you will see the following printout in the terminal
 The application will now be available at:
 http://127.0.0.1:5000
 
-#### 4.5 Start using SEA_2025
+### 4.5 Start using SEA_2025
 Congratulations, SEA_2025 has been installed successfully and you can now start annotating vcfs with variant information from ClinVar.
 
 Please refer to the [User Manual](user_manual.md) for instructions on how to use SEA_2025.
@@ -91,13 +91,13 @@ Please refer to the [User Manual](user_manual.md) for instructions on how to use
 SEA_2025 includes a pre-configured `environment.yml` file that sets up a dedicated
 Conda environment for running the application locally.
 
-#### 5.1 Ensure Conda is installed
+### 5.1 Ensure Conda is installed
 
 If you do not already have Conda on your system, install **Miniconda** or **Anaconda**:
 
 (https://docs.conda.io/en/latest/)
 
-#### 5.2 Create the environment
+### 5.2 Create the environment
 
 From the root folder of the repository:
 
@@ -111,13 +111,13 @@ This will create an environment named:
 sea_venv
 ```
 
-#### 5.3 Activate the environment
+### 5.3 Activate the environment
 
 ```bash
 conda activate sea_venv
 ```
 
-#### 5.4 Install the SEA_2025 package
+### 5.4 Install the SEA_2025 package
 
 Once the environment is activated, install the application and its Python
 dependencies using pip:
@@ -128,13 +128,13 @@ pip install .
 
 *(This installs the local package defined by your `pyproject.toml`.)*
 
-#### 5.5 Run the application locally
+### 5.5 Run the application locally
 
 ```bash
 python main.py
 ```
 
-#### 6. Access the web app
+### 5.6 Access the web app
 
 By default, the app will run on:
 

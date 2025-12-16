@@ -1,4 +1,4 @@
-# SEA_2025
+# SEA_2025 – Variant Database Query Tool
 
 <img src="images/SEA_logo.png" width="200" height="227" />
 
@@ -29,13 +29,13 @@ SEA is a webapp prototype tool for annotating germline variant data using inform
 
 ## Getting Started
 ### Installation
-To install and set up SEA_2025, see the [Installation Guide](installation.md).
+To install and set up SEA_2025, see the [Installation Guide](https://rebeccasizer.github.io/Software_Engineering_Assessment_2025_AR_RW_RS/installation/).
 
 ### User Guide
-To learn how to run each function in SEA_2025, please see the [User Manual](user_manual.md).
+To learn how to run each function in SEA_2025, please see the [User Manual](https://rebeccasizer.github.io/Software_Engineering_Assessment_2025_AR_RW_RS/user_manual/).
 
 ### Technical Manual
-For bioinformaticians and other software developers looking to learn more about, or contribute to SEA_2025, please refer to the [Technical Manual](technical_manual.md)
+For bioinformaticians and other software developers looking to learn more about, or contribute to SEA_2025, please refer to the [Technical Manual](https://rebeccasizer.github.io/Software_Engineering_Assessment_2025_AR_RW_RS/technical_manual/)
 
 ## Continuous Integration
 Automated unit and functional testing and continuous integration testing have been set up with GitHub Actions (see .github/workflows) and Jenkins CI (See Jenkinsfile).

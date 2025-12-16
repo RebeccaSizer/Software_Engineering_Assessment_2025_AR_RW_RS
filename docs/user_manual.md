@@ -3,8 +3,8 @@
 
 ## 1. Introduction
 
-### 1.1 What is SEA?
-SEA (Software Engineering Assessment 2025) is a web-based application designed to annotate VCF files with variant information retrieved from ClinVar. 
+### 1.1 What is SEA_2025 – Variant Database Query Tool?
+SEA (Software Engineering Assessment 2025) is a web-based application designed to annotate variants with variant information retrieved from ClinVar. 
 
 The tool provides a simple interface for uploading variant files and generating annotated output.
 
@@ -135,7 +135,7 @@ After querying or selecting a database, you can filter and sort the results to f
 - Click **Display Whole Database** on the **Viewing and Querying an Existing Database** page.  
   - This will display all entries in the database and provide sorting and filtering options.  
 
-- **Filtering:**  
+**Filtering:**  
   - You can filter the database by any of the following columns by selecting the desired option from the dropdown menu:  
     - `Patient_ID`  
     - `variant_NC`  
@@ -149,7 +149,7 @@ After querying or selecting a database, you can filter and sort the results to f
     - `Review_status`  
   - Once you select a column to filter by, the dropdown will auto-populate with the available values for that column, allowing you to select a specific value.  
 
-- **Sorting:**  
+**Sorting:**  
   - After filtering, you can sort the results by any of the following columns using the sort dropdown:  
     - `Patient_ID`  
     - `variant_NC`  

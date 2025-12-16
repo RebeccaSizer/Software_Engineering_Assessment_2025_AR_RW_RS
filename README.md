@@ -29,10 +29,10 @@ SEA is a webapp prototype tool for annotating germline variant data using inform
 - View all matching variants and their annotations through the web interface
 
 ## Quick Start
-1. [Index](index.md)
-2. [Installation Guide](installation.md)
-3. [User Manual](user_manual.md)
-4. [Technical Manual](technical_manual.md)
+1. [Index](https://rebeccasizer.github.io/Software_Engineering_Assessment_2025_AR_RW_RS/)
+2. [Installation Guide](https://rebeccasizer.github.io/Software_Engineering_Assessment_2025_AR_RW_RS/installation/)
+3. [User Manual](https://rebeccasizer.github.io/Software_Engineering_Assessment_2025_AR_RW_RS/user_manual/)
+4. [Technical Manual](https://rebeccasizer.github.io/Software_Engineering_Assessment_2025_AR_RW_RS/technical_manual/)
 
 
 ## Continuous Integration
