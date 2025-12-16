@@ -1,115 +1,205 @@
 # Technical Manual
 
-This is the technical manual for Sea_2025 - Variant Database Query Tool. The intended audience is clincial scientists.
+This document provides the technical manual for **SEA_2025 – Variant Database Query Tool**.  
+The intended audience is **clinical scientists and developers** who wish to understand, maintain, or extend the application.
 
-## GitHub
-The source code for Sea_2025 can be found here: [(https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS.git)]
+---
 
+## 1. GitHub Repository
 
-## Project Architecture
+The source code for SEA_2025 is available at:
+
+- https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS.git
+
+The repository contains the full application source code, tests, documentation, and configuration files required to run and develop SEA_2025.
+
+---
+
+## 2. Project Architecture
+
+SEA_2025 is a Python-based web application built using Flask, with a modular backend architecture to support variant parsing, ClinVar annotation, database storage, and querying.
+
 Some files have been omitted for readability.
-# this needs edit
+
 ```
-├── Software_Engineering_Assessment_2025_AR_RW_RS 
-│   ├── 
-│   │   ├── 
-│   │   ├── 
-│   │   └── 
-│   ├── 
-│   ├── 
-│   ├── 
-│   ├── 
-│   ├── 
-│   ├── 
-│   ├── 
-│   │   └── 
-│   ├── 
-│   └── 
-├── 
-│   ├── 
-│   └── 
-├── 
-├── pyproject.toml
-├── environment.yaml
-├── Jenkinsfile
-├── Dockerfile
-├── 
-├── README.md
-├── 
-├── LICENSE
-├── mkdocs.yaml
-├── docs
-│   ├── images
-│   │   ├── logo.jpg
-│   ├── index.md
-│   ├── installation.md
-│   ├── technical_manual.md
-│   └── user_manual.md
+Software_Engineering_Assessment_2025_AR_RW_RS 
+├── app
+│   ├── app.py
+│   └── templates
+|       ├── db_display_page.html
+|       ├── db_query_page.html   
+|       └── homepage.html
 ├── assets
 │   └── logo.jpg
-└── test
-    ├── 
-    │   └── 
-    ├── 
-    ├── 
-    ├── 
-    ├── 
-    ├── 
-    ├── 
-    ├── 
-    ├── 
-    └── 
+├── docs
+|   |── images
+|   |   └── SEA_logo.png
+|   ├── index.md
+|   ├── installation.md  
+|   |── technical_manual.md
+|   └── user_manual.md
+├── logs
+├── tests
+|   |── tests_integrate
+|   |   └── user_manual.md  
+|   └── tests_unit
+|       ├── test_clinvar.py  
+|       |── test_db_tools.py
+|       |── test_flask_app.py
+|       |── test_parser.py
+|       └── test_vv_search.py
+├── tools
+|   |── modules
+|   |   ├── clinvar_functions.py  
+|   |   |── database_functions.py
+|   |   └── vv_functions.py 
+|   └── utils
+|       ├── error_handlers.py 
+|       |── logger.py
+|       |── parser.py
+|       |── stringify.py
+|       └── timer.py
+├── Dockerfile
+├── environment.yml
+├── LICENSE
+├── main.py
+├── mkdocs.yaml
+├── pyproject.toml
+├── README.md
+└──  requirements.txt 
 ```
-## Running Tests
+---
 
-For peace of mind after installation or modifying the code, you can check that the functional and unit tests all pass.
+## 3. Key Components
 
-Pytest is installed as a requirement during installation for this purpose. Therefore, you can simply run the following command and observe if all tests pass:
-```
+### 3.1 Flask Application (`app/`)
+
+- `app.py`  
+  Defines Flask routes, request handling, and communication between the frontend and backend modules.
+
+- `templates/`  
+  HTML templates rendered by Flask to provide the user interface.
+
+### 3.2 Backend Modules (`tools/`)
+
+- `clinvar_functions.py`  
+  Handles querying of the ClinVar API and processing of returned annotation data.
+
+- `vv_functions.py`  
+  Interfaces with the Variant Validator REST API to validate and normalise variant representations.
+
+- `database_functions.py`  
+  Manages SQLite database creation, updating, querying, and exporting.
+
+### 3.3 Utilities (`tools/utils/`)
+
+- `parser.py`  
+  Parses uploaded VCF and CSV files into a standard internal format.
+
+- `logger.py`  
+  Centralised logging for application events and errors.
+
+- `error_handlers.py`  
+  Provides consistent error handling across the application.
+
+- `timer.py`  
+  Used to measure and log processing times for long-running operations.
+
+---
+
+## 4. Database Design
+
+SEA_2025 uses a local **SQLite database** to store:
+
+- Patient identifiers  
+- Variant representations (NC, NM, NP)
+- Gene symbols and HGNC IDs  
+- ClinVar classification, conditions, review status, and star ratings
+
+Databases can be created, updated, queried, and exported via the web interface.
+
+---
+
+## 5. External APIs
+
+SEA_2025 integrates with two external APIs:
+
+### 5.1 ClinVar API
+
+- Used to retrieve clinical significance, conditions, review status, and star ratings for variants.
+- Variants not present in ClinVar are flagged accordingly.
+
+### 5.2 Variant Validator REST API
+
+- Used to validate and normalise variant representations.
+- Supports multiple formats including NC, NM, ENST, and gene-based nomenclature.
+
+- REST API: https://rest.variantvalidator.org/  
+- GitHub repository: https://github.com/openvar/rest_variantValidator
+
+---
+
+## 6. Running Tests
+
+SEA_2025 includes a comprehensive suite of unit and integration tests to ensure reliability and correctness.
+
+`pytest` is installed as part of the environment setup.
+
+To run all tests:
+
+```bash
 pytest
 ```
-#### Output: CHANGE FOR ACTUAL RESULTS
-```
-(base) root@37a505720376:/app# pytest
-==================================== test session starts =======================================
-platform linux -- Python 3.12.4, pytest-8.3.3, pluggy-1.5.0
-rootdir: /app
-configfile: pyproject.toml
-collected 144 items                                                                                                                                                                                   
+---
 
-test/db_tests/test_db.py ...                                                              [  2%]
-test/test_bedfile_functions.py .....................                                      [ 16%]
-test/test_check_panel.py ...........                                                      [ 24%]
-test/test_compare_bedfiles.py .....                                                       [ 27%]
-test/test_compare_panel_versions.py ...............                                       [ 38%]
-test/test_gene_to_panels.py ........................................                      [ 65%]
-test/test_generate_bed.py ...............                                                 [ 76%]
-test/test_panelapp.py .....................                                               [ 90%]
-test/test_variantvalidator.py .............                                               [100%]
+## 7. Logging and Error Handling
 
-=============================== 144 passed in 75.38s (0:01:15) =================================
-```
-## API Usage in Sea_2025
-The majority of Sea_2025 functions work by making use of two APIs. The [ClinVar API](INSERT LINK), and the [Variant Validator REST API](https://rest.variantvalidator.org/) developed by the University of Leeds and University of Manchester. 
+- Application logs are written to the `logs/` directory.
+- Errors are captured and presented to the user in a clear, user-friendly format within the web interface.
+- Detailed stack traces and debugging information are retained in the log files to support troubleshooting and development.
 
-If you wish to know more about either API and how they work, please refer to their individual documentation or repositories. 
-- [Insert link for clinvar docs 
-- [Variant Validator repository available here](https://github.com/openvar/rest_variantValidator)
+---
 
-We welcome contributions to improve [Sea_2025](https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS.git)! Here's how you can get involved:
+## 8. Containerisation
 
-1. **Report Issues** - 
-    - Found a bug or have a suggestion? Open an issue on our GitHub issues page. 
-    - Add a label to describe the type of issue, e.g. bug, enhancement.
-    - State whether you will be contributing code to fix the issue
-2. **Submit Changes**
-    - Fork the repository and create a new branch for your changes.
-    - Make your edits and a thorough suite of tests. Note that we make use of:
-      - numpy style docstrings
-      - `pylint` or `black` to ensure PEP-8 compliance
-      - `coverage` to check test coverage, and a .coveragerc to pass over code not requiring tests. 
-    - Push up to GitHub and check that automated tests with GitHub Actions still all pass OK.
-    - Submit a pull request with a clear description of your changes, and check that JenkinsCI integration testing still all works OK. 
-      - Please make use of the pull request template as appropriate. Minor code changes may not require the full checklist to be fulfilled.
-3. **Provide Feedback or Ask Questions**
-    - For questions or feedback, please email [rebecca.sizer@postgrad.manchester.ac.uk](mailto:rebecca.sizer@postgrad.manchester.ac.uk).
+SEA_2025 includes a `Dockerfile` to support reproducible and portable deployment.
+
+- The Flask application is exposed on port **5000**.
+- Containerisation ensures a consistent runtime environment across different systems and installations.
+
+---
+
+## 9. Development and Contribution Guidelines
+
+Contributions to SEA_2025 are welcome and encouraged.
+
+### 9.1 Reporting Issues
+
+- Bugs, feature requests, or suggestions should be reported via the GitHub issue tracker.
+- Issues should be labelled appropriately (e.g. `bug`, `enhancement`).
+- Contributors are encouraged to indicate whether they intend to submit a fix.
+
+### 9.2 Submitting Code Changes
+
+1. Fork the repository and create a new feature branch.
+2. Implement changes with appropriate unit and/or integration tests.
+3. Follow the project coding standards:
+   - NumPy-style docstrings
+   - PEP8 compliance using `black` or `pylint`
+   - Test coverage assessed using `coverage`
+4. Ensure all automated tests pass successfully.
+5. Submit a pull request with a clear and concise description of the changes.
+
+### 9.3 Support and Contact
+
+For questions, feedback, or support, please contact:
+
+- **Email:** rebecca.sizer@postgrad.manchester.ac.uk  
+- **GitHub Issues:** via the repository issue tracker
+
+---
+
+## 10. Intended Use and Limitations
+
+SEA_2025 is intended for **research and educational purposes** only.  
+It has not been validated for direct clinical reporting and should be used in accordance with local governance, validation, and quality management policies.
