@@ -610,12 +610,13 @@ def get_mane_nc(variant: str):
                 flash(f'Variant Query Error: {error_message}')
                 return
 
+
         # Raise an exception if there is a problem with the connection to the remote server.
         except requests.exceptions.ConnectionError as e:
             error_message = connection_error(e, variant, 'VariantValidator', url_vv)
             # Display a flash message to the User that will help them understand why the API request process failed.
             flash(f'Variant Query Error: {error_message}')
-            return
+            return error_message
 
         # Raise an exception if the response is not a JSON data type.
         except ValueError as e:
