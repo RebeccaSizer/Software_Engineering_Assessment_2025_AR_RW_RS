@@ -2,6 +2,7 @@ import os
 import re
 import csv
 import gzip
+import errno
 import sqlite3
 import requests
 from ..utils.timer import timer
@@ -46,6 +47,9 @@ def clinvar_vs_download():
             logger.info(f"Request OK. ClinVar variant summary records last modified: "
                         f"{requests.head(url).headers['Last-Modified']}")
 
+            # Break out fo the loop if the request to downloaded ClinVar summary records was successful
+            break
+
         # Catch any network or HTTP errors raised by 'requests'.
         except requests.exceptions.HTTPError as e:
 
@@ -56,7 +60,7 @@ def clinvar_vs_download():
                 # Once the error message has been received, return.
                 if error_message:
                     return
-
+                # Move to the next attempt to see if the 408 or 429 error response can be avoided.
                 continue
 
             # Handle HTTP errors that do not need to be tried again.
@@ -112,7 +116,7 @@ def clinvar_vs_download():
                          f'variant summary records: {str(e)}')
 
         else:
-            # Log the error, explaining there isn't enough disk space, using the exception output.
+            # Log that there was an error with the operating system, using the exception output.
             logger.error(f'Failed to create clinvar directory to store the variant summary records because there is '
                          f'an issue with the operating system: {str(e)}')
         return
@@ -158,7 +162,7 @@ def clinvar_vs_download():
             logger.error(f'Failed to create clinvar_db_summary.txt.gz because there is not enough disk space: {str(e)}')
 
         else:
-            # Log the error, explaining there isn't enough disk space, using the exception output.
+            # Log that there was an error with the operating system, using the exception output.
             logger.error(f'Failed to create clinvar_db_summary.txt.gz because there is an issue with the '
                          f'operating system: {str(e)}')
         return
@@ -198,7 +202,7 @@ def clinvar_vs_download():
         logger.info('Created new clinvar.db database.')
 
     # Error handler executed when exceptions related to sqlite3 are raised.
-    except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
         # sqlite_error function logs the errors appropriately.
         sqlite_error(e, 'clinvar.db')
         return
@@ -327,7 +331,7 @@ def clinvar_vs_download():
         logger.info(f'clivar.db successfully populated by {record_counter} variant summary records.')
 
     # Error handler executed when exceptions related to sqlite3 are raised.
-    except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
         # sqlite_error function logs the errors appropriately.
         sqlite_error(e, 'clinvar.db')
         return
@@ -335,22 +339,22 @@ def clinvar_vs_download():
     # Raise an exception if the database could not be successfully populated with variant summary records.
     except Exception as e:
         # Log the error, describing why the database could not be successfully populated, using the exception output.
-        logger.error(f'Failed to write ClinVar variant summary records into clinvar.db database.')
+        logger.error(f'Failed to write ClinVar variant summary records into clinvar.db database: {e}')
         return
 
 
 @timer
 def clinvar_annotations(nc_variant, nm_variant):
     '''
-    This function retrieves variant information from the compressed the clinvar.db database. It takes a variant
-    in NC_ and NM_ HGVS nomenclature as input and uses them to find the corresponding variant summary record in the
-    database. It then returns a dictionary containing the variant classification, associated conditions, star-rating
-    and Review status from that record.
+    This function retrieves variant information from the clinvar.db database. It uses the HGVS transcript description
+    and the Refseq NC_ accession number to find the corresponding variant summary record in the database. It then
+    returns a dictionary containing the variant classification, associated conditions, star-rating and Review status
+    from that record.
 
-    :params: nc_variant: The variant described in HGVS nomenclature, using the RefSeq NC_ accession number
+    :params: nc_variant: The HGVS genomic description, using the RefSeq NC_ accession number.
                    E.g.: 'NC_000011.10:g.2164285C>T'
 
-             nm_variant: The variant described in HGVS nomenclature, using the RefSeq NM_ accession number
+             nm_variant: The HGVS transcript description, using the RefSeq NM_ accession number.
                    E.g.: 'NM_000360.4:c.1442G>A'
 
     :output: clinvar_output: A python dictionary containing the variant classification, associated conditions,
@@ -372,20 +376,12 @@ def clinvar_annotations(nc_variant, nm_variant):
     # Creates a python dictionary to store the variant information from ClinVar.
     clinvar_output = {}
 
-    # Test the path to clinvar.db (recommended by ChatGPT).
-    try:
-        # Retrieve the path to this script and create a relative path to clinvar.db.
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        clinvar_db = os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar", "clinvar.db"))
+    # Retrieve the path to this script and create a relative path to clinvar.db.
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    clinvar_db = os.path.abspath(os.path.join(script_dir, "..", "..", "app", "clinvar", "clinvar.db"))
 
-        # Log where the clinvar.db is (recommended by ChatGPT).
-        logger.debug(f'Using clinvar.db SQLite database at: {clinvar_db}')
-
-    # Raise an exception if a path to clinvar.db cannot be made (recommended by ChatGPT).
-    except Exception as e:
-        #Log the error using the exception output message.
-        logger.error(f'clinvar.db path error: {str(e)}', exc_info=True)
-        return f'clinvar.db file path error whilst searching for {nc_variant}'
+    # Log where the clinvar.db is (recommended by ChatGPT).
+    logger.debug(f'Using clinvar.db SQLite database at: {clinvar_db}')
 
     # Test if a variant summary record can be retrieved from clinvar.db.
     try:
@@ -410,16 +406,24 @@ def clinvar_annotations(nc_variant, nm_variant):
         record = cursor.fetchone()
         conn.close()
 
-    # Raise an exception if clinvar.db could not be queried.
+    # Error handler executed when exceptions related to sqlite3 are raised.
+    except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
+        # sqlite_error function logs the errors appropriately and returns an error message which can be implemented
+        # into a flash message.
+        error_message = sqlite_error(e, 'clinvar.db')
+        return f'{nc_variant}: ❌ clinvar.db query error: {error_message}'
+
+    # Raise an exception if the there was an issue querying clinvar.db.
     except Exception as e:
-        # Log the error using the exception output message.
-        logger.error(f'Failed to query clinvar.db: {str(e)}', exc_info=True)
-        return f'❌ Failed to query clinvar.db whilst searching for {nc_variant}'
+        # Log the error, describing why clinvar.db could not be queried, using the exception output.
+        logger.error(f'{nc_variant}: Failed to prepare clinvar.db to be queried: {str(e)}')
+        # Return a flash message to the User, notifying them of the error.
+        return f'{nc_variant}: ❌ clinvar.db query error: Failed to prepare clinvar.db to be queried: {str(e)}'
 
     # Log which variant's summary record could not be found in clinvar.db.
     if not record:
         logger.warning(f'Could not find {nc_variant} variant summary record in clinvar.db.')
-        return f'❌ Could not find {nc_variant} variant summary record in clinvar.db'
+        return f'⚠ Could not find {nc_variant} variant summary record in clinvar.db'
 
     else:
         # Log which variant's summary record could be found in clinvar.db.

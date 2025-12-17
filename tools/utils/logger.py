@@ -7,7 +7,7 @@ from logging.handlers import RotatingFileHandler
 def create_logger():
 
     # Get the base directory file path
-    base_dir = f'{os.path.dirname(os.path.abspath(__file__))}/../../'
+    base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
     print(base_dir)
 
     # Create logger
@@ -33,7 +33,6 @@ def create_logger():
     logger.addHandler(file_handler)
 
     return logger
-
 
 # Instantiate the logger
 logger = create_logger()

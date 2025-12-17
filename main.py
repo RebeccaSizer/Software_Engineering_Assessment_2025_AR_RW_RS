@@ -1,16 +1,16 @@
 import os
 import webbrowser
-from threading import Timer
 from app.app import app
+from threading import Timer
 from tools.utils.logger import logger
 from tools.modules.clinvar_functions import clinvar_vs_download
 
 # A simple banner to appear in the terminal stdout.
-print("\n\n *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*\n",
-      "|                                                 |\n",
-      "*   Welcome to the Variant Database Query Tool!   *\n",
-      "|                                                 |\n",
-      "*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*\n\n")
+print("\n\n *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*\n",
+      "|                                                      |\n",
+      "*   Welcome to SEA: the Variant Database Query Tool!   *\n",
+      "|                                                      |\n",
+      "*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*\n\n")
 
 #Log when the app was started.
 logger.info("Application started")
@@ -32,11 +32,11 @@ logger.info("Launching flask app @ http://127.0.0.1:5000")
 
 def open_browser():
     '''
-    Function that launches the flask app automatically at startup on port 5000.
+    Function that launches the flask app automatically at startup on port 5000, unless port forwarding is required.
     '''
     webbrowser.open("http://127.0.0.1:5000")
 
-# Timer module initiates the open_browser function above after 1 second, launchning the flask app. App runs in debug
+# Timer module initiates the open_browser function above after 1 second, launching the flask app. App runs in debug
 # mode when debug=True
 if __name__ == "__main__":
     Timer(1, open_browser).start()
