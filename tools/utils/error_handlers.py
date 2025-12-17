@@ -215,8 +215,55 @@ def connection_error(e, variant, API, url):
 
 
 def json_decoder_error(e, variant, API, url):
+    """
+    This function handles json.decoder.JSONDecodeError exceptions that arise from the responses received when querying
+    an API using requests.get. Such errors typically occur when a response is meant to be in JSON format but something
+    about it prevents it fulfilling a complete JSON structure. This can include missing 
+    This function uses the exception (e), the variant, the API being queried and request URL to configure log messages
+    and flash messages tailored around the response error being handled.
+    Flash messages appear to Users of the flask app while the log messages are either printed to the stdout or log file,
+    depending on their log level.
+    As requests.get is used to query APIs, this error handler function is implemented in vv_functions.py and
+    clinvar_functions.py.
+
+    :params: e: An abbreviation of the Exception that was raised. As this function is only used in response to
+                json.decoder.JSONDecodeError, e will always be json.decoder.JSONDecodeError. e is imported
+                from the exception so that the error message can be used in the log and flash messages.
+          E.g.: json.decoder.JSONDecodeError: HTTPConnectionPool(host='localhost', port=5000): Max retries
+                exceeded with url: /api/data (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at
+                0x7f8c2a1b2f10>: Failed to establish a new connection: [Errno 111] Connection refused'))
+
+                https://rest.variantvalidator.org/VariantValidator/variantvalidator/GRCh38/11-2164285-C-T
+                /mane?content-type=application%2Fjson'
+
+       variant: The variant being queried in the request to the API. This may not always be a variant but in most cases
+                it is. The value represented by 'variant' is used to denote what is being queried and provide context so
+                that the User can understand where or why the exception was raised.
+          E.g.: '11-2164285-C-T'
+                'ClinVar_Download'
+
+           url: The URL used in the request that raised the ConnectionError exception.
+          E.g.: 'https://rest.variantvalidator.org/VariantValidator/variantvalidator/GRCh38/11-2164285-C-T
+                 /mane?content-type=application%2Fjson'
+
+           API: The API being queried in the request that raised the ConnectionError exception.
+          E.g.: 'VariantValidator'
+                'ClinVar'
+
+    :output: A message that will be incorporated into a flash message that will be displayed to the User on the
+             flask app.
+       E.g.: '11-2164285-C-T: ❌ VariantValidator server dropped the connection before sending a response.'
+
+    :command: url = 'https://rest.variantvalidator.org/VariantValidator/variantvalidator/GRCh38/11-2164285-C-T'
+                    '/mane?content-type=application%2Fjson'
+              try:
+                response = requests.get(url)
+              except requests.exceptions.ConnectionError as e:
+                error_message = connection_error(e, '11-2164285-C-T', url, 'VariantValidator')
+                flash(error_message)
+    """
     # Log JSONDecodeError exceptions.
-    logger.error(f'{variant}: JSONDecodeError from {API}: Response was not in JSON format. Request: {url}')
+    logger.error(f'{variant}: JSONDecodeError from {API}: Response was not in JSON format. Request: {url}. {e}')
     # Return a flash message to the function in database_functions.py, so that it can be appended to the file name.
     # This will help the User understand where along the API request process failed.
     return f'{variant}: ❌ Response from {API} was not in JSON format.'
