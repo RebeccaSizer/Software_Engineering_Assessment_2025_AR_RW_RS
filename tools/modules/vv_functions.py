@@ -93,8 +93,8 @@ def fetch_vv(variant: str):
                 return error_message
 
             # Raise an exception if the response is not a JSON data type.
-            except ValueError as e:
-                error_message = json_decoder_error(e, variant, 'VariantValidator', url_vv)
+            except json.decoder.JSONDecodeError as e:
+                error_message = json_decoder_error(e, variant, url_vv)
                 # Return any flash messages to the function in database_functions.py, so that it can be appended to
                 # the file name. This will help the User understand where along the API request process failed.
                 return error_message
@@ -618,8 +618,8 @@ def get_mane_nc(variant: str):
             return
 
         # Raise an exception if the response is not a JSON data type.
-        except ValueError as e:
-            error_message = json_decoder_error(e, variant, 'VariantValidator', url_vv)
+        except json.decoder.JSONDecodeError as e:
+            error_message = json_decoder_error(e, variant, url_vv)
             # Display a flash message to the User that will help them understand why the API request process failed.
             flash(f'Variant Query Error: {error_message}')
             return
