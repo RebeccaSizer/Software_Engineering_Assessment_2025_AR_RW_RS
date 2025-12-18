@@ -61,6 +61,7 @@ def fetch_vv(variant: str):
 
                 # Access the API response like its a Python dictionary.
                 data = response.json()
+                print(data)
 
             # Catch any network or HTTP errors raised by 'requests'.
             except requests.exceptions.HTTPError as e:
@@ -380,6 +381,12 @@ def get_mane_nc(variant: str):
     # Log the start of the query and the url.
     logger.info(f"User's variant query: {variant}. Querying VariantValidator for HGVS description...")
 
+     # Handle None, empty, or non-string input
+    if not variant or not isinstance(variant, str):
+        flash("⚠ Variant Query Error: No variant provided or invalid input type.")
+        logger.warning(f"Variant Query Error: Invalid input: {variant}")
+        return None
+        
     # Check if a colon is in the variant description.
     if ':' not in variant:
         # Log the variant input that didn't contain a colon.
@@ -866,10 +873,11 @@ def get_mane_nc(variant: str):
             flash('❌ {variant}: Error: There was a problem with the response from VariantValidator.')
             return
 
-#print(fetchVV('11-2164285-C-T'))
+
 
 #Example usage
 #if __name__ == "__main__":
+   # print(fetch_vv('11-2164285-C-T'))
  #   print(fetch_vv('11-2164285-C-T'))
   #  variant = "PARK7:c.515T>A"
    # output = get_mane_nc(variant)
