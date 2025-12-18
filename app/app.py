@@ -590,10 +590,6 @@ def query_page(db_name):
                 logger.info(f'User querying information about variants from {gene}...')
                 # Look for the gene symbol in the variant_annotations table of the selected database and retrieve the
                 # associated HGNC ID.
-                # *** CURRENTLY THE HGNC ID IS FOUND IF THE GENE SYMBOL EXISTS IN THE DATABASE.THE GENE SYMBOL SHOULD
-                # HAVE BEEN RUN THROUGH VARIANTVALIDATOR (VV) TO FIND THE HGNC ID. THE HGNC ID FROM VV SHOULD HAVE BEEN
-                # USED TO FIND THE ROW. THIS CODE WON'T RETURN THE VARIANTS THAT DERIVE FROM A GENE WITH THE SAME HGNC
-                # ID BUT WITH DIFFERENT GENE SYMBOL TO THE QUERIED GENE.***
                 lookup_query = (
                     "SELECT DISTINCT HGNC_ID FROM variant_annotations WHERE gene = ?"
                 )
@@ -1134,7 +1130,7 @@ def export_csv():
     # Check if the process for exporting CSVs works properly.
     try:
         # Log that the User wants to download a table.
-        logger.info('User has elected to download the table on the UI in .CSV format.')
+        logger.info('User has elected to download the table on the UI in CSV format.')
 
         # Check if the values can be parsed from the table.
         try:
