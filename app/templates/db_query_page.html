@@ -1,9 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <!--
+    =============================================================================
+    Template: db_query_page.html
+
+    Purpose:
+    --------
+    User interface for querying a validated variant database for HGVS
+    descriptions, gene symbol, HGNC ID, ClinVar annotations and variant count.
+
+    Supports controlled lookup by:
+      - Patient ID
+      - Normalised variant nomenclature
+            E.g.: - NC_000005.10:g.150056311C>T
+                  - NM_001288705.3:c.2350G>A
+                  - ENST00000675795.1:c.2350G>A
+                  - CSF1R:c.301G>A
+      - Gene (HGNC-level aggregation)
+
+    Results from the query are presented in a table.
+    The table can be downloaded in CSV format to the User's local computer.
+
+    Intended users:
+    ---------------
+    Clinical Scientists / Clinical Bioinformaticians reviewing the cohort of
+    variants that have been sequenced.
+
+    Governance notes:
+    -----------------
+    - This interface is read-only with respect to variant content
+    - All ClinVar annotations are from the most recently downloaded Variant
+      Summary Records database.
+    - Patient-identifiable information must remain minimal and contextual
+    =============================================================================
+    -->
     <title>Query Database - {{ db_name }}</title>
     <style>
-        /* Tiny 10px spinner */
+        /* ---------------------------------------------------------------------
+           Tiny spinner used inside the 'Run Query' button to indicate that the
+           app is processing the query. Processing can take several minutes
+           during which the User can mistake the app is dysfunctional. The
+           spinner deters this.
+           --------------------------------------------------------------------- */
         .spinner-tiny {
             border: 2px solid rgba(255, 255, 255, 0.3);
             border-top-color: #24bf96;  /* SAME as background */
@@ -19,18 +58,31 @@
             to { transform: rotate(360deg); }
         }
 
+        /* ---------------------------------------------------------------------
+           Flash messages used by Flask to report success/failure states to
+           Users such as invalid queries, table generation errors, etc.
+           --------------------------------------------------------------------- */
         .flash-messages li {
             font-size: 14px;
             color: #7A1F5C;
             font-weight: bold;
         }
 
+        /* ---------------------------------------------------------------------
+           Colour and design of general webpage components including
+           background, text and buttons .
+           --------------------------------------------------------------------- */
         body {
             background-color: #24bf96;
             color: white;
             font-family: "Nirmala UI", sans-serif;
             padding: 20px;
         }
+
+        /* ---------------------------------------------------------------------
+           Colour and design of the table returned by the query including
+           cells, background, text and buttons .
+           --------------------------------------------------------------------- */
         table {
             border-collapse: collapse;
             width: 100%;

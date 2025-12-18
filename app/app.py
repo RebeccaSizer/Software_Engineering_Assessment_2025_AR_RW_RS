@@ -369,13 +369,14 @@ def query_page(db_name):
                           ---------------------|-----------------------------|----------------------- --|-------|----------------------|-------|---------|-------------------|----------------------------------------------------------------------------------------------------------------------|-------|--------------------------------------
                            Patient_X	       | NC_000005.10:g.150056311C>T | NM_001288705.3:c.2350G>A | NP_001275634.1:p.(Val784Met) | CSF1R | 2433    | Likely pathogenic | Hereditary diffuse leukoencephalopathy with spheroids; Brain abnormalities, neurodegeneration, and dysosteosclerosis | ★	    | criteria provided, single submitter
 
-    :query input: Variant: HGVS genomic descriptions, HGVS transcript descriptions and gene symbols followed by a
-                           variant in HGVS nomenclature are all accepted queries because the get_mane_nc() function is
-                           leveraged to return the HGVS genomic description, relative to the MANE select transcript.
-                           This is then searched for in the database to find the variant.
+    :query input: Variant: HGVS genomic descriptions, HGVS transcript descriptions, Ensembl transcript description and
+                           gene symbols followed by a variant in HGVS nomenclature are all accepted queries because the
+                           get_mane_nc() function is leveraged to return the HGVS genomic description, relative to the
+                           MANE select transcript. This is then searched for in the database to find the variant.
 
                      E.g.: NC_000005.10:g.150056311C>T
                            NM_001288705.3:c.2350G>A
+                           ENST00000675795.1:c.2350G>A
                            CSF1R:c.301G>A
 
     :query output: Table: A table consisting of the variant. The variant occupies a single row in the table which
