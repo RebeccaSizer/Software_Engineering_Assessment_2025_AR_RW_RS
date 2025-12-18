@@ -36,7 +36,7 @@ dependencies = [
     "pytest==8.4.2",
     "openpyxl==3.1.5",
     "coverage==7.13.0",
-    "pytest-cov==9.0.2"
+    "pytest-cov==7.0.0"
 ]
 
 [project.optional-dependencies]
