@@ -6,11 +6,11 @@ from tools.utils.logger import logger
 from tools.modules.clinvar_functions import clinvar_vs_download
 
 # A simple banner to appear in the terminal stdout.
-print("\n\n *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*\n",
-      "|                                                 |\n",
-      "*   Welcome to the Variant Database Query Tool!   *\n",
-      "|                                                 |\n",
-      "*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*\n\n")
+print("\n\n *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*\n",
+      "|                                                      |\n",
+      "*   Welcome to SEA: the Variant Database Query Tool!   *\n",
+      "|                                                      |\n",
+      "*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*\n\n")
 
 #Log when the app was started.
 logger.info("Application started")
