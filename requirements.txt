@@ -7,5 +7,6 @@ Bio==1.8.1
 Flask==3.1.2
 pytest==8.4.2
 openpyxl==3.1.5
+pytest-cov==9.0.2
 #http.client==0.1.22
 #pycurl==7.45.7
