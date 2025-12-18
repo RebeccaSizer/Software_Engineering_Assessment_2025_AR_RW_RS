@@ -289,7 +289,7 @@ def regex_error(e, variant):
     :output: A message that will be incorporated into a flash message that will be displayed to the User on the flask
              app.
        E.g.: '11-2164285-C-T: ❌ Internal Error: Regex validation failed. Please report this to your friendly
-              neighbourhood Developer.'
+              neighbourhood Clinical Bioinformatician.'
 
     :command: gene_change = 'c.2164285C>T'
               try:
@@ -305,7 +305,7 @@ def regex_error(e, variant):
     # Return the description so that the functions in database_functions.py can attach the description
     # to the file name where the queried variant comes from. This will help the User.
     return (f'{variant}: ❌ Internal Error: Regex validation failed. Please report this to your friendly neighbourhood '
-            f'Developer.')
+            f'Clinical Bioinformatician.')
 
 
 # Error handler executed in exceptions related to sqlite3.
@@ -331,7 +331,8 @@ def sqlite_error(e, db_name):
 
     :output: A generic message that can be incorporated into a flash message, that will be displayed to the User on the
              flask app.
-       E.g.: 'There is something wrong with the database. Please report this to your friendly neighbourhood Developer.'
+       E.g.: 'There is something wrong with the database. Please report this to your friendly neighbourhood Clinical
+              Bioinformatician.'
 
     :command: db_name = 'my_database.db'
               try:
@@ -365,7 +366,8 @@ def sqlite_error(e, db_name):
         logger.error(f'sqlite3.ProgrammingError: There is a programmatic issue with {db_name}: {e}')
 
     # Return a message to be used in a flash message.
-    return f'There is something wrong with the database. Please report this to your friendly neighbourhood Developer.'
+    return (f'There is something wrong with the database. '
+            f'Please report this to your friendly neighbourhood Clinical Bioinformatician.')
 
 
 
