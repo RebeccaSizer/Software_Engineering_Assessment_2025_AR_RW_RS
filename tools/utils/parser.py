@@ -113,8 +113,9 @@ def variant_parser(file):
             logger.info('Parsing variants from .CSV file.')
 
             # Reads the content of the .csv file.
+            # Reads the content of the .csv file.
             csv_file = open(file, 'r')
-            rows = csv.reader(csv_file)
+            rows = csv.reader(csv_file, delimiter='\t')  # <-- use tab delimiter
 
             # Iterates through each row in the .csv file.
             for row in rows:
@@ -128,7 +129,7 @@ def variant_parser(file):
                     continue
 
                 # Identifies variant lines without at least CHROMOSOME; POSITION; ID; REF; ALT values and skips them.
-                elif len(row.split('\t')) < 5:
+                elif len(row) < 5:
                     # Increase the counter for the number of lines that were skipped by 1.
                     skip_number = skip_number + 1
                     # Print a message to help identify which line was skipped.
