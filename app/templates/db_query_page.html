@@ -140,7 +140,7 @@
     Each switch is logged by app.py for traceability.
 
     'db_name' represents the name of the database selected by the User which
-    is processed by app.py.
+    is submitted to app.py.
     -->
     <form id="dbForm" method="POST" action="/switch_db">
         <label for="db_name"><strong>Select Database:</strong></label>
@@ -182,7 +182,7 @@
         Autocomplete is used to narrow the options in the dropdown menu.
 
         'patinet_ID' represents the patient ID selected/entered by the User
-        which is processed in app.py.
+        which is submitted to app.py.
         -->
         <h3>Search by Patient ID</h3>
         <input list="patient_list" name="patient_ID" placeholder="Enter or select Patient ID" autocomplete="off">
@@ -214,7 +214,7 @@
         Autocomplete is used to narrow the options in the dropdown menu.
 
         'variant_NC' represents the variant selected/entered by the User
-        which is processed in app.py.
+        which is submitted to app.py.
         -->
         <h3>Search by Variant (gene/transcript:variant)</h3>
         <input list="variant_list" name="variant_NC" placeholder="Enter or select Variant NC" autocomplete="off">
@@ -240,7 +240,7 @@
         Autocomplete is used to narrow the options in the dropdown menu.
 
         'gene' represents the gene symbol selected/entered by the User
-        which is processed in app.py.
+        which is submitted to app.py.
         -->
         <h3>Search by Gene</h3>
         <input list="gene_list" name="gene" placeholder="Enter or select Gene" autocomplete="off">
@@ -284,7 +284,17 @@
             <h2>Variants Associated with Same HGNC_ID:</h2>
         {% endif %}
 
-        <!-- EXPORT BUTTONS FOR QUERY RESULTS -->
+        <!--
+        CSV Export:
+        -----------
+        'Export CSV'  button allows Users to export query results in
+        CSV format.
+
+        Headers and row data are passed as JSON objects into a CSV
+        before being converted into bytes. A pop-up window will
+        appear, enabling Users to specify where on their computer to
+        save the CSV file.
+        -->
         <form action="/export_csv" method="POST" style="display:inline;">
             <input type="hidden" name="db_name" value="{{ db_name }}">
             <input type="hidden" name="columns" value='{{ export_columns_json | safe }}'>
@@ -292,6 +302,16 @@
             <button type="submit">Export CSV</button>
         </form>
 
+        <!--
+        Results table:
+        --------------
+        This table renders the output from the SQLite3 query returned
+        by app.py into 'data'. The variable 'data' is a list of
+        dictionaries. Every dictionary has the same keys. Each key is
+        converted into a header, assigned to 'col'. The set of values
+        from a dictionary occupy a row in the table. Each value comes
+        under the header named after it's key.
+        -->
         <table>
             <tr>
                 {% for col in data[0].keys() %}
@@ -310,6 +330,12 @@
     {% endif %}
 
     <script>
+        /*
+        This script provides a spinner that spins while the User's
+        query is being processed and the table is being compiled.
+        This notifies the User so that they are aware that their
+        query is being processed during the interim.
+        */
         const form = document.getElementById("query");
         const buttonSpinner = document.getElementById("buttonSpinner")
 
