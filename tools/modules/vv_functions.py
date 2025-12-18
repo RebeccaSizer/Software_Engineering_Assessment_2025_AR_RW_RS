@@ -876,8 +876,8 @@ def get_mane_nc(variant: str):
 
 
 #Example usage
-#if __name__ == "__main__":
-   # print(fetch_vv('11-2164285-C-T'))
+if __name__ == "__main__":
+    print(fetch_vv('11-2164285-C-T'))
  #   print(fetch_vv('11-2164285-C-T'))
   #  variant = "PARK7:c.515T>A"
    # output = get_mane_nc(variant)

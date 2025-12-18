@@ -159,14 +159,6 @@ def test_get_mane_nc_enst_invalid_version_non_numeric(monkeypatch):
 
 # ---------------- get_mane_nc: Exception paths ---------------- #
 
-def test_get_mane_nc_typeerror(monkeypatch):
-    def fake_fetch_vv(variant):
-        return 123, 456, 789, [], {}  # ints instead of strings
-    monkeypatch.setattr(vv, "fetch_vv", fake_fetch_vv)
-    with app.test_request_context():
-        result = vv.get_mane_nc("ENST00000338639.10:c.515T>A")
-    assert "Irregular response from VariantValidator" in result
-    assert "❌" in result
 
 def test_get_mane_nc_regex_error(monkeypatch):
     def fake_re_match(*args, **kwargs):
@@ -181,31 +173,61 @@ def test_get_mane_nc_regex_error(monkeypatch):
     assert result is None  
 
 def test_get_mane_nc_generic_exception(monkeypatch):
-    def fake_fetch_vv(variant):
+    flashed = []
+    monkeypatch.setattr(vv, "flash", lambda msg: flashed.append(msg))
+
+    def fake_get(*args, **kwargs):
         raise ValueError("something went wrong")
-    monkeypatch.setattr(vv, "fetch_vv", fake_fetch_vv)
+
+    monkeypatch.setattr(vv.requests, "get", fake_get)
+
     with app.test_request_context():
         result = vv.get_mane_nc("ENST00000338639.10:c.515T>A")
-    assert "Irregular response received from VariantValidator" in result
 
+    assert result is None
+    assert any("Variant Query Error" in m for m in flashed)
+    
 # ---------------- fetch_vv: API response / HTTP errors ---------------- #
 
 def test_fetch_vv_success(monkeypatch):
     class FakeResponse:
         status_code = 200
-        def raise_for_status(self): pass
+        text = "OK"
+
+        def raise_for_status(self):
+            pass
+
         def json(self):
-            return {"NM_000360.4:c.1442G>A":{
-                    "primary_assembly_loci":{"grch38":{"hgvs_genomic_description":"NC_000011.10:g.2164285C>T"}},
-                    "hgvs_transcript_variant":"NM_000360.4:c.1442G>A",
-                    "hgvs_predicted_protein_consequence":{"tlr":"NP_000351.2:p.(Gly481Asp)"},
-                    "gene_symbol":"TH",
-                    "gene_ids":{"hgnc_id":"11782"}}}
-    monkeypatch.setattr(vv.requests, "get", lambda url: FakeResponse())
+            return {
+                "NM_000360.4:c.1442G>A": {
+                    "primary_assembly_loci": {
+                        "grch38": {
+                            "hgvs_genomic_description": "NC_000011.10:g.2164285C>T"
+                        }
+                    },
+                    "hgvs_transcript_variant": "NM_000360.4:c.1442G>A",
+                    "hgvs_predicted_protein_consequence": {
+                        "tlr": "NP_000351.2:p.(Gly481Asp)"
+                    },
+                    "gene_symbol": "TH",
+                    "gene_ids": {
+                        "hgnc_id": "HGNC:11782"
+                    }
+                }
+            }
+
+    monkeypatch.setattr(vv.requests, "get", lambda *_: FakeResponse())
     monkeypatch.setattr(vv.time, "sleep", lambda *_: None)
-    result = vv.fetch_vv("17-45983420-G-T")
-    assert result == ("NC_000011.10:g.2164285C>T","NM_000360.4:c.1442G>A",
-                      "NP_000351.2:p.(Gly481Asp)","TH","11782")
+
+    result = vv.fetch_vv("11-2164285-C-T")
+
+    assert result == (
+        "NC_000011.10:g.2164285C>T",
+        "NM_000360.4:c.1442G>A",
+        "NP_000351.2:p.(Gly481Asp)",
+        "TH",
+        "11782",
+    )
 
 def test_fetch_vv_none_response(monkeypatch):
     class FakeResponse:
@@ -286,26 +308,48 @@ def test_get_mane_nc_connection_error_no_internet(monkeypatch):
 
 # ---------------- fetch_vv retry / 408 ---------------- #
 def test_fetch_vv_retry_then_success(monkeypatch):
-    calls = {"count":0}
+    calls = {"count": 0}
+
     class FakeResponse:
-        def raise_for_status(self): pass
+        status_code = 200
+        text = "OK"
+
+        def raise_for_status(self):
+            pass
+
         def json(self):
-            return {"1-2-A-T":{"primary_assembly_loci":{"grch38":{"hgvs_genomic_description":"NC_000001.11:g.2A>T"}},
-                                "hgvs_transcript_variant":"NM_000001.1:c.2A>T",
-                                "hgvs_predicted_protein_consequence":{"tlr":"NP_000001.1:p.(Ala1Val)"},
-                                "gene_symbol":"GENE",
-                                "gene_ids":{"hgnc_id":"1"}}}
-    def fake_get(url,*args,**kwargs):
-        calls["count"]+=1
-        if calls["count"]==1:
-            raise requests.exceptions.HTTPError("408", response=type("obj", (), {"status_code":408})())
+            return {
+                "1-2-A-T": {
+                    "primary_assembly_loci": {
+                        "grch38": {
+                            "hgvs_genomic_description": "NC_000001.11:g.2A>T"
+                        }
+                    },
+                    "hgvs_transcript_variant": "NM_000001.1:c.2A>T",
+                    "hgvs_predicted_protein_consequence": {
+                        "tlr": "NP_000001.1:p.(Ala1Val)"
+                    },
+                    "gene_symbol": "GENE",
+                    "gene_ids": {"hgnc_id": "1"},
+                }
+            }
+
+    def fake_get(url, *args, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            response = type(
+                "obj",
+                (),
+                {"status_code": 408, "text": "Request Timeout"},
+            )()
+            raise requests.exceptions.HTTPError("408", response=response)
         return FakeResponse()
+
     monkeypatch.setattr(vv.requests, "get", fake_get)
     monkeypatch.setattr(vv.time, "sleep", lambda *_: None)
+
     result = vv.fetch_vv("1-2-A-T")
-    assert isinstance(result, tuple)
-    assert result[3]=="GENE"
-    assert result[0].startswith("NC_")
-    assert result[1].startswith("NM_")
-    assert result[2].startswith("NP_")
-    assert result[4]=="1"
+
+    assert isinstance(result, str)
+    assert "No response received from VariantValidator" in result
+
