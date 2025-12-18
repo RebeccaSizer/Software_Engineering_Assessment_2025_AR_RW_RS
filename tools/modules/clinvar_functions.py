@@ -12,7 +12,7 @@ from tools.utils.error_handlers import request_status_codes, connection_error, s
 @timer
 def clinvar_vs_download():
     '''
-    .This function retrieves the most recent ClinVar variant summary records from NCBI and loads them into a database.
+    This function retrieves the most recent ClinVar variant summary records from NCBI and loads them into a database.
     The records are parsed into the clinvar.db database because it is much quicker to query and annotate variants than
     querying the downloaded zip file.
 
