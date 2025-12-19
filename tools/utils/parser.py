@@ -114,11 +114,11 @@ def variant_parser(file):
 
             # Reads the content of the .csv file.
             csv_file = open(file, 'r')
-            rows = csv.reader(csv_file, delimiter='\t')  # <-- use tab delimiter
+            rows = csv.reader(csv_file)  # <-- use tab delimiter
 
             # Iterates through each row in the .csv file.
             for row in rows:
-
+                
                 # Identifies the row number of the line currently being processed through the loop.
                 line_number = line_number + 1
 
@@ -128,7 +128,7 @@ def variant_parser(file):
                     continue
 
                 # Identifies variant lines without at least CHROMOSOME; POSITION; ID; REF; ALT values and skips them.
-                elif len(row) < 5:
+                elif len(row.split(',')) < 5:
                     # Increase the counter for the number of lines that were skipped by 1.
                     skip_number = skip_number + 1
                     # Print a message to help identify which line was skipped.
@@ -210,4 +210,4 @@ def variant_parser(file):
 
 
 
-#print(variantParser('/home/ubuntu/Desktop/ParkVCF/Patient1.vcf'))
+print(variant_parser("./data/Patient.csv"))

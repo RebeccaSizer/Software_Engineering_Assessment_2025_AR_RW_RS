@@ -334,7 +334,7 @@ def test_clinvar_download_and_annotation_integration(tmp_path, monkeypatch):
     assert nm_hgvs == "NM_000360.4:c.1442G>A"
     assert classification == "Pathogenic"
     # 'not provided' and 'not specified' should be removed, '|' replaced by '; '
-    #assert conditions == "Condition1; Condition2"
+    assert conditions == "Condition1; Condition2"
     assert stars == "★"
     assert "single submitter" in review_status
 
@@ -345,7 +345,7 @@ def test_clinvar_download_and_annotation_integration(tmp_path, monkeypatch):
     result = clinvar_annotations(nc_variant, nm_variant)
 
     assert result["classification"] == "Pathogenic"
-    #assert result["conditions"] == "Condition1; Condition2"
+    assert result["conditions"] == "Condition1; Condition2"
     assert result["stars"] == "★"
     assert "single submitter" in result["reviewstatus"]
 
