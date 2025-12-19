@@ -113,7 +113,6 @@ def variant_parser(file):
             logger.info('Parsing variants from .CSV file.')
 
             # Reads the content of the .csv file.
-            # Reads the content of the .csv file.
             csv_file = open(file, 'r')
             rows = csv.reader(csv_file, delimiter='\t')  # <-- use tab delimiter
 
