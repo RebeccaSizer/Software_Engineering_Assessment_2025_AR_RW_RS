@@ -369,13 +369,14 @@ def query_page(db_name):
                           ---------------------|-----------------------------|----------------------- --|-------|----------------------|-------|---------|-------------------|----------------------------------------------------------------------------------------------------------------------|-------|--------------------------------------
                            Patient_X	       | NC_000005.10:g.150056311C>T | NM_001288705.3:c.2350G>A | NP_001275634.1:p.(Val784Met) | CSF1R | 2433    | Likely pathogenic | Hereditary diffuse leukoencephalopathy with spheroids; Brain abnormalities, neurodegeneration, and dysosteosclerosis | ★	    | criteria provided, single submitter
 
-    :query input: Variant: HGVS genomic descriptions, HGVS transcript descriptions and gene symbols followed by a
-                           variant in HGVS nomenclature are all accepted queries because the get_mane_nc() function is
-                           leveraged to return the HGVS genomic description, relative to the MANE select transcript.
-                           This is then searched for in the database to find the variant.
+    :query input: Variant: HGVS genomic descriptions, HGVS transcript descriptions, Ensembl transcript description and
+                           gene symbols followed by a variant in HGVS nomenclature are all accepted queries because the
+                           get_mane_nc() function is leveraged to return the HGVS genomic description, relative to the
+                           MANE select transcript. This is then searched for in the database to find the variant.
 
                      E.g.: NC_000005.10:g.150056311C>T
                            NM_001288705.3:c.2350G>A
+                           ENST00000675795.1:c.2350G>A
                            CSF1R:c.301G>A
 
     :query output: Table: A table consisting of the variant. The variant occupies a single row in the table which
@@ -589,10 +590,6 @@ def query_page(db_name):
                 logger.info(f'User querying information about variants from {gene}...')
                 # Look for the gene symbol in the variant_annotations table of the selected database and retrieve the
                 # associated HGNC ID.
-                # *** CURRENTLY THE HGNC ID IS FOUND IF THE GENE SYMBOL EXISTS IN THE DATABASE.THE GENE SYMBOL SHOULD
-                # HAVE BEEN RUN THROUGH VARIANTVALIDATOR (VV) TO FIND THE HGNC ID. THE HGNC ID FROM VV SHOULD HAVE BEEN
-                # USED TO FIND THE ROW. THIS CODE WON'T RETURN THE VARIANTS THAT DERIVE FROM A GENE WITH THE SAME HGNC
-                # ID BUT WITH DIFFERENT GENE SYMBOL TO THE QUERIED GENE.***
                 lookup_query = (
                     "SELECT DISTINCT HGNC_ID FROM variant_annotations WHERE gene = ?"
                 )
@@ -1133,7 +1130,7 @@ def export_csv():
     # Check if the process for exporting CSVs works properly.
     try:
         # Log that the User wants to download a table.
-        logger.info('User has elected to download the table on the UI in .CSV format.')
+        logger.info('User has elected to download the table on the UI in CSV format.')
 
         # Check if the values can be parsed from the table.
         try:
