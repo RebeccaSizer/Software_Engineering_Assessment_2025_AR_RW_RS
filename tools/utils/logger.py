@@ -16,15 +16,15 @@ def create_logger():
 
     # Stream handler with DEBUG level
     stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.INFO)
+    stream_handler.setLevel(logging.DEBUG)
     stream_formatter = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s", datefmt="%d-%m-%Y %H:%M:%S")
     stream_handler.setFormatter(stream_formatter)
 
-    # File handler with DEBUG level and rotating file configuration
+    # File handler with ERROR level and rotating file configuration
     file_handler = RotatingFileHandler(base_dir + '/logs/SEA.log',
                                        maxBytes=500000,  # 500 MB
                                        backupCount=5)   # 5 files are on rotation
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(logging.ERROR)
     file_formatter = logging.Formatter("'%(asctime)s - %(name)s - [%(levelname)s]: %(message)s'", datefmt="%d-%m-%Y %H:%M:%S")
     file_handler.setFormatter(file_formatter)
 
