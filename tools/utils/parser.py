@@ -128,7 +128,7 @@ def variant_parser(file):
                     continue
 
                 # Identifies variant lines without at least CHROMOSOME; POSITION; ID; REF; ALT values and skips them.
-                elif len(row.split('\t')) < 5:
+                elif len(row) < 5:
                     # Increase the counter for the number of lines that were skipped by 1.
                     skip_number = skip_number + 1
                     # Print a message to help identify which line was skipped.

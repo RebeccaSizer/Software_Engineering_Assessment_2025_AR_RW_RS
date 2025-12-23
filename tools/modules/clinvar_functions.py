@@ -9,7 +9,7 @@ from ..utils.timer import timer
 from tools.utils.logger import logger
 from tools.utils.error_handlers import request_status_codes, connection_error, sqlite_error
 
-@timer
+@timer  # pragma: no cover
 def clinvar_vs_download():
     '''
     This function retrieves the most recent ClinVar variant summary records from NCBI and loads them into a database.
@@ -265,25 +265,36 @@ def clinvar_vs_download():
                     else:
                         record_nm_hgvs = record['Name']
 
-                    # Some of the conditions submitted in the variant summary record are described as 'not provided' or
-                    # 'not specified', even if conditions are provided by other submitters. This removes 'not provided'
-                    # and 'not specified' from the conditions stored in the database.
-                    record_condition = (
+                    # Some of the conditions in a variant's summary record contain 'not provided' or 'not specified'
+                    # even if conditions are provided by other submitters. This removes 'not provided' and
+                    # 'not specified' from the conditions stored in the database and converts the | character into a
+                    # semicolon.
+                    raw_conditions = (
                         record['PhenotypeList']
-                        .replace('not provided| ', '')
-                        .replace('not specified| ', '')
-                        .replace('not provided|', '')
-                        .replace('not specified|', '')
                         .replace('not provided', '')
                         .replace('not specified', '')
-                        .replace('|', '; ')
+                        .replace('|', ';')
                     )
 
-                    # Return 'None provided' if no disorders/conditions were provided in the variant summary record
-                    # so that there are no empty fields in the database. This will help the user to filter in/out any
-                    # variants which are not associated with a specific condition.
-                    if record_condition == '':
-                        record_condition = 'None provided'
+                    # Conditions are separated into separate values and added to a list, after any white space has been
+                    # removed before and after.
+                    conditions_list = []
+                    for condition in raw_conditions.split(';'):
+                        if condition.strip() != '':
+                            conditions_list.append(condition.strip())
+
+                    # Assign 'None provided' to the 'record_conditions' variable if no disorders/conditions were
+                    # provided in the variant summary record so that there are no empty fields in the database. This
+                    # will help the user to filter in/out any variants which are not associated with a specific
+                    # condition.
+                    if not conditions_list:
+                        record_conditions = 'None provided'
+                    # Otherwise join the conditions in the list back together in a string, separated by a semicolon and
+                    # space.
+                    else:
+                        # Sort the condition into alphabetical order before putting them back into a string.
+                        conditions_list.sort()
+                        record_conditions = '; '.join(conditions_list)
 
                     # Ascertain the ClinVar star-rating from the key phrases used in the record's review status, as
                     # described in ClinVar's documentation (https://www.ncbi.nlm.nih.gov/clinvar/docs/review_status/).
@@ -302,7 +313,7 @@ def clinvar_vs_download():
                     variant_info.append((record['ChromosomeAccession'],
                                     record_nm_hgvs,
                                     record['ClinicalSignificance'],
-                                    record_condition,
+                                    record_conditions,
                                     stars,
                                     record['ReviewStatus']
                     ))
@@ -362,7 +373,7 @@ def clinvar_vs_download():
     os.remove(clinvar_file_path)
 
 
-@timer
+@timer  # pragma: no cover
 def clinvar_annotations(nc_variant, nm_variant):
     '''
     This function retrieves variant information from the clinvar.db database. It uses the HGVS transcript description
