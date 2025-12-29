@@ -210,4 +210,4 @@ def variant_parser(file):
 
 
 
-print(variant_parser("./data/Patient.csv"))
+#print(variant_parser("./data/Patient.csv"))
