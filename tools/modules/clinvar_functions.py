@@ -9,7 +9,7 @@ from ..utils.timer import timer
 from tools.utils.logger import logger
 from tools.utils.error_handlers import request_status_codes, connection_error, sqlite_error
 
-@timer  # pragma: no cover
+@timer
 def clinvar_vs_download():
     '''
     This function retrieves the most recent ClinVar variant summary records from NCBI and loads them into a database.
@@ -373,7 +373,7 @@ def clinvar_vs_download():
     os.remove(clinvar_file_path)
 
 
-@timer  # pragma: no cover
+@timer
 def clinvar_annotations(nc_variant, nm_variant):
     '''
     This function retrieves variant information from the clinvar.db database. It uses the HGVS transcript description

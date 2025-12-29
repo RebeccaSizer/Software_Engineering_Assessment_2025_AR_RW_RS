@@ -64,7 +64,7 @@ def make_fake_clinvar_gz_bytes():
         ["NC_000019.10:g.41981742C>T",
          "NM_152296.5:c.1282G>A",
          "Likely pathogenic",
-         "| not submitted",
+         "| not specified",
          "no assertion criteria provided"
          ],
     ]
@@ -243,10 +243,44 @@ def test_clinvar_annotations_not_found(tmp_path, monkeypatch):
     assert f"Could not find {nc_variant} variant summary record in clinvar.db" in result
 
 
-def test_clinvar_annotations_db_error(monkeypatch):
+def test_clinvar_annotations_db_error(tmp_path, monkeypatch, caplog):
     """
     Unit test: simulate a DB query error by monkeypatching sqlite3.connect.
     """
+    # 2. Monkeypatch abspath so the app/clinvar dir is under tmp_path
+    fake_file = tmp_path / "src" / "clinvar_functions.py"
+    fake_file.parent.mkdir(parents=True)
+    fake_file.write_text("# dummy module")
+    monkeypatch.setattr(mod, "__file__", str(fake_file))
+
+    # Use a temp directory for all ClinVar files
+    tmp_clinvar_dir = tmp_path / "app" / "clinvar"
+    tmp_clinvar_dir.mkdir(parents=True)
+
+    # Continue with fake HTTP responses etc.
+    fake_gz = make_fake_clinvar_gz_bytes()
+
+    monkeypatch.setattr(mod.requests, "get", lambda url, stream=True: FakeResponse(fake_gz))
+    monkeypatch.setattr(mod.requests, "head", lambda url: FakeHeadResponse())
+
+    original_abspath = os.path.abspath  # keep a reference to the original
+
+    def fake_abspath(path):
+        path = str(path)
+        # If the path ends with "app/clinvar", return tmp_clinvar_dir
+        # Only redirect the *directory* app/clinvar
+        if path.endswith(os.path.join("app", "clinvar")):
+            return str(tmp_clinvar_dir)
+        # Redirect files inside clinvar
+        if "clinvar_db_summary.txt.gz" in path:
+            return str(tmp_clinvar_dir / "clinvar_db_summary.txt.gz")
+        if path.endswith("clinvar.db"):
+            return str(tmp_clinvar_dir / "clinvar.db")
+        # otherwise fallback to original
+        return original_abspath(path)
+
+    monkeypatch.setattr(mod.os.path, "abspath", fake_abspath)
+
     class FailingConnection:
         def cursor(self):
             raise sqlite3.OperationalError("boom")
@@ -255,6 +289,14 @@ def test_clinvar_annotations_db_error(monkeypatch):
         return FailingConnection()
 
     monkeypatch.setattr(mod.sqlite3, "connect", fake_connect)
+
+    with caplog.at_level("ERROR"):
+        mod.clinvar_vs_download()
+
+    assert any(
+        f"sqlite3.OperationalError" in rec.message
+        for rec in caplog.records
+    )
 
     # Also patch abspath to avoid file path failures
     def fake_abspath(path):
