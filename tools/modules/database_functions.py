@@ -673,7 +673,7 @@ def variant_annotations_table(filepath, db_name):
     # Check if a variant has been added to the variant_annotations table.
     try:
         # Query the variant_annotations table for any entries.
-        cursor.execute(f"SELECT COUNT(*) FROM patient_variant")
+        cursor.execute(f"SELECT COUNT(*) FROM variant_annotations")
         row_count = cursor.fetchone()[0]
 
         # If nothing has been added to the table...
