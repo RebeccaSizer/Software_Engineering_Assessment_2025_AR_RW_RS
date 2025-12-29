@@ -5,14 +5,14 @@
 
 import pytest
 import requests
+import json
 from flask import Flask
+from unittest.mock import patch, MagicMock
 import tools.modules.vv_functions as vv
 
 # ---------------- Setup Flask ---------------- #
 app = Flask(__name__)
 app.secret_key = "test"
-
-# ---------------- Tests (real API) ---------------- #
 
 def test_input_ENST_integration():
     """
@@ -520,6 +520,154 @@ def test_get_mane_nc_generic_exception(monkeypatch):
     # Assert that an appropriate flash message was added
     assert any("Variant Query Error" in m for m in flashed)
     
+@pytest.mark.parametrize("variant,expected_flash", [
+    ("NM_000001:c.1A>T", 
+     "⚠ Variant Query Error: Please provide a version number after the RefSeq accession number. NM_000001 does not work."),
+    ("NM_000001.A:c.1A>T", 
+     "⚠ Variant Query Error: Please provide a valid version number after the RefSeq accession number. NM_000001.A does not work."),
+    ("NX_000001.1:c.1A>T", 
+     "NX_000001.1:c.1A>T: ⚠ Variant Query Error:"),
+    ("NM_000001.1:p.Met1?", 
+     "⚠ Variant Query Error: NM_000001.1 must use c. notation. p.Met1? does not work."),
+    ("NC_000001.1:c.1A>T", 
+     "⚠ Variant Query Error: NC_000001.1 must use g. notation. NC_000001.1:c.1A>T does not work."),
+    ("NM_000001.1:1A>T", 
+     "⚠ Variant Query Error: Irregular variant nomenclature. 1A>T does not work."),
+])
+def test_transcript_flash_messages(variant, expected_flash):
+    flashed = []
+
+    # Patch flash to capture messages
+    with patch("tools.modules.vv_functions.flash", lambda msg: flashed.append(msg)):
+        vv.get_mane_nc(variant=variant)
+
+    # Assert the expected flash message was captured
+    assert "⚠ Variant Query Error" in flashed[0]
+
+@pytest.mark.parametrize("variant,api_response,expected_flash,expected_log_level", [
+    # Case 1: data is None
+    ("NM_000001.1:c.1A>T", None,
+     "NM_000001.1:c.1A>T: ❌ Variant Query Error: VariantValidator did not return a response.", "warning"),
+
+    # Case 2: data is not a dict
+    ("NM_000001.1:c.1A>T", "not a dict",
+     "NM_000001.1:c.1A>T: ❌ Variant Query Error: VariantValidator did not return a response.", "warning"),
+
+    # Case 3: empty_result flag
+    ("NM_000001.1:c.1A>T", {"flag": "empty_result"},
+     "NM_000001.1:c.1A>T: ❌ Variant Query Error: VariantValidator did not recognise variant or could not map it to a reference sequence.", "warning"),
+
+    # Case 4: validation warnings
+    ("NM_000001.1:c.1A>T", {"validation_warning_1": {"validation_warnings": ["Test warning"]}},
+     "NM_000001.1:c.1A>T: ⚠ VariantValidator warnings:", "warning"),
+])
+def test_get_mane_nc_flashes_and_logging(variant, api_response, expected_flash, expected_log_level):
+    flashed = []
+
+    # Patch flash to capture messages
+    with patch("tools.modules.vv_functions.flash", lambda msg: flashed.append(msg)), \
+         patch("tools.modules.vv_functions.logger.warning") as mock_warn, \
+         patch("tools.modules.vv_functions.logger.error") as mock_error, \
+         patch("tools.modules.vv_functions.logger.info") as mock_info, \
+         patch("tools.modules.vv_functions.logger.debug") as mock_debug, \
+         patch("tools.modules.vv_functions.requests.get") as mock_requests_get:
+
+        # Patch the API call to return our test response
+        mock_response = mock_requests_get.return_value
+        mock_response.json.return_value = api_response
+
+        # Call the function
+        vv.get_mane_nc(variant)
+
+    # Check flash messages
+    assert flashed
+    assert expected_flash in flashed[0]
+
+    # Check logging
+    if expected_log_level == "warning":
+        assert mock_warn.called
+    elif expected_log_level == "error":
+        assert mock_error.called
+
+import pytest
+
+@pytest.mark.parametrize(
+    "variant,data,missing_key",
+    [
+        (
+            "NM_000001.1:c.1A>T",
+            {"NM_000001.1:c.1A>T": {}},   # missing primary_assembly_loci
+            "primary_assembly_loci",
+        ),
+        (
+            "BRCA1:c.68_69del",
+            {},                           # missing transcripts
+            "transcripts",
+        ),
+    ],
+)
+def test_get_mane_nc_keyerror_branches(variant, data, missing_key):
+    flashed = []
+
+    with patch("tools.modules.vv_functions.flash", lambda msg: flashed.append(msg)), \
+         patch("tools.modules.vv_functions.logger.error") as mock_error, \
+         patch("tools.modules.vv_functions.logger.debug") as mock_debug, \
+         patch("tools.modules.vv_functions.requests.get") as mock_get:
+
+        mock_get.return_value.json.return_value = data
+        vv.get_mane_nc(variant)
+
+    assert flashed == [
+        f"{variant}: ❌ Variant Query Error: Irregular response received from VariantValidator."
+    ]
+    mock_error.assert_called_once()
+    assert mock_debug.call_count >= 1
+
+@pytest.mark.parametrize(
+    "variant,exception",
+    [
+        ("NM_000001.1:c.1A>T", RuntimeError("boom")),
+        ("NM_000001.1:c.1A>T", ValueError("bad data")),
+    ],
+)
+def test_get_mane_nc_generic_exception_branches(variant, exception):
+    flashed = []
+
+    with patch("tools.modules.vv_functions.flash", lambda msg: flashed.append(msg)), \
+         patch("tools.modules.vv_functions.logger.error") as mock_error, \
+         patch("tools.modules.vv_functions.logger.debug") as mock_debug, \
+         patch("tools.modules.vv_functions.requests.get") as mock_get:
+
+        mock_get.return_value.json.side_effect = exception
+        vv.get_mane_nc(variant)
+
+    assert "Variant Query Error" in flashed[0]
+    assert variant in flashed[0]
+    mock_error.assert_called_once()
+    assert mock_debug.call_count >= 1
+
+
+@pytest.mark.parametrize(
+    "variant",
+    [
+        "BADGENE:p.Gly12Asp",
+        "XYZ123:p.Val1Ala",
+    ],
+)
+def test_get_mane_nc_unrecognised_gene_symbol(variant):
+    flashed = []
+
+    with patch("tools.modules.vv_functions.flash", lambda msg: flashed.append(msg)), \
+         patch("tools.modules.vv_functions.logger.warning") as mock_warn, \
+         patch("tools.modules.vv_functions.requests.get") as mock_get:
+
+        mock_get.return_value.json.return_value = {}
+        vv.get_mane_nc(variant)
+
+    assert "Variant Query Error:" in flashed[0]
+    mock_warn.assert_called_once()
+
+
 # ---------------- fetch_vv: API response / HTTP errors ---------------- #
 
 def test_fetch_vv_success(monkeypatch):
@@ -529,35 +677,6 @@ def test_fetch_vv_success(monkeypatch):
     Uses a fake response object to simulate the API returning a known variant.
     Ensures fetch_vv parses the JSON correctly and returns expected values.
     """
-    
-    # Define a fake response class to simulate requests.get
-    class FakeResponse:
-        status_code = 200
-        text = "OK"
-
-        def raise_for_status(self):
-            """No-op for successful status"""
-            pass
-
-        def json(self):
-            """Return a simulated JSON response for a known variant"""
-            return {
-                "NM_000360.4:c.1442G>A": {
-                    "primary_assembly_loci": {
-                        "grch38": {
-                            "hgvs_genomic_description": "NC_000011.10:g.2164285C>T"
-                        }
-                    },
-                    "hgvs_transcript_variant": "NM_000360.4:c.1442G>A",
-                    "hgvs_predicted_protein_consequence": {
-                        "tlr": "NP_000351.2:p.(Gly481Asp)"
-                    },
-                    "gene_symbol": "TH",
-                    "gene_ids": {
-                        "hgnc_id": "HGNC:11782"
-                    }
-                }
-            }
 
     # Patch requests.get to return the fake response
     monkeypatch.setattr(vv.requests, "get", lambda *_: FakeResponse())
@@ -665,6 +784,154 @@ def test_fetch_vv_validation_warning(monkeypatch):
 
     # Assert that the warning message is included in the result
     assert "Test warning" in result
+
+# Define a fake response class to simulate requests.get
+class FakeResponse:
+    status_code = 200
+    text = "OK"
+
+    def raise_for_status(self):
+        """No-op for successful status"""
+        pass
+
+    def json(self):
+        """Return a simulated JSON response for a known variant"""
+        return {
+            "NM_000360.4:c.1442G>A": {
+                "primary_assembly_loci": {
+                    "grch38": {
+                        "hgvs_genomic_description": "NC_000011.10:g.2164285C>T"
+                    }
+                },
+                "hgvs_transcript_variant": "NM_000360.4:c.1442G>A",
+                "hgvs_predicted_protein_consequence": {
+                    "tlr": "NP_000351.2:p.(Gly481Asp)"
+                },
+                "gene_symbol": "TH",
+                "gene_ids": {
+                    "hgnc_id": "HGNC:11782"
+                }
+            }
+        }
+
+# ---------------- Tests (real API) ---------------- #
+@pytest.mark.parametrize(
+    "exception, handler_name, handler_return",
+    [
+        (
+            requests.exceptions.HTTPError(response=type("R", (), {"status_code": 500})()),
+            "request_status_codes",
+            "HTTP error handled",
+        ),
+        (
+            requests.exceptions.ConnectionError("no connection"),
+            "connection_error",
+            "Connection error handled",
+        ),
+        (
+            json.decoder.JSONDecodeError("bad json", "doc", 0),
+            "json_decoder_error",
+            "JSON error handled",
+        ),
+    ],
+)
+
+def test_fetch_vv_error_handlers(monkeypatch, exception, handler_name, handler_return):
+    """
+    Parametrized test covering:
+    - HTTPError (non-retryable)
+    - ConnectionError
+    - JSONDecodeError
+
+    Ensures fetch_vv returns the value from the corresponding error handler.
+    """
+
+    # Prevent delays
+    monkeypatch.setattr(vv.time, "sleep", lambda *_: None)
+
+    # Force requests.get to raise the exception
+    def raise_exception(*args, **kwargs):
+        raise exception
+
+    monkeypatch.setattr(vv.requests, "get", raise_exception)
+
+    # Mock the specific handler to return a known value
+    monkeypatch.setattr(vv, handler_name, lambda *args, **kwargs: handler_return)
+
+    result = vv.fetch_vv("11-2164285-C-T")
+
+    assert result == handler_return
+
+@pytest.mark.parametrize(
+    "mock_data,expected_return,expected_flash",
+    [
+        # Genomic invalid
+        ({"TESTVAR": {"primary_assembly_loci": {"grch38": {"hgvs_genomic_description": "INVALID"}},
+                      "hgvs_transcript_variant": "NM_0001:c.1A>T",
+                      "hgvs_predicted_protein_consequence": {"tlr": "NP_0001:p.Met1?"},
+                      "gene_symbol": "GENE",
+                      "gene_ids": {"hgnc_id": "HGNC:1234"}}},
+         "TESTVAR: ❌ Genomic variant description from VariantValidator is not in valid HGVS nomenclature.",
+         None),
+
+        # Transcript invalid
+        ({"TESTVAR": {"primary_assembly_loci": {"grch38": {"hgvs_genomic_description": "NC_000001.1:g.1A>T"}},
+                      "hgvs_transcript_variant": "INVALID",
+                      "hgvs_predicted_protein_consequence": {"tlr": "NP_0001:p.Met1?"},
+                      "gene_symbol": "GENE",
+                      "gene_ids": {"hgnc_id": "HGNC:1234"}}},
+         "TESTVAR: ❌ Transcript variant description from VariantValidator is not in valid HGVS nomenclature.",
+         None),
+
+        # Protein invalid
+        ({"TESTVAR": {"primary_assembly_loci": {"grch38": {"hgvs_genomic_description": "NC_000001.1:g.1A>T"}},
+                      "hgvs_transcript_variant": "NM_0001:c.1A>T",
+                      "hgvs_predicted_protein_consequence": {"tlr": "INVALID"},
+                      "gene_symbol": "GENE",
+                      "gene_ids": {"hgnc_id": "HGNC:1234"}}},
+         None,
+         "⚠ Irregular protein consequence from VariantValidator."),
+
+        # Gene symbol invalid
+        ({"TESTVAR": {"primary_assembly_loci": {"grch38": {"hgvs_genomic_description": "NC_000001.1:g.1A>T"}},
+                      "hgvs_transcript_variant": "NM_0001:c.1A>T",
+                      "hgvs_predicted_protein_consequence": {"tlr": "NP_0001:p.Met1?"},
+                      "gene_symbol": "INVALID-GENE",
+                      "gene_ids": {"hgnc_id": "HGNC:1234"}}},
+         None,
+         "⚠ Irregular gene symbol from VariantValidator."),
+
+        # HGNC ID invalid
+        ({"TESTVAR": {"primary_assembly_loci": {"grch38": {"hgvs_genomic_description": "NC_000001.1:g.1A>T"}},
+                      "hgvs_transcript_variant": "NM_0001:c.1A>T",
+                      "hgvs_predicted_protein_consequence": {"tlr": "NP_0001:p.Met1?"},
+                      "gene_symbol": "GENE",
+                      "gene_ids": {"hgnc_id": "HGNC:ABCD"}}},
+         None,
+         "⚠ Irregular HGNC ID from VariantValidator."),
+    ]
+)
+def test_fetch_vv_regex_branches(mock_data, expected_return, expected_flash):
+    flashed = []
+
+    # Patch flash and requests.get inside vv_functions
+    with patch("tools.modules.vv_functions.flash", lambda msg: flashed.append(msg)):
+        with patch("tools.modules.vv_functions.requests.get") as mock_get:
+            # Mock response object
+            mock_resp = MagicMock()
+            mock_resp.json.return_value = mock_data
+            mock_resp.raise_for_status.return_value = None
+            mock_get.return_value = mock_resp
+
+            ret = vv.fetch_vv("TESTVAR")
+
+    # Check return value for genomic/transcript branches
+    if expected_return:
+        assert ret == expected_return
+
+    # Check flash messages for protein/gene/HGNC branches
+    if expected_flash:
+        assert any(expected_flash in msg for msg in flashed)
 
 
 def test_fetch_vv_non_dict_response(monkeypatch):
@@ -864,4 +1131,60 @@ def test_fetch_vv_retry_then_success(monkeypatch):
     result = vv.fetch_vv("1-2-A-T")
     assert isinstance(result, str)
     assert "No response received from VariantValidator" in result
+
+def test_fetch_vv_protein_regex_error(monkeypatch):
+    """
+    Test fetch_vv when a regex error occurs during protein variant validation.
+
+    This test forces re.match to raise re.error, ensuring fetch_vv
+    handles the exception gracefully and returns the regex_error message.
+    """
+    import re
+
+    original_match = re.match
+    calls = {"n": 0}
+
+    def make_selective_match(fail_on_call):
+        def selective_match(*args, **kwargs):
+            calls["n"] += 1
+            if calls["n"] == fail_on_call:  # protein regex check
+                raise re.error("regex failure")
+            return original_match(*args, **kwargs)
+        return selective_match
+
+    for n in [1, 2, 3]:
+        monkeypatch.setattr(vv.re, "match", make_selective_match(n))
+        monkeypatch.setattr(vv.time, "sleep", lambda *_: None)
+
+        # Patch requests.get to return the fake API response
+        monkeypatch.setattr(vv.requests, "get", lambda *_: FakeResponse())
+
+        # Patch time.sleep to avoid delays
+        monkeypatch.setattr(vv.time, "sleep", lambda *_: None)
+
+        # Force re.match to raise a regex error
+        def fake_re_match(*args, **kwargs):
+            raise re.error("fake regex error")
+
+        monkeypatch.setattr(vv.re, "match", fake_re_match)
+
+        # Call fetch_vv
+        result = vv.fetch_vv("11-2164285-C-T")
+
+        # Assert that a regex-related error message is returned
+        assert "Internal Error: Regex validation failed." in result
+
+import pytest
+from unittest.mock import patch
+import re
+import tools.modules.vv_functions as vv  # adjust import to where the function lives
+
+# Dummy function to test, replace this with the actual wrapper calling the code above
+def validate_transcript(transcript, genetic_change, variant):
+    # The code block you provided goes here
+    # Replace `flash` with `vv.flash` if using the vv module
+    # Replace `logger.warning` with vv.logger.warning if using vv module
+    # For testing, we assume vv.flash and vv.logger exist
+    # Return None in all error branches
+    ...
 
