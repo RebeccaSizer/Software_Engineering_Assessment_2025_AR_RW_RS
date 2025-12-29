@@ -9,23 +9,20 @@ from ..utils.timer import timer
 from tools.utils.logger import logger
 from tools.utils.error_handlers import request_status_codes, connection_error, sqlite_error
 
-@timer
+@timer  
 def clinvar_vs_download():
     '''
     This function retrieves the most recent ClinVar variant summary records from NCBI and loads them into a database.
     The records are parsed into the clinvar.db database because it is much quicker to query and annotate variants than
     querying the downloaded zip file.
 
-    :outputs: clinvar_db_summary.txt.gz: A compressed .txt file which contains the variant summaries from ClinVar.
-
-              clinvar.db: a sqlite database containing the variant summaries from ClinVar.
+    :outputs: clinvar.db: a sqlite database containing the variant summaries from ClinVar.
 
               Last-Modified: When the ClinVar variant summaries database was last updated.
                        E.g.: "ClinVar database last modified: Sun, 16 Nov 2025 22:54:32 GMT
 
     :command: clinvar_vs_download()
     '''
-
 
     # The url to the database where the variant summary records are downloaded from.
     url =  'https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/variant_summary.txt.gz'
@@ -44,8 +41,9 @@ def clinvar_vs_download():
             clinvar_db.raise_for_status()
 
             # Log that the download was successful and when the records were last modified.
+            last_modified = requests.head(url).headers['Last-Modified']
             logger.info(f"Request OK. ClinVar variant summary records last modified: "
-                        f"{requests.head(url).headers['Last-Modified']}")
+                        f"{last_modified}")
 
             # Break out fo the loop if the request to downloaded ClinVar summary records was successful
             break
@@ -78,7 +76,6 @@ def clinvar_vs_download():
             # Log the error using the exception output message.
             logger.error(f'ClinVar_Download: Failed to download variant summary records from {url}. {e}')
             return
-
 
     # Test if the clinvar subdirectory can be made in the app folder.
     try:
@@ -195,8 +192,19 @@ def clinvar_vs_download():
                 );
             """)
 
-        # Wipe the database clean so that it can be populated by the most recent variant summary records.
+        # Wipe the clinvar table clean so that it can be populated by the most recent variant summary records.
         cur.execute("DELETE FROM clinvar;")
+
+        # Create the 'download' table with the header 'last_updated'.
+        # This will store when the variant summary database from ClinVar was last updated.
+        cur.execute("""
+                    CREATE TABLE IF NOT EXISTS download (
+                        last_updated TEXT
+                    );
+                    """)
+
+        # Wipe the download table clean so that it can be populated by the most recent variant summary records.
+        cur.execute("DELETE FROM download;")
 
         # Log that a new database was built successfully.
         logger.info('Created new clinvar.db database.')
@@ -212,7 +220,6 @@ def clinvar_vs_download():
         # Log the error, describing why clinvar.db could not be made, using the exception output.
         logger.error(f'Failed to create clinvar.db: {str(e)}')
         return
-
 
     # Create a list to store all of the variant information that the user wants from each variant summary record.
     # A list was chosen instead of a dictionary because it is easier to add the values from a list under the
@@ -239,7 +246,8 @@ def clinvar_vs_download():
             reader = csv.DictReader(gz, delimiter="\t")
 
             # Log that the records with 'NM_' accession numbers in their name will now be added to the database.
-            logger.info("Parsing variant summary records named after 'NM_' accession numbers from the most recent download into database...")
+            logger.info("Parsing variant summary records named after 'NM_' accession numbers from the most recent "
+                        "download into clinvar.db...")
 
             for record in reader:
 
@@ -257,25 +265,36 @@ def clinvar_vs_download():
                     else:
                         record_nm_hgvs = record['Name']
 
-                    # Some of the conditions submitted in the variant summary record are described as 'not provided' or
-                    # 'not specified', even if conditions are provided by other submitters. This removes 'not provided'
-                    # and 'not specified' from the conditions stored in the database.
-                    record_condition = (
+                    # Some of the conditions in a variant's summary record contain 'not provided' or 'not specified'
+                    # even if conditions are provided by other submitters. This removes 'not provided' and
+                    # 'not specified' from the conditions stored in the database and converts the | character into a
+                    # semicolon.
+                    raw_conditions = (
                         record['PhenotypeList']
-                        .replace('not provided| ', '')
-                        .replace('not specified| ', '')
-                        .replace('not provided|', '')
-                        .replace('not specified|', '')
                         .replace('not provided', '')
                         .replace('not specified', '')
-                        .replace('|', '; ')
+                        .replace('|', ';')
                     )
 
-                    # Return 'None provided' if no disorders/conditions were provided in the variant summary record
-                    # so that there are no empty fields in the database. This will help the user to filter in/out any
-                    # variants which are not associated with a specific condition.
-                    if record_condition == '':
-                        record_condition = 'None provided'
+                    # Conditions are separated into separate values and added to a list, after any white space has been
+                    # removed before and after.
+                    conditions_list = []
+                    for condition in raw_conditions.split(';'):
+                        if condition.strip() != '':
+                            conditions_list.append(condition.strip())
+
+                    # Assign 'None provided' to the 'record_conditions' variable if no disorders/conditions were
+                    # provided in the variant summary record so that there are no empty fields in the database. This
+                    # will help the user to filter in/out any variants which are not associated with a specific
+                    # condition.
+                    if not conditions_list:
+                        record_conditions = 'None provided'
+                    # Otherwise join the conditions in the list back together in a string, separated by a semicolon and
+                    # space.
+                    else:
+                        # Sort the condition into alphabetical order before putting them back into a string.
+                        conditions_list.sort()
+                        record_conditions = '; '.join(conditions_list)
 
                     # Ascertain the ClinVar star-rating from the key phrases used in the record's review status, as
                     # described in ClinVar's documentation (https://www.ncbi.nlm.nih.gov/clinvar/docs/review_status/).
@@ -294,7 +313,7 @@ def clinvar_vs_download():
                     variant_info.append((record['ChromosomeAccession'],
                                     record_nm_hgvs,
                                     record['ClinicalSignificance'],
-                                    record_condition,
+                                    record_conditions,
                                     stars,
                                     record['ReviewStatus']
                     ))
@@ -324,6 +343,14 @@ def clinvar_vs_download():
             """, variant_info)
 
         cur.execute("CREATE INDEX IF NOT EXISTS idx_clinvar ON clinvar (nc_accession, nm_hgvs);")
+
+        # Populate the database with the date when the ClinVar variant summary records were last updated.
+        cur.execute(
+            "INSERT INTO download VALUES (?)",
+            (last_modified,)
+        )
+
+        # Commit the update and close the database.
         conn.commit()
         conn.close()
 
@@ -342,8 +369,11 @@ def clinvar_vs_download():
         logger.error(f'Failed to write ClinVar variant summary records into clinvar.db database: {e}')
         return
 
+    # Delete the ClinVar zip file.
+    os.remove(clinvar_file_path)
 
-@timer
+
+@timer 
 def clinvar_annotations(nc_variant, nm_variant):
     '''
     This function retrieves variant information from the clinvar.db database. It uses the HGVS transcript description
