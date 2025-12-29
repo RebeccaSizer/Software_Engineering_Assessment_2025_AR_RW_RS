@@ -29,10 +29,17 @@
 
     Governance notes:
     -----------------
-    - This interface is read-only with respect to variant content
-    - All ClinVar annotations are from the most recently downloaded Variant
-      Summary Records database.
-    - Patient-identifiable information must remain minimal and contextual
+    - This interface is rendered by Flask and is read-only with respect to
+      variant content.
+    - The queried database is kept in the 'databases' directory:
+
+       Software_Engineering_Assessment_2025_AR_RW_RS/databases/<database>.db
+
+    - Server-side processes that interact this HTML file are handled primarily
+      within appy.py:
+
+             Software_Engineering_Assessment_2025_AR_RW_RS/app/app.py
+
     =============================================================================
     -->
     <title>Query Database - {{ db_name }}</title>
@@ -152,9 +159,9 @@
     </form>
 
     <!--
-    'Display Whole Database' button redirects the user to the display page
+    'Display Whole Database' button redirects the User to the display page
     where they can view the database in full. Intended for exploratory
-    purposes where the User can apply their owen filters.
+    purposes where the User can apply their own filters.
     -->
     <a href="{{ url_for('display_database', db_name=db_name) }}">
         <button type="button">Display Whole Database</button>
@@ -291,9 +298,9 @@
         CSV format.
 
         Headers and row data are passed as JSON objects into a CSV
-        before being converted into bytes. A pop-up window will
-        appear, enabling Users to specify where on their computer to
-        save the CSV file.
+        before being converted into bytes, by app.py. A pop-up window
+        will appear, enabling Users to specify where on their computer
+        to save the CSV file.
         -->
         <form action="/export_csv" method="POST" style="display:inline;">
             <input type="hidden" name="db_name" value="{{ db_name }}">
@@ -309,7 +316,7 @@
         by app.py into 'data'. The variable 'data' is a list of
         dictionaries. Every dictionary has the same keys. Each key is
         converted into a header, assigned to 'col'. The set of values
-        from a dictionary occupy a row in the table. Each value comes
+        from a dictionary occupy a row in the table. Each value appears
         under the header named after it's key.
         -->
         <table>
@@ -329,13 +336,13 @@
         </table>
     {% endif %}
 
+    <!--
+    This script provides a spinner that spins while the User's
+    query is being processed and the table is being compiled.
+    This notifies the User so that they are aware that their
+    query is being processed during the interim.
+    -->
     <script>
-        /*
-        This script provides a spinner that spins while the User's
-        query is being processed and the table is being compiled.
-        This notifies the User so that they are aware that their
-        query is being processed during the interim.
-        */
         const form = document.getElementById("query");
         const buttonSpinner = document.getElementById("buttonSpinner")
 

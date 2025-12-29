@@ -206,7 +206,7 @@ def fetch_vv(variant: str):
                 # Checking the values from the dictionary.
                 try:
                     # Use Regex to detect if anything but the HGVS genomic description was returned.
-                    if not re.match('^NC_\d+.\d{1,2}:g[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nc_variant):
+                    if not re.match(r'^NC_\d+.\d{1,2}:g[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nc_variant):
 
                         # Log the error if anything but the HGVS genomic description was returned.
                         logger.warning(f'{variant}: Genomic variant description from VariantValidator is not in valid '
@@ -220,7 +220,7 @@ def fetch_vv(variant: str):
                                 f'HGVS nomenclature.')
 
                     # Use Regex to detect if an anything but the HGVS transcript description was returned.
-                    elif not re.match('^NM_\d+.\d{1,2}:c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nm_variant):
+                    elif not re.match(r'^NM_\d+.\d{1,2}:c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', nm_variant):
 
                         # Log the error if anything but the HGVS transcript description was returned.
                         logger.warning(
@@ -235,7 +235,7 @@ def fetch_vv(variant: str):
                                 f'HGVS nomenclature.')
 
                     # Use Regex to detect if an anything but the HGVS protein description was returned.
-                    elif not re.match('^NP_\d+.\d{1,2}:p[.](\()*(0)*(\?)*[*]*[?]*(\d*[a-zA-Z]{3})*(\d+[a-zA-Z]{3}(fs)*[*]*(\d+)*|\d*_[a-zA-Z]{3}\d+(ins)*[a-zA-Z]*|\d*_[a-zA-Z]{3}\d+(delins)*[a-zA-Z]*|\d+=|\d+[*]|ext\d*)*(\))*', np_variant):
+                    elif not re.match(r'^NP_\d+.\d{1,2}:p[.](\()*(0)*(\?)*[*]*[?]*(\d*[a-zA-Z]{3})*(\d+[a-zA-Z]{3}(fs)*[*]*(\d+)*|\d*_[a-zA-Z]{3}\d+(ins)*[a-zA-Z]*|\d*_[a-zA-Z]{3}\d+(delins)*[a-zA-Z]*|\d+=|\d+[*]|ext\d*)*(\))*', np_variant):
 
                         # Log the warning if anything but the HGVS protein description was returned.
                         # A warning is logged because the protein description is not essential to this software
@@ -276,7 +276,7 @@ def fetch_vv(variant: str):
 
                     # The HGNC ID is a number but the response from VariantValidator is a string.
                     # Use Regex to ensure that the response consists of only numbers.
-                    elif not re.match('^\d+', hgnc_id):
+                    elif not re.match(r'^\d+', hgnc_id):
 
                         # Log a warning if the HGNC ID consists of anything but numbers.
                         # A warning is logged because the HGNC ID is not essential to this software package's
@@ -417,7 +417,7 @@ def get_mane_nc(variant: str):
                 return
 
             # If an Ensembl accession number was entered, check that the version number is in fact a number.
-            elif not re.match('^\d{1,3}$', transcript.split('.')[1]):
+            elif not re.match(r'^\d{1,3}$', transcript.split('.')[1]):
                 # Log that a version number was not provided.
                 logger.warning(f"Variant Query Error: User did not provide a valid version number after the "
                                f"Ensembl accession number: {transcript}")
@@ -446,7 +446,7 @@ def get_mane_nc(variant: str):
 
             # Variant must follow the pattern captured by this Regex code in order to find a corresponding variant in
             # the database.
-            elif not re.match('^c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', genetic_change):
+            elif not re.match(r'^c[.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', genetic_change):
                 # Log the error if it does not conform with the Regex pattern.
                 logger.warning(f'Variant Query Error: Irregular variant nomenclature: {genetic_change}')
                 # Show the User a message that will help them search for the variant.
@@ -485,7 +485,7 @@ def get_mane_nc(variant: str):
 
             # If a RefSeq accession number was entered, make sure that it starts with 'NM_', 'NC_' or 'NG_', followed
             # by an accession number and version number.
-            elif not transcript.startswith('LRG_') and not re.match('^N[CMG]_\d+.\d{1,2}', transcript):
+            elif not transcript.startswith('LRG_') and not re.match(r'^N[CMG]_\d+.\d{1,2}', transcript):
                 # Log the RefSeq number that didn't work.
                 logger.warning(
                     f"Variant Query Error: User tried to search for a variant using a RefSeq number but there was "
@@ -514,7 +514,7 @@ def get_mane_nc(variant: str):
 
             # Variant must follow the pattern captured by this Regex code in order to find a corresponding variant in
             # the database.
-            elif not re.match('^[cg][.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', genetic_change):
+            elif not re.match(r'^[cg][.]([-]*\d+|[-]*\d+_[-]*\d+|[-]*\d+[+-]\d+)([ACGT]+>[ACGT]+|delins[ACGT]*(>[ACGT]+)*|del[ACGT]*|ins[ACGT]*|dup[ACGT]*|inv[ACGT]*)', genetic_change):
                 # Log a warning if it does not conform with the Regex pattern.
                 logger.warning(f'Variant Query Error: Irregular variant nomenclature: {variant}')
                 # Show the User a message that will help them search for the variant.

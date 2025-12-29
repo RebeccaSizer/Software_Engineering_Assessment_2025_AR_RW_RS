@@ -4,9 +4,8 @@
 # Grouped logically: Integration, Input validation, Exceptions, fetch_vv API/HTTP errors
 
 import pytest
-import re
-from flask import Flask
 import requests
+from flask import Flask
 import tools.modules.vv_functions as vv
 
 # ---------------- Setup Flask ---------------- #

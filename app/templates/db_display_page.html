@@ -1,14 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <!--
+    =============================================================================
+    Template: homepage.html
+
+    Purpose:
+    --------
+    User interface for viewing and filtering a local and validated variant
+    database populated by clinically generated variant files (i.e. VCFs and
+    CSVs).
+
+    Filters:
+    - Filter Column: Header
+    - Filter Value: Values under the respective header
+    - Sort By: Another column
+
+    Intended Users:
+    ---------------
+    Clinical Scientists / Clinical Bioinformaticians working with validated
+    variant call data.
+
+    Notes:
+    ------
+    - This interface is rendered by Flask and is read-only with respect to
+      variant content.
+    - The database is kept in the 'databases' directory:
+
+       Software_Engineering_Assessment_2025_AR_RW_RS/databases/<database>.db
+
+    - Server-side processes that interact this HTML file are handled primarily
+      within appy.py:
+
+             Software_Engineering_Assessment_2025_AR_RW_RS/app/app.py
+
+    =============================================================================
+    -->
     <title>Display Database - {{ db_name }}</title>
     <style>
+        /* ---------------------------------------------------------------------
+           Colour and design of general webpage components including
+           background, text and buttons .
+           --------------------------------------------------------------------- */
         body {
             background-color: #24bf96;
             color: white;
             font-family: "Nirmala UI", sans-serif;
             padding: 20px;
         }
+
+        /* ---------------------------------------------------------------------
+           Colour and design of the table returned by the query including
+           cells, background, text and buttons .
+           --------------------------------------------------------------------- */
         table {
             border-collapse: collapse;
             width: 100%;
@@ -30,18 +74,45 @@
 </head>
 <body>
 
+<!-- ---------------------------------------------------------------------
+     Banner with the database being viewed in it, notifying the User,
+     thereby reducing the risk of misinterpretation errors.
+     --------------------------------------------------------------------- -->
 <h1>Full Database: {{ db_name }}</h1>
 
+<!--
+'Back to Search' button redirects the User back to the query page
+where they can query the selected database. Intended for targeting
+specific variants in the database.
+-->
 <a href="{{ url_for('query_page', db_name=db_name) }}">
     <button type="button">Back to Search</button>
 </a>
 
 <hr>
+
+<!-- =====================================================================
+     SORT AND FILTER CONTROLS
+     ===================================================================== -->
+
 <h3>Sort / Filter Options</h3>
+<!--
+Sort / filter form:
+-------------------
+Enables Users to apply simple, controlled filtering and sorting
+operations to the full database view.
+-->
 
 <form method="POST">
 
-    <!-- FILTER COLUMN -->
+    <!--
+    FILTER COLUMN SELECTION
+    -----------------------
+    app.py returns a list of the headers in the table to
+    'all_columns'. The User can select a header from a dropdown
+    menu to filter on. The column that the User selects is
+    assigned to 'filter_column'.
+    -->
     <label><strong>Filter Column:</strong></label>
     <select name="filter_column" id="filter_column">
         <option value="">(none)</option>
@@ -52,14 +123,39 @@
         {% endfor %}
     </select>
 
-    <!-- FILTER VALUE (populated dynamically via JS) -->
+    <!--
+    FILTER COLUMN SELECTION
+    -----------------------
+    Each distinct value that appears in the column assigned to
+    'filter_column' (besides the header) appears in a dropdown
+    menu beside the text 'Filter Value:'. The dropdown menu is
+    dynamically populated by the corresponding values using
+    the script below.
+
+    The value that the User selects to filter by is assigned
+    to 'filter_value'. The table will only display variants
+    that have this value under the header assigned to
+    'filter_column'.
+    -->
     <label><strong>Filter Value:</strong></label>
     <select name="filter_value" id="filter_value">
         <option value="">(none)</option>
-        {# values will be filled by JS based on filter_values_json #}
     </select>
 
-    <!-- SORT COLUMN -->
+    <!--
+    SORT COLUMN SELECTION
+    ---------------------
+    The headers returned by app.py are entered into a third
+    dropdown manu, labelled as 'Sort By:'. When the User
+    selects a header in this menu, the rows filtered-into
+    the table are arranged in ascending order, according to
+    the values that come under the selected header. Text is
+    ordered alphabetically. Numerical values are ordered
+    from 0 upwards.
+
+    The header selected by the User is assigned to
+    'sort_column'.
+    -->
     <label><strong>Sort By:</strong></label>
     <select name="sort_column">
         <option value="">(none)</option>
@@ -70,15 +166,35 @@
         {% endfor %}
     </select>
 
+    <!--
+    'Apply' button for applying the selected sort and filter options.
+    -->
     <button type="submit">Apply</button>
 </form>
 
 <hr>
 
+<!-- =====================================================================
+     DATABASE RESULTS
+     ===================================================================== -->
+
 {% if data %}
 <h2>Results</h2>
 
-<!-- EXPORT BUTTONS -->
+<!--
+CSV Export:
+-----------
+'Export CSV' button allows Users to export query results in
+CSV format.
+
+Headers and row data are passed as JSON objects into a CSV
+before being converted into bytes, by app.py. A pop-up window
+will appear, enabling Users to specify where on their computer
+to save the CSV file.
+
+The name of the database is also passed back to app.py to help
+with logging, through 'db_name'.
+-->
 <form action="/export_csv" method="POST" style="display:inline;">
     <input type="hidden" name="db_name" value="{{ db_name }}">
     <input type="hidden" name="columns" value='{{ export_columns_json | safe }}'>
@@ -86,6 +202,16 @@
     <button type="submit">Export CSV</button>
 </form>
 
+<!--
+Results table:
+--------------
+This table renders the output from the SQLite3 query returned
+by app.py into 'data'. The variable 'data' is a list of
+dictionaries. Every dictionary has the same keys. Each key is
+converted into a header, assigned to 'col'. The set of values
+from a dictionary occupy a row in the table. Each value appears
+under the header named after it's key.
+-->
 <table>
     <tr>
         {% for col in all_columns %}
@@ -106,7 +232,18 @@
 <p><em>No data found.</em></p>
 {% endif %}
 
-<!-- DYNAMIC FILTER VALUE LOADING (no extra API call, uses JSON passed from backend) -->
+<!--
+DYNAMIC FILTER VALUE LOADING
+----------------------------
+app.py returns the values below the corresponding header to
+'filter_values_json'. JavaScript then dynamically populates
+the dropdown menu with values after the User has selected
+a column to filter on, otherwise the dropdown menu will
+display '(none)'.
+
+The prevents the need for additional API calls and ensuring
+deterministic behaviour.
+-->
 <script>
 const FILTER_VALUES = {{ filter_values_json | safe }};
 const filterColumnSelect = document.getElementById("filter_column");
@@ -127,12 +264,12 @@ function populateFilterValues(column, selectedValue) {
     });
 }
 
-// When user changes the filter column
+/* Update the filter values when the User changes the filter column. */
 filterColumnSelect.addEventListener("change", function () {
     populateFilterValues(this.value, "");
 });
 
-// On page load, if a filter column/value is already selected, pre-populate
+/* On page load, if a filter column/value is already selected, pre-populate */
 window.addEventListener("DOMContentLoaded", function () {
     const initialColumn = "{{ selected_filter_column or '' }}";
     const initialValue = "{{ selected_filter_value or '' }}";
