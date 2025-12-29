@@ -5,8 +5,9 @@ import sqlite3
 import pytest
 from pathlib import Path
 from flask import Flask, get_flashed_messages
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import tools.modules.database_functions as db_mod
+from tools.modules.database_functions import patient_variant_table
 
 # -------------------------------------------------------------------------
 # Fixtures
@@ -653,3 +654,51 @@ def test_full_flow_creates_valid_schema_and_query(
     assert len(rows_va) == 1
     assert rows_va[0]["variant_NC"] == "NC_000010.1:g.999G>T"
     assert rows_va[0]["classification"] == "Benign"
+
+
+@pytest.mark.parametrize(
+    "exception_to_raise,expected_start",
+    [
+        (sqlite3.OperationalError("Operational fail"),
+         "❌ patient_variant_table SQLite3 Error:"),
+        (sqlite3.DatabaseError("Database fail"),
+         "❌ patient_variant_table SQLite3 Error:"),
+        (sqlite3.ProgrammingError("Programming fail"),
+         "❌ patient_variant_table SQLite3 Error:"),
+        (Exception("Generic fail"),
+         "❌ patient_variant_table Error occurred while preparing"),
+    ]
+)
+def test_patient_variant_table_exceptions(exception_to_raise, expected_start, tmp_path):
+    db_name = "test_db"
+
+    # Patch os.listdir to simulate at least one variant file
+    with patch("os.listdir", return_value=["fake.vcf"]), \
+         patch("tools.modules.database_functions.sqlite3.connect") as mock_connect, \
+         patch("tools.modules.database_functions.flash") as mock_flash, \
+         patch("tools.modules.database_functions.logger") as mock_logger, \
+         patch("tools.modules.database_functions.sqlite_error", return_value="something wrong with the database"), \
+         patch("tools.modules.database_functions.variant_parser", return_value=["variant1"]), \
+         patch("tools.modules.database_functions.fetch_vv", return_value=("NC_000000.1:g.1A>T", "", "", "", "")):
+
+        # Create fake connection and cursor
+        fake_cursor = MagicMock()
+        fake_conn = MagicMock()
+        fake_conn.cursor.return_value = fake_cursor
+        mock_connect.return_value = fake_conn
+
+        # Raise the exception when cursor.execute is called
+        fake_cursor.execute.side_effect = exception_to_raise
+
+        # Run the function
+        result = patient_variant_table(str(tmp_path), db_name)
+
+        # Ensure 'error' is returned
+        assert result == 'error'
+
+        # Ensure flash was called at least once
+        assert mock_flash.call_count > 0
+
+        # Check that at least one flash message starts with expected prefix
+        flash_messages = [call[0][0] for call in mock_flash.call_args_list]
+        assert any(msg.startswith(expected_start) for msg in flash_messages)
