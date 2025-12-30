@@ -703,3 +703,202 @@ def test_patient_variant_table_exceptions(exception_to_raise, expected_start, tm
         flash_messages = [call[0][0] for call in mock_flash.call_args_list]
         assert any(msg.startswith(expected_start) for msg in flash_messages)
 
+def test_patient_variant_table_fetch_vv_exception(app, temp_variants_dir, db_name, db_path, monkeypatch):
+    # Create a dummy VCF file
+    vcf_file = temp_variants_dir / "PatientException.vcf"
+    vcf_file.write_text("## dummy content\n")
+
+    # Patch variant_parser to return one variant
+    monkeypatch.setattr(db_mod, "variant_parser", lambda path: ["variantX"])
+
+    # Patch fetch_vv to raise Exception
+    def raise_exception(v):
+        raise Exception("VV fail")
+    monkeypatch.setattr(db_mod, "fetch_vv", raise_exception)
+
+    # Remove existing DB if exists
+    if os.path.exists(db_path):
+        os.remove(db_path)
+
+    with app.test_request_context("/"):
+        result = db_mod.patient_variant_table(str(temp_variants_dir), db_name)
+        messages = get_flashed_messages()
+
+    assert "❌ patient_variant_table Error: Could not retrieve a response from VariantValidator" in messages[0]
+    # Function should continue and return 'error' if nothing is added
+    assert result in (None, 'error')
+
+
+def test_patient_variant_table_fetch_vv_none_response(app, temp_variants_dir, db_name, db_path, monkeypatch):
+    vcf_file = temp_variants_dir / "PatientNone.vcf"
+    vcf_file.write_text("## dummy content\n")
+
+    monkeypatch.setattr(db_mod, "variant_parser", lambda path: ["variantY"])
+    monkeypatch.setattr(db_mod, "fetch_vv", lambda v: None)
+
+    if os.path.exists(db_path):
+        os.remove(db_path)
+
+    with app.test_request_context("/"):
+        result = db_mod.patient_variant_table(str(temp_variants_dir), db_name)
+        messages = get_flashed_messages()
+
+    assert any("⚠ No response was received from VariantValidator" in m for m in messages)
+    assert result in (None, 'error')
+
+
+def test_patient_variant_table_fetch_vv_string_response(app, temp_variants_dir, db_name, db_path, monkeypatch):
+    vcf_file = temp_variants_dir / "PatientString.vcf"
+    vcf_file.write_text("## dummy content\n")
+
+    monkeypatch.setattr(db_mod, "variant_parser", lambda path: ["variantZ"])
+    monkeypatch.setattr(db_mod, "fetch_vv", lambda v: "error string")
+
+    if os.path.exists(db_path):
+        os.remove(db_path)
+
+    with app.test_request_context("/"):
+        result = db_mod.patient_variant_table(str(temp_variants_dir), db_name)
+        messages = get_flashed_messages()
+
+    assert any("error string" in m for m in messages)
+    assert result in (None, 'error')
+
+
+def test_patient_variant_table_sqlite_exception(monkeypatch, app, temp_variants_dir, db_name, db_path):
+    vcf_file = temp_variants_dir / "PatientSQLite.vcf"
+    vcf_file.write_text("## dummy content\n")
+
+    monkeypatch.setattr(db_mod, "variant_parser", lambda path: ["variantB"])
+    monkeypatch.setattr(db_mod, "fetch_vv", lambda v: ("NC_000001.1:g.1A>G", "NM", "NP", "GENE", 1234))
+
+    # Patch sqlite3 connection to raise OperationalError on execute
+    class FakeCursor:
+        def execute(self, *args, **kwargs):
+            raise sqlite3.OperationalError("DB fail")
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+        def commit(self): pass
+        def close(self): pass
+
+    monkeypatch.setattr(db_mod.sqlite3, "connect", lambda path: FakeConn())
+
+    with app.test_request_context("/"):
+        result = db_mod.patient_variant_table(str(temp_variants_dir), db_name)
+        messages = get_flashed_messages()
+
+    assert any("SQLite3 Error" in m for m in messages)
+    assert result in (None, 'error')
+
+
+def test_patient_variant_table_generic_exception_on_insert(tmp_path):
+    # Create a dummy VCF file
+    temp_dir = tmp_path / "temp"
+    temp_dir.mkdir()
+    vcf_file = temp_dir / "Patient2.vcf"
+    vcf_file.write_text("## dummy content\n")
+
+    db_name = "test_db_generic"
+    db_path = tmp_path / f"{db_name}.db"
+
+    # Patch functions to control behaviour
+    with patch("tools.modules.database_functions.os.listdir", return_value=[str(vcf_file)]), \
+         patch("tools.modules.database_functions.variant_parser", return_value=["var1"]), \
+         patch("tools.modules.database_functions.fetch_vv", return_value=("NC_000001.1:g.123A>G",)), \
+         patch("tools.modules.database_functions.sqlite3.connect") as mock_connect, \
+         patch("tools.modules.database_functions.flash") as mock_flash, \
+         patch("tools.modules.database_functions.logger") as mock_logger:
+
+        # Create fake connection and cursor
+        fake_cursor = MagicMock()
+        fake_conn = MagicMock()
+        fake_conn.cursor.return_value = fake_cursor
+        mock_connect.return_value = fake_conn
+
+        # Raise a generic Exception when inserting
+        def execute_side_effect(*args, **kwargs):
+            if "INSERT" in args[0]:
+                raise Exception("generic insert fail")
+            elif "SELECT COUNT" in args[0]:
+                # simulate empty table
+                fake_cursor.fetchone.return_value = [0]
+                return
+            return None
+
+        fake_cursor.execute.side_effect = execute_side_effect
+
+        result = db_mod.patient_variant_table(str(temp_dir), db_name)
+
+        # Should return 'error' because table is empty after failed insert
+        assert result == 'error'
+
+        # Flash should contain a message about the generic exception
+        flash_messages = [call[0][0] for call in mock_flash.call_args_list]
+        assert any("Could not add Patient2 and NC_000001.1:g.123A>G" in msg for msg in flash_messages)
+
+
+@pytest.mark.parametrize("exception_type, expected_flash", [
+    (sqlite3.OperationalError, "❌ patient_variant_table: SQLite3 Error"),
+    (Exception, "❌ patient_variant_table Error")
+])
+def test_patient_variant_table_db_check_exceptions(app, tmp_path, monkeypatch, exception_type, expected_flash):
+    """
+    Test patient_variant_table behavior when checking the database fails.
+    Covers the final try/except block that queries the table.
+    """
+
+    db_name = "test_db_check_exception"
+
+    # Create a dummy VCF file
+    vcf_file = tmp_path / "Patient1.vcf"
+    vcf_file.write_text("## dummy content\n")
+
+    # Patch os.listdir to include our VCF file
+    monkeypatch.setattr("os.listdir", lambda path: [vcf_file.name])
+
+    # Patch variant_parser to return one valid variant
+    monkeypatch.setattr(
+        "tools.modules.database_functions.variant_parser",
+        lambda path: ["c.123A>G"]
+    )
+
+    # Patch fetch_vv to return a valid HGVS genomic description
+    monkeypatch.setattr(
+        "tools.modules.database_functions.fetch_vv",
+        lambda variant: ("NC_000001.11:g.123A>G", "NM_0001", "NP_0001", "GENE1", 1234)
+    )
+
+    # Patch sqlite3.connect to simulate a connection that raises an exception when cursor.execute is called
+    class FakeCursor:
+        def execute(self, *args, **kwargs):
+            if "SELECT COUNT" in args[0]:
+                raise exception_type("Simulated exception for testing")
+            return None
+        def fetchone(self):
+            return [0]
+
+    class FakeConnection:
+        def cursor(self):
+            return FakeCursor()
+        def commit(self):
+            return None
+        def close(self):
+            return None
+
+    monkeypatch.setattr(
+        "tools.modules.database_functions.sqlite3.connect",
+        lambda db_path: FakeConnection()
+    )
+
+    # Run the function inside a Flask test request context
+    with app.test_request_context("/"):
+        result = patient_variant_table(str(tmp_path), db_name)
+
+        # Should return 'error' due to simulated exception
+        assert result == "error"
+
+        # Check that a flash message containing the expected string was triggered
+        flashes = get_flashed_messages()
+        assert any(expected_flash in msg for msg in flashes)
