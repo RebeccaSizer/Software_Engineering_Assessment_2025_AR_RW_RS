@@ -534,15 +534,31 @@ def test_get_mane_nc_generic_exception(monkeypatch):
     ("NM_000001.1:1A>T", 
      "⚠ Variant Query Error: Irregular variant nomenclature. 1A>T does not work."),
 ])
+
 def test_transcript_flash_messages(variant, expected_flash):
+    """
+    Test `get_mane_nc` for invalid transcript or variant inputs.
+
+    This test verifies that appropriate flash messages are generated when the
+    variant format or RefSeq accession number is invalid. The flash messages
+    should contain a warning about why the variant is not accepted.
+
+    Parameters
+    ----------
+    variant : str
+        The input variant string to be tested.
+    expected_flash : str
+        The expected flash message to be generated for the invalid input.
+    """
     flashed = []
 
-    # Patch flash to capture messages
+    # Patch `flash` to capture messages without requiring a Flask request context
     with patch("tools.modules.vv_functions.flash", lambda msg: flashed.append(msg)):
         vv.get_mane_nc(variant=variant)
 
-    # Assert the expected flash message was captured
+    # Assert that the captured flash message contains the warning
     assert "⚠ Variant Query Error" in flashed[0]
+
 
 @pytest.mark.parametrize("variant,api_response,expected_flash,expected_log_level", [
     # Case 1: data is None
@@ -561,10 +577,29 @@ def test_transcript_flash_messages(variant, expected_flash):
     ("NM_000001.1:c.1A>T", {"validation_warning_1": {"validation_warnings": ["Test warning"]}},
      "NM_000001.1:c.1A>T: ⚠ VariantValidator warnings:", "warning"),
 ])
-def test_get_mane_nc_flashes_and_logging(variant, api_response, expected_flash, expected_log_level):
+def test_get_mane_nc_flashes_and_logging(
+        variant, api_response, expected_flash, expected_log_level):
+    """
+    Test `get_mane_nc` flash messages and logging for different VariantValidator API responses.
+
+    This test mocks the API responses and verifies that:
+    - Appropriate flash messages are generated for different API outputs.
+    - Logging occurs at the expected level (warning or error).
+
+    Parameters
+    ----------
+    variant : str
+        The variant string to test.
+    api_response : dict or None or str
+        The mocked API response returned by VariantValidator.
+    expected_flash : str
+        The expected flash message that should be generated.
+    expected_log_level : str
+        The expected log level where messages should be logged ('warning' or 'error').
+    """
     flashed = []
 
-    # Patch flash to capture messages
+    # Patch flash and logger methods, as well as requests.get to mock API calls
     with patch("tools.modules.vv_functions.flash", lambda msg: flashed.append(msg)), \
          patch("tools.modules.vv_functions.logger.warning") as mock_warn, \
          patch("tools.modules.vv_functions.logger.error") as mock_error, \
@@ -572,24 +607,22 @@ def test_get_mane_nc_flashes_and_logging(variant, api_response, expected_flash, 
          patch("tools.modules.vv_functions.logger.debug") as mock_debug, \
          patch("tools.modules.vv_functions.requests.get") as mock_requests_get:
 
-        # Patch the API call to return our test response
+        # Mock API call to return the specified response
         mock_response = mock_requests_get.return_value
         mock_response.json.return_value = api_response
 
-        # Call the function
+        # Call the function under test
         vv.get_mane_nc(variant)
 
-    # Check flash messages
+    # Verify that at least one flash message was generated
     assert flashed
     assert expected_flash in flashed[0]
 
-    # Check logging
+    # Verify logging at the expected level
     if expected_log_level == "warning":
         assert mock_warn.called
     elif expected_log_level == "error":
         assert mock_error.called
-
-import pytest
 
 @pytest.mark.parametrize(
     "variant,data,missing_key",
@@ -607,20 +640,47 @@ import pytest
     ],
 )
 def test_get_mane_nc_keyerror_branches(variant, data, missing_key):
+    """
+    Test `get_mane_nc` for handling irregular API responses (KeyError branches).
+
+    This test verifies that when VariantValidator returns a response that lacks
+    expected keys, `get_mane_nc`:
+      - Generates an appropriate flash message.
+      - Logs an error once.
+      - Calls the debug logger at least once for troubleshooting.
+
+    Parameters
+    ----------
+    variant : str
+        The variant string being tested.
+    data : dict
+        The mocked API response missing required keys.
+    missing_key : str
+        The key expected in the response but missing (used for clarity in test).
+    """
     flashed = []
 
+    # Patch `flash` to capture messages and logger methods to verify logging
     with patch("tools.modules.vv_functions.flash", lambda msg: flashed.append(msg)), \
          patch("tools.modules.vv_functions.logger.error") as mock_error, \
          patch("tools.modules.vv_functions.logger.debug") as mock_debug, \
          patch("tools.modules.vv_functions.requests.get") as mock_get:
 
+        # Mock the API call to return the test data missing expected keys
         mock_get.return_value.json.return_value = data
+
+        # Call the function under test
         vv.get_mane_nc(variant)
 
+    # Verify that the expected flash message was generated
     assert flashed == [
         f"{variant}: ❌ Variant Query Error: Irregular response received from VariantValidator."
     ]
+
+    # Verify that an error was logged exactly once
     mock_error.assert_called_once()
+
+    # Verify that debug logging occurred at least once
     assert mock_debug.call_count >= 1
 
 @pytest.mark.parametrize(
@@ -630,20 +690,46 @@ def test_get_mane_nc_keyerror_branches(variant, data, missing_key):
         ("NM_000001.1:c.1A>T", ValueError("bad data")),
     ],
 )
+
 def test_get_mane_nc_generic_exception_branches(variant, exception):
+    """
+    Test `get_mane_nc` for handling generic exceptions during API response processing.
+
+    This test verifies that when VariantValidator's API call or JSON parsing raises a
+    generic Exception, `get_mane_nc`:
+      - Generates an appropriate flash message containing the variant and error context.
+      - Logs an error exactly once.
+      - Calls the debug logger at least once.
+
+    Parameters
+    ----------
+    variant : str
+        The variant string being tested.
+    exception : Exception
+        The exception to simulate during the API JSON response handling.
+    """
     flashed = []
 
+    # Patch `flash` to capture messages and logger methods to verify logging
     with patch("tools.modules.vv_functions.flash", lambda msg: flashed.append(msg)), \
          patch("tools.modules.vv_functions.logger.error") as mock_error, \
          patch("tools.modules.vv_functions.logger.debug") as mock_debug, \
          patch("tools.modules.vv_functions.requests.get") as mock_get:
 
+        # Make the API's json() method raise the test exception
         mock_get.return_value.json.side_effect = exception
+
+        # Call the function under test
         vv.get_mane_nc(variant)
 
+    # Verify that the flash message indicates a Variant Query Error and contains the variant
     assert "Variant Query Error" in flashed[0]
     assert variant in flashed[0]
+
+    # Verify that an error was logged exactly once
     mock_error.assert_called_once()
+
+    # Verify that debug logging occurred at least once
     assert mock_debug.call_count >= 1
 
 
@@ -655,18 +741,37 @@ def test_get_mane_nc_generic_exception_branches(variant, exception):
     ],
 )
 def test_get_mane_nc_unrecognised_gene_symbol(variant):
+    """
+    Test `get_mane_nc` behavior when VariantValidator returns an empty response
+    (unrecognised gene symbol).
+
+    This test verifies that:
+      - A flash message is generated indicating a Variant Query Error.
+      - A warning is logged exactly once.
+
+    Parameters
+    ----------
+    variant : str
+        The variant string being tested.
+    """
     flashed = []
 
+    # Patch `flash` to capture messages and logger.warning to verify warning logging
     with patch("tools.modules.vv_functions.flash", lambda msg: flashed.append(msg)), \
          patch("tools.modules.vv_functions.logger.warning") as mock_warn, \
          patch("tools.modules.vv_functions.requests.get") as mock_get:
 
+        # Simulate VariantValidator returning an empty response (unrecognised gene symbol)
         mock_get.return_value.json.return_value = {}
+
+        # Call the function under test
         vv.get_mane_nc(variant)
 
+    # Verify that the flash message indicates a Variant Query Error
     assert "Variant Query Error:" in flashed[0]
-    mock_warn.assert_called_once()
 
+    # Verify that a warning was logged exactly once
+    mock_warn.assert_called_once()
 
 # ---------------- fetch_vv: API response / HTTP errors ---------------- #
 
@@ -912,177 +1017,216 @@ def test_fetch_vv_error_handlers(monkeypatch, exception, handler_name, handler_r
     ]
 )
 def test_fetch_vv_regex_branches(mock_data, expected_return, expected_flash):
+    """
+    Test `fetch_vv` behavior for different regex-based branches.
+
+    This test verifies that:
+      - Correct return values are produced for transcript/genomic branches.
+      - Appropriate flash messages are generated for protein/gene/HGNC errors.
+      - Requests to VariantValidator are mocked to avoid external API calls.
+
+    Parameters
+    ----------
+    mock_data : dict
+        The mocked JSON response from VariantValidator.
+    expected_return : tuple or None
+        The expected return value from fetch_vv (for genomic/transcript branches).
+    expected_flash : str or None
+        The expected flash message for protein/gene/HGNC branch errors.
+    """
     flashed = []
 
-    # Patch flash and requests.get inside vv_functions
+    # Patch flash to capture messages and requests.get to mock API calls
     with patch("tools.modules.vv_functions.flash", lambda msg: flashed.append(msg)):
         with patch("tools.modules.vv_functions.requests.get") as mock_get:
-            # Mock response object
+            # Mock response object returned by requests.get
             mock_resp = MagicMock()
             mock_resp.json.return_value = mock_data
             mock_resp.raise_for_status.return_value = None
             mock_get.return_value = mock_resp
 
+            # Call the function under test
             ret = vv.fetch_vv("TESTVAR")
 
-    # Check return value for genomic/transcript branches
+    # Verify the return value for transcript/genomic branches
     if expected_return:
         assert ret == expected_return
 
-    # Check flash messages for protein/gene/HGNC branches
+    # Verify flash messages for protein/gene/HGNC branches
     if expected_flash:
         assert any(expected_flash in msg for msg in flashed)
 
 
 def test_fetch_vv_non_dict_response(monkeypatch):
     """
-    Test fetch_vv when the API returns a non-dictionary JSON response.
+    Test `fetch_vv` when the VariantValidator API returns a non-dictionary JSON response.
 
-    Ensures that fetch_vv handles unexpected response formats gracefully
-    and returns an error message indicating no valid response.
+    This ensures that `fetch_vv`:
+      - Handles unexpected response formats gracefully.
+      - Returns an informative error message indicating that no valid response was received.
     """
 
-    # Define a fake response class returning a list instead of a dict
     class FakeResponse:
+        """Simulate a requests.Response object with a non-dict JSON."""
+
         def raise_for_status(self):
-            """No-op to simulate successful HTTP response"""
+            """No-op to simulate a successful HTTP response."""
             pass
 
         def json(self):
-            """Return a list instead of a dictionary"""
+            """Return a list instead of a dict to simulate an invalid response."""
             return ["not", "a", "dict"]
 
     # Patch requests.get to return the fake response
     monkeypatch.setattr(vv.requests, "get", lambda url: FakeResponse())
-    # Patch time.sleep to skip delays during testing
+
+    # Patch time.sleep to skip actual delays during testing
     monkeypatch.setattr(vv.time, "sleep", lambda *_: None)
 
     # Call the function under test
     result = vv.fetch_vv("1-2-A-T")
 
-    # Assert that an appropriate error message is returned
+    # Verify that fetch_vv returns an error message
     assert "did not return a response" in result
 
 
 def test_fetch_vv_missing_keys(monkeypatch):
     """
-    Test fetch_vv when the API response is missing expected keys.
+    Test `fetch_vv` when the API response is missing expected keys.
 
-    Ensures that fetch_vv detects incomplete or irregular JSON responses
-    and returns an appropriate error message.
+    This ensures that `fetch_vv`:
+      - Detects incomplete or irregular JSON responses.
+      - Returns an informative error message indicating an irregular response.
     """
 
-    # Define a fake response with missing expected keys
     class FakeResponse:
+        """Simulate a requests.Response object missing expected variant keys."""
+
         def raise_for_status(self):
-            """No-op to simulate successful HTTP response"""
+            """No-op to simulate a successful HTTP response."""
             pass
 
         def json(self):
-            """Return a dictionary missing expected variant keys"""
+            """Return a dictionary missing the expected variant keys."""
             return {"X": {"primary_assembly_loci": {}}}
 
     # Patch requests.get to return the fake response
     monkeypatch.setattr(vv.requests, "get", lambda url: FakeResponse())
+
     # Patch time.sleep to skip delays during testing
     monkeypatch.setattr(vv.time, "sleep", lambda *_: None)
 
     # Call the function under test
     result = vv.fetch_vv("1-2-A-T")
 
-    # Assert that an appropriate error message is returned
+    # Verify that fetch_vv returns an error message about an irregular response
     assert "Irregular response" in result
-
 
 def test_fetch_vv_timeout(monkeypatch):
     """
-    Test fetch_vv handling of a requests Timeout exception.
+    Test `fetch_vv` handling of a requests Timeout exception.
 
-    Ensures that fetch_vv returns an appropriate error message
-    when the API call times out.
+    Ensures that `fetch_vv`:
+      - Handles requests.exceptions.Timeout gracefully.
+      - Returns an informative error message indicating the API call failed.
     """
 
-    # Fake requests.get to simulate a Timeout exception
     def fake_get(url):
+        """Simulate a requests.get call that raises a Timeout exception."""
         raise requests.exceptions.Timeout("timeout")
 
+    # Patch requests.get to simulate the timeout
     monkeypatch.setattr(vv.requests, "get", fake_get)
-    # Patch time.sleep to skip delays during testing
+
+    # Patch time.sleep to avoid delays during testing
     monkeypatch.setattr(vv.time, "sleep", lambda *_: None)
 
     # Call the function under test
     result = vv.fetch_vv("1-2-A-T")
 
-    # Assert that a timeout error message is returned
+    # Verify that the function returns an appropriate error message
     assert "failed to receive a valid response" in result.lower()
 
 
 def test_fetch_vv_http_error(monkeypatch):
     """
-    Test fetch_vv handling of an HTTPError from requests.
+    Test `fetch_vv` handling of an HTTPError from requests.
 
-    Ensures that fetch_vv returns an appropriate error message
-    when the API responds with an HTTP error.
+    Ensures that `fetch_vv`:
+      - Handles requests.exceptions.HTTPError gracefully.
+      - Returns an informative error message indicating the API is unavailable.
     """
 
-    # Fake requests.get to simulate an HTTPError
     class FakeResponse:
+        """Simulate a requests response that raises HTTPError."""
+
         def raise_for_status(self):
+            """Raise an HTTPError to simulate a failed HTTP response."""
             raise requests.exceptions.HTTPError("500 error")
 
+        def json(self):
+            """Return a dummy JSON object (not used in this test)."""
+            return {}
+
+    # Patch requests.get to simulate an HTTP error
     monkeypatch.setattr(vv.requests, "get", lambda url: FakeResponse())
-    # Patch time.sleep to skip delays during testing
+
+    # Patch time.sleep to avoid delays during testing
     monkeypatch.setattr(vv.time, "sleep", lambda *_: None)
 
     # Call the function under test
     result = vv.fetch_vv("1-2-A-T")
 
-    # Assert that an HTTP error message is returned
+    # Verify that the function returns an appropriate HTTP error message
     assert "VariantValidator unavailable" in result
 
 
 def test_get_mane_nc_connection_error_no_internet(monkeypatch):
     """
-    Test get_mane_nc handling a ConnectionError due to no internet.
+    Test `get_mane_nc` handling a ConnectionError due to no internet.
 
-    Ensures that get_mane_nc correctly calls the connection_error handler
-    and returns the expected error message when the internet is unavailable.
+    Ensures that `get_mane_nc`:
+      - Calls the connection_error handler when a ConnectionError occurs.
+      - Returns the expected error message if the network is unreachable.
     """
 
-    # Fake requests.get to simulate a ConnectionError with errno 101
+    # Simulate requests.get raising a ConnectionError with errno 101
     def fake_get(url, *args, **kwargs):
-        from requests.exceptions import ConnectionError
-
         oe = OSError()
         oe.errno = 101  # Simulate 'Network is unreachable'
-        err = ConnectionError("no internet")
+        err = requests.exceptions.ConnectionError("no internet")
         err.__cause__ = oe
         raise err
 
-    # Fake connection_error function to return a test string
+    # Simulate a custom connection_error handler returning a test string
     def fake_connection_error(e, variant, api_name, url):
         return "problem connecting to the internet"
 
-    # Patch requests.get and connection_error
+    # Patch requests.get and the connection_error function in vv
     monkeypatch.setattr(vv.requests, "get", fake_get)
     monkeypatch.setattr(vv, "connection_error", fake_connection_error)
 
     variant = "ENST00000338639.10:c.515T>A"
-    # Flask context required for flashing messages
+
+    # Flask request context is required for flash messages
     with app.test_request_context():
         output = vv.get_mane_nc(variant)
 
-    # Assert that the connection error message is returned
+    # Assert the connection error message is returned
     assert "problem connecting to the internet" in output
 
 # ---------------- fetch_vv retry / 408 ---------------- #
 def test_fetch_vv_retry_then_success(monkeypatch):
     """
-    Test fetch_vv retry logic when the first request times out.
+    Test fetch_vv retry logic when the first request times out (HTTP 408).
 
-    Simulates a HTTP 408 timeout on the first call and a successful response
-    on the second call. Ensures fetch_vv handles retries correctly and
-    returns the expected result.
+    This test simulates:
+      - A timeout (HTTP 408) on the first API call.
+      - A successful response on the second API call.
+
+    Ensures that fetch_vv handles retries correctly and returns
+    an appropriate error message when a valid response is not obtained
+    after retrying.
     """
     calls = {"count": 0}  # Track number of API calls
 
@@ -1092,9 +1236,11 @@ def test_fetch_vv_retry_then_success(monkeypatch):
         text = "OK"
 
         def raise_for_status(self):
+            """No-op to simulate HTTP 200 OK"""
             pass
 
         def json(self):
+            """Return a valid VariantValidator-like JSON structure"""
             return {
                 "1-2-A-T": {
                     "primary_assembly_loci": {
@@ -1111,80 +1257,85 @@ def test_fetch_vv_retry_then_success(monkeypatch):
                 }
             }
 
-    # Simulate first call timing out and second call succeeding
+    # Simulate first call timing out, second call succeeds
     def fake_get(url, *args, **kwargs):
         calls["count"] += 1
         if calls["count"] == 1:
             response = type(
                 "obj",
                 (),
-                {"status_code": 408, "text": "Request Timeout"},
+                {"status_code": 408, "text": "Request Timeout"}
             )()
-            raise requests.exceptions.HTTPError("408", response=response)
+            raise requests.exceptions.HTTPError("408 Request Timeout", response=response)
         return FakeResponse()
 
-    # Patch requests.get and time.sleep
+    # Patch requests.get and time.sleep to avoid delays
     monkeypatch.setattr(vv.requests, "get", fake_get)
     monkeypatch.setattr(vv.time, "sleep", lambda *_: None)
 
-    # Call fetch_vv and check output
+    # Call fetch_vv and check result
     result = vv.fetch_vv("1-2-A-T")
+
+    # Ensure the function returns an error message after retrying
     assert isinstance(result, str)
     assert "No response received from VariantValidator" in result
 
 def test_fetch_vv_protein_regex_error(monkeypatch):
     """
-    Test fetch_vv when a regex error occurs during protein variant validation.
+    Test fetch_vv handling of a regex error during protein variant validation.
 
-    This test forces re.match to raise re.error, ensuring fetch_vv
-    handles the exception gracefully and returns the regex_error message.
+    This test deliberately forces ``re.match`` to raise ``re.error`` in order
+    to exercise the internal regex exception-handling branch within
+    ``fetch_vv``. It ensures that regex-related failures are handled
+    gracefully and that the appropriate user-facing error message is
+    returned.
     """
     import re
 
+    # Preserve the original re.match function so it can still be used
+    # for non-failing calls.
     original_match = re.match
+
+    # Track how many times re.match is called
     calls = {"n": 0}
 
     def make_selective_match(fail_on_call):
+        """
+        Factory for a selective re.match replacement.
+
+        Raises a re.error on a specific invocation count to simulate
+        a regex failure occurring at different validation stages.
+        """
         def selective_match(*args, **kwargs):
             calls["n"] += 1
-            if calls["n"] == fail_on_call:  # protein regex check
+            if calls["n"] == fail_on_call:
+                # Simulate regex compilation/matching failure
                 raise re.error("regex failure")
             return original_match(*args, **kwargs)
+
         return selective_match
 
+    # Iterate over several possible regex call positions to ensure
+    # all relevant regex branches are exercised.
     for n in [1, 2, 3]:
+        # Patch re.match to fail on the nth call
         monkeypatch.setattr(vv.re, "match", make_selective_match(n))
+
+        # Prevent real delays during retry logic
         monkeypatch.setattr(vv.time, "sleep", lambda *_: None)
 
-        # Patch requests.get to return the fake API response
+        # Patch requests.get to return a mocked successful API response
         monkeypatch.setattr(vv.requests, "get", lambda *_: FakeResponse())
 
-        # Patch time.sleep to avoid delays
-        monkeypatch.setattr(vv.time, "sleep", lambda *_: None)
-
-        # Force re.match to raise a regex error
+        # Override re.match again to force a guaranteed regex failure
+        # during protein variant validation
         def fake_re_match(*args, **kwargs):
             raise re.error("fake regex error")
 
         monkeypatch.setattr(vv.re, "match", fake_re_match)
 
-        # Call fetch_vv
+        # Call the function under test
         result = vv.fetch_vv("11-2164285-C-T")
 
-        # Assert that a regex-related error message is returned
+        # Assert that a regex-related internal error message is returned
         assert "Internal Error: Regex validation failed." in result
-
-import pytest
-from unittest.mock import patch
-import re
-import tools.modules.vv_functions as vv  # adjust import to where the function lives
-
-# Dummy function to test, replace this with the actual wrapper calling the code above
-def validate_transcript(transcript, genetic_change, variant):
-    # The code block you provided goes here
-    # Replace `flash` with `vv.flash` if using the vv module
-    # Replace `logger.warning` with vv.logger.warning if using vv module
-    # For testing, we assume vv.flash and vv.logger exist
-    # Return None in all error branches
-    ...
-
