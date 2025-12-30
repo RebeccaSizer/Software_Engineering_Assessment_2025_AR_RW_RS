@@ -702,3 +702,4 @@ def test_patient_variant_table_exceptions(exception_to_raise, expected_start, tm
         # Check that at least one flash message starts with expected prefix
         flash_messages = [call[0][0] for call in mock_flash.call_args_list]
         assert any(msg.startswith(expected_start) for msg in flash_messages)
+
