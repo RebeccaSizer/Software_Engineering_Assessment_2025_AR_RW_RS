@@ -954,4 +954,4 @@ def test_variant_annotations_table_db_creation_exceptions(app, tmp_path, monkeyp
         result = db_mod.variant_annotations_table(str(tmp_path), db_name)
         flashes = get_flashed_messages()
         assert any("Error occurred while preparing" in msg for msg in flashes)
-        assert result == "error"
+        assert result == "error" 
