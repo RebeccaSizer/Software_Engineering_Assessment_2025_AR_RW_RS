@@ -9,6 +9,8 @@ from unittest.mock import patch, MagicMock
 import tools.modules.database_functions as db_mod
 from tools.modules.database_functions import patient_variant_table
 from tools.modules.database_functions import variant_annotations_table
+from tools.modules.database_functions import validate_database
+from tools.modules.database_functions import query_db
 
 # -------------------------------------------------------------------------
 # Fixtures
@@ -955,3 +957,245 @@ def test_variant_annotations_table_db_creation_exceptions(app, tmp_path, monkeyp
         flashes = get_flashed_messages()
         assert any("Error occurred while preparing" in msg for msg in flashes)
         assert result == "error" 
+
+@pytest.mark.parametrize(
+    "fetch_vv_side_effect, expected_fragment",
+    [
+        (Exception("fetch_vv failed"), "❌ Could not retrieve a response from VariantValidator"),
+        (lambda v: None, "⚠ No response from VariantValidator"),
+        (lambda v: "Invalid string response", "Invalid string response"),
+    ],
+)
+def test_variant_annotations_table_fetch_vv_exceptions(app, tmp_path, fetch_vv_side_effect, expected_fragment):
+    db_name = "test_db_fetch_vv"
+    vcf_file = tmp_path / "Patient1.vcf"
+    vcf_file.write_text("## dummy content\n")
+
+    with patch("os.listdir", return_value=[vcf_file.name]), \
+         patch("tools.modules.database_functions.variant_parser", return_value=["c.123A>G"]), \
+         patch("tools.modules.database_functions.fetch_vv", side_effect=fetch_vv_side_effect), \
+         patch("tools.modules.database_functions.clinvar_annotations", return_value={"classification": "Pathogenic"}), \
+         patch("tools.modules.database_functions.sqlite3.connect") as mock_connect:
+
+        class FakeCursor:
+            def execute(self, *args, **kwargs): return None
+            def fetchone(self): return [0]
+
+        class FakeConn:
+            def cursor(self): return FakeCursor()
+            def commit(self): return None
+            def close(self): return None
+
+        mock_connect.return_value = FakeConn()
+
+        with app.test_request_context("/"):
+            result = db_mod.variant_annotations_table(str(tmp_path), db_name)
+            flashes = get_flashed_messages()
+            # Use partial matching against expected_fragment
+            assert any(expected_fragment in msg for msg in flashes), f"Flashes: {flashes}"
+            assert result == "error"
+
+
+@pytest.mark.parametrize("clinvar_side_effect, expected_flash", [
+    (Exception("clinvar failed"), "❌ Unable to query clinvar.db"),
+    (lambda nc, nm: None, "❌ Variant summary record could not be found in clinvar.db"),
+    (lambda nc, nm: "Invalid string response", "Variant not added to"),
+])
+def test_variant_annotations_table_clinvar_exceptions(app, tmp_path, clinvar_side_effect, expected_flash):
+    """
+    Test the different exception and bad-response scenarios for clinvar_annotations within variant_annotations_table
+    """
+    db_name = "test_db_clinvar"
+    vcf_file = tmp_path / "Patient1.vcf"
+    vcf_file.write_text("## dummy content\n")
+
+    with patch("os.listdir", return_value=[vcf_file.name]), \
+         patch("tools.modules.database_functions.variant_parser", return_value=["c.123A>G"]), \
+         patch("tools.modules.database_functions.fetch_vv", return_value=("NC_000001.11:g.123A>G", "NM_0001", "NP_0001", "GENE1", 1234)), \
+         patch("tools.modules.database_functions.clinvar_annotations", side_effect=clinvar_side_effect), \
+         patch("tools.modules.database_functions.sqlite3.connect") as mock_connect:
+
+        # Provide a fake connection and cursor to prevent DB errors
+        class FakeCursor:
+            def execute(self, *args, **kwargs):
+                return None
+            def fetchone(self):
+                return [0]
+
+        class FakeConn:
+            def cursor(self):
+                return FakeCursor()
+            def commit(self):
+                return None
+            def close(self):
+                return None
+
+        mock_connect.return_value = FakeConn()
+
+        with app.test_request_context("/"):
+            result = db_mod.variant_annotations_table(str(tmp_path), db_name)
+            flashes = get_flashed_messages()
+            assert any(expected_flash in msg for msg in flashes)
+            assert result == "error"
+
+@pytest.mark.parametrize(
+    "clinvar_side_effect, expected_fragment",
+    [
+        (Exception("clinvar_annotations failed"), "❌ Unable to query clinvar.db"),
+        (lambda nc, nm: {}, "❌ Variant summary record could not be found in clinvar.db"),
+        (lambda nc, nm: "Invalid string response", "Invalid string response"),
+    ]
+)
+
+def test_variant_annotations_table_clinvar_exceptions(app, tmp_path, clinvar_side_effect, expected_fragment):
+    """
+    Test variant_annotations_table exception handling around clinvar_annotations().
+    Covers:
+    - Exception raised in clinvar_annotations
+    - Empty dict response
+    - Invalid string response
+    - Successful dict response
+    """
+    db_name = "test_db_clinvar"
+    vcf_file = tmp_path / "Patient1.vcf"
+    vcf_file.write_text("## dummy content\n")
+
+    # Patch os.listdir to return our dummy VCF
+    with patch("os.listdir", return_value=[vcf_file.name]), \
+         patch("tools.modules.database_functions.variant_parser", return_value=["c.123A>G"]), \
+         patch("tools.modules.database_functions.fetch_vv",
+               return_value=("NC_000001.11:g.123A>G", "NM_0001", "NP_0001", "GENE1", 1234)), \
+         patch("tools.modules.database_functions.clinvar_annotations", side_effect=clinvar_side_effect), \
+         patch("tools.modules.database_functions.sqlite3.connect") as mock_connect:
+
+        # Fake DB connection to avoid writing real DB
+        class FakeCursor:
+            def execute(self, *args, **kwargs): return None
+            def fetchone(self): return [0]
+
+        class FakeConn:
+            def cursor(self): return FakeCursor()
+            def commit(self): return None
+            def close(self): return None
+
+        mock_connect.return_value = FakeConn()
+
+        # Run inside Flask test context to allow flashing
+        with app.test_request_context("/"):
+            result = db_mod.variant_annotations_table(str(tmp_path), db_name)
+            flashes = get_flashed_messages()
+
+            # Match a fragment of the flash message
+            assert any(expected_fragment in msg for msg in flashes), f"Flashes: {flashes}"
+            assert result == "error"
+
+def test_variant_annotations_table_sqlite_exception(app, tmp_path):
+    db_name = "test_db_exception"
+
+    # Create dummy VCF
+    vcf_file = tmp_path / "Patient1.vcf"
+    vcf_file.write_text("## dummy content\n")
+
+    # Fake cursor that raises on execute
+    class FakeCursor:
+        def execute(self, *args, **kwargs):
+            raise sqlite3.OperationalError("Forced SQLite error")
+        def fetchone(self):
+            return [0]
+
+    class FakeConnection:
+        def cursor(self):
+            return FakeCursor()
+        def commit(self):
+            return None
+        def close(self):
+            return None
+
+    with patch("os.listdir", return_value=[vcf_file.name]), \
+         patch("tools.modules.database_functions.variant_parser", return_value=["c.123A>G"]), \
+         patch("tools.modules.database_functions.fetch_vv",
+               return_value=("NC_000001.11:g.123A>G", "NM_0001", "NP_0001", "GENE1", 1234)), \
+         patch("tools.modules.database_functions.clinvar_annotations",
+               return_value={"classification": "Pathogenic", "conditions": "TestCond",
+                             "stars": "★", "reviewstatus": "reviewed"}), \
+         patch("tools.modules.database_functions.sqlite3.connect", return_value=FakeConnection()):
+
+        with app.test_request_context("/"):
+            result = db_mod.variant_annotations_table(str(tmp_path), db_name)
+            flashes = get_flashed_messages()
+            # Make sure the flash contains the SQLite error string
+            assert any("SQLite3 Error" in msg for msg in flashes)
+            # The function should return 'error'
+            assert result == "error"
+
+@pytest.fixture
+def app():
+    app = Flask(__name__)
+    app.secret_key = "test_secret"
+    return app
+
+def create_db(path, tables):
+    """Helper function to create a test SQLite DB with specified tables and columns."""
+    conn = sqlite3.connect(path)
+    cur = conn.cursor()
+    for table, columns in tables.items():
+        cols_sql = ", ".join(f"{col} TEXT" for col in columns)
+        cur.execute(f"CREATE TABLE {table} ({cols_sql})")
+    conn.commit()
+    conn.close()
+
+def test_validate_database_success(app, tmp_path):
+    db_path = tmp_path / "valid.db"
+    tables = {
+        "patient_variant": {"No", "patient_ID", "variant"},
+        "variant_annotations": {
+            "No", "variant_NC", "variant_NM", "variant_NP", "gene", "HGNC_ID",
+            "Classification", "Conditions", "Stars", "Review_status"
+        }
+    }
+    create_db(db_path, tables)
+
+    with app.test_request_context("/"):
+        result = validate_database(str(db_path))
+        assert result is True
+        assert get_flashed_messages() == []
+
+def test_validate_database_missing_headers(app, tmp_path):
+    db_path = tmp_path / "missing_headers.db"
+    # Leave out one column in patient_variant
+    tables = {
+        "patient_variant": {"No", "patient_ID"},  
+        "variant_annotations": {
+            "No", "variant_NC", "variant_NM", "variant_NP", "gene", "HGNC_ID",
+            "Classification", "Conditions", "Stars", "Review_status"
+        }
+    }
+    create_db(db_path, tables)
+
+    with app.test_request_context("/"):
+        result = validate_database(str(db_path))
+        flashes = get_flashed_messages()
+        assert result is False
+        assert any("⚠ Inappropriate headers" in msg for msg in flashes)
+
+def test_validate_database_sqlite_exceptions(app, tmp_path):
+    db_path = tmp_path / "error.db"
+
+    # Patch sqlite3.connect to raise OperationalError
+    with patch("tools.modules.database_functions.sqlite3.connect", side_effect=sqlite3.OperationalError("Forced SQLite error")):
+        with app.test_request_context("/"):
+            result = validate_database(str(db_path))
+            flashes = get_flashed_messages()
+            assert result is False
+            assert any("SQLite3 Error" in msg for msg in flashes)
+
+def test_validate_database_generic_exception(app, tmp_path):
+    db_path = tmp_path / "error.db"
+
+    # Patch sqlite3.connect to raise a generic exception
+    with patch("tools.modules.database_functions.sqlite3.connect", side_effect=Exception("Forced generic error")):
+        with app.test_request_context("/"):
+            result = validate_database(str(db_path))
+            flashes = get_flashed_messages()
+            assert result is False
+            assert any("Database Validation Error" in msg for msg in flashes)
