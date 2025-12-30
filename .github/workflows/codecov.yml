@@ -41,7 +41,7 @@ jobs:
       # Note that last two commands have been commented-out. This is because the command before them includes them in its pytest. 
       - name: Run tests
         run: |  
-          pytest -q tests/test_unit/test_database_functions.py \
+          pytest -q tests/test_unit/test_pasrer.py \
             --cov=. \
             --cov-branch \
             --cov-report=xml \
