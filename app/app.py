@@ -288,8 +288,8 @@ def choose_create_or_add():
                 if e.errno == errno.ENOSPC:
                     # Log the error, explaining there isn't enough disk space, using the exception output.
                     logger.error(
-                        f"Failed to save {filename} to {app.config['db_upload_folder']} because there is a problem with "
-                        f"your disk space: {str(e)}")
+                        f"Failed to save {filename} to {app.config['db_upload_folder']} because there is a problem with"
+                        f" your disk space: {str(e)}")
                     # Notify the User that the file couldn't be saved to the 'database' folder because there is not
                     # enough disk.
                     flash(f'❌ Failed to save {filename}. There is a problem with your disk space.')
@@ -321,12 +321,14 @@ def choose_create_or_add():
             # validate_database() function ensures that the database conforms with the expected schema that allows the
             # database file to be queried.
             if not validate_database(filepath):
+                # Log that the database failed validation and cannot be queried.
+                logger.warning(f'{filename} does not conform with the required schema. Validation failed.')
                 # Remove the database file from the 'database' folder.
                 os.remove(filepath)
                 # Log that the database file was removed.
                 logger.info(f"Removed {filename} from 'database' folder.")
                 # Notify the User that the database cannot be queried.
-                flash(f'❌ Upload Error: {filename} cannot be queried. Please upload a different database.')
+                flash(f'❌ Upload Error: {filename} cannot be queried. Inappropriate tables or headers.')
             else:
                 # Log that the database was successfully uploaded and validated.
                 logger.info(f"Successfully uploaded and validated {filename} database.")
