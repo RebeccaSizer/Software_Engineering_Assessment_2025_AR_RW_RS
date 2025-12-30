@@ -8,6 +8,7 @@ from flask import Flask, get_flashed_messages
 from unittest.mock import patch, MagicMock
 import tools.modules.database_functions as db_mod
 from tools.modules.database_functions import patient_variant_table
+from tools.modules.database_functions import variant_annotations_table
 
 # -------------------------------------------------------------------------
 # Fixtures
@@ -903,3 +904,54 @@ def test_patient_variant_table_db_check_exceptions(app, tmp_path, monkeypatch, e
         flashes = get_flashed_messages()
         assert any(expected_flash in msg for msg in flashes)
 
+
+def test_variant_annotations_table_db_creation_exceptions(app, tmp_path, monkeypatch):
+    """
+    Test that variant_annotations_table correctly handles SQLite3 and generic exceptions
+    without causing UnboundLocalError.
+    """
+    db_name = "test_db_exception"
+
+    # Create a dummy VCF file in tmp_path
+    vcf_file = tmp_path / "Patient1.vcf"
+    vcf_file.write_text("## dummy content\n")
+
+    # Patch os.listdir and dependent functions
+    monkeypatch.setattr(os, "listdir", lambda path: [vcf_file.name])
+    monkeypatch.setattr(db_mod, "variant_parser", lambda path: ["c.123A>G"])
+    monkeypatch.setattr(db_mod, "fetch_vv",
+                        lambda variant: ("NC_000001.11:g.123A>G", "NM_0001", "NP_0001", "GENE1", 1234))
+    monkeypatch.setattr(db_mod, "clinvar_annotations",
+                        lambda nc, nm: {"classification": "Pathogenic", "conditions": "TestCond",
+                                        "stars": "★", "reviewstatus": "reviewed"})
+
+    # --- CASE 1: SQLite3 OperationalError after connect ---
+    class FakeConn:
+        def cursor(self):
+            raise sqlite3.OperationalError("Forced SQLite error")
+        def close(self):
+            return None
+
+    monkeypatch.setattr(db_mod.sqlite3, "connect", lambda db_path: FakeConn())
+
+    with app.test_request_context("/"):
+        result = db_mod.variant_annotations_table(str(tmp_path), db_name)
+        flashes = get_flashed_messages()
+        # The flash should contain SQLite3 error message
+        assert any("SQLite3 Error" in msg for msg in flashes)
+        assert result == "error"
+
+    # --- CASE 2: Generic Exception after connect ---
+    class GenericFailConn:
+        def cursor(self):
+            raise Exception("Forced generic error")
+        def close(self):
+            return None
+
+    monkeypatch.setattr(db_mod.sqlite3, "connect", lambda db_path: GenericFailConn())
+
+    with app.test_request_context("/"):
+        result = db_mod.variant_annotations_table(str(tmp_path), db_name)
+        flashes = get_flashed_messages()
+        assert any("Error occurred while preparing" in msg for msg in flashes)
+        assert result == "error"
