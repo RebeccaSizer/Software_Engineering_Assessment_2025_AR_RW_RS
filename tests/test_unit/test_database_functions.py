@@ -902,3 +902,4 @@ def test_patient_variant_table_db_check_exceptions(app, tmp_path, monkeypatch, e
         # Check that a flash message containing the expected string was triggered
         flashes = get_flashed_messages()
         assert any(expected_flash in msg for msg in flashes)
+
