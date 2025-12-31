@@ -718,7 +718,7 @@ def query_page(db_name):
         # query page.
         flash(f'❌ Query Error: An error occurred while processing the query. It is not your fault. '
               f'Please contact your nearest friendly neighbourhood Bioinformatician')
-        return render_template("db_display_page.html", db_name=db_name)
+        return render_template("db_query_page.html", db_name=db_name)
 
     # Render the information extracted from 'data' into a table that is viewable on the query page.
     return render_template(

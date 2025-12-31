@@ -293,7 +293,7 @@ def regex_error(e, variant):
 
     :command: gene_change = 'c.2164285C>T'
               try:
-                re.match('^c.\d{7[ACGT]>[ACGT]$', gene_change)
+                re.match(r'^c.\\d{7[ACGT]>[ACGT]$', gene_change)
               except re.error as e:
                 error_message = regex_error(e, '11-2164285-C-T')
                 flash(error_message)
@@ -366,7 +366,7 @@ def sqlite_error(e, db_name):
         logger.error(f'sqlite3.ProgrammingError: There is a programmatic issue with {db_name}: {e}')
 
     # Return a message to be used in a flash message.
-    return (f'There is something wrong with the database. '
+    return (f'Something went wrong while accessing the database. '
             f'Please report this to your friendly neighbourhood Clinical Bioinformatician.')
 
 
