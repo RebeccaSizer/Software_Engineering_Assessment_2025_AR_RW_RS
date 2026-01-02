@@ -779,7 +779,7 @@ def display_database(db_name):
                                 | g.41985036A>C | c.875T>G	   | p.(Leu292Arg) |        |         |                |  encephalopathy 99          |       | criteria provided
     """
     # Log that the display page is being used.
-    logger.info('User has accessed the Query page.')
+    logger.info('User has accessed the Display page.')
 
     # Check that the filepath to the database file that was selected or uploaded on the homepage exists.
     # Assign the filepath to the selected databse to 'db_path' variable.

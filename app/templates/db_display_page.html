@@ -50,6 +50,16 @@
         }
 
         /* ---------------------------------------------------------------------
+           Flash messages used by Flask to report success/failure states to
+           Users such as invalid file formats, database creation errors, etc.
+           --------------------------------------------------------------------- */
+        .flash-messages li {
+            font-size: 14px;
+            color: #7A1F5C;
+            font-weight: bold;
+        }
+
+        /* ---------------------------------------------------------------------
            Colour and design of the table returned by the query including
            cells, background, text and buttons .
            --------------------------------------------------------------------- */
@@ -79,6 +89,23 @@
      thereby reducing the risk of misinterpretation errors.
      --------------------------------------------------------------------- -->
 <h1>Full Database: {{ db_name }}</h1>
+
+    <!--
+    ---------------------------------------------------------------------
+    Flask flash messages:
+    Used to report errors, warnings and successful processes during the
+    generation of a database, to the Users.
+    ---------------------------------------------------------------------
+    -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flash-messages">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
 
 <!--
 'Back to Search' button redirects the User back to the query page
