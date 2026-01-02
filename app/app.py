@@ -1097,7 +1097,8 @@ def switch_db():
         logger.warning(f"Database could not be found.")
         # Notify the User that the database was not found in the database folder.
         flash(f"⚠ {db_name} database not found. Please select a database to query on the homepage.")
-        return redirect(url_for("homepage.html"))
+        # Redirect the User to the homepage so that they can select or upload a database.
+        return render_template("homepage.html")
 
     # Raise an exception if an error arose while selecting a different database to query.
     except Exception as e:
@@ -1106,7 +1107,7 @@ def switch_db():
         # Notify the User that the attempt to switch databases failed.
         flash(f'❌ Failed to select a different database to query.')
         # Redirect the User to the homepage so that they can select or upload a database.
-        return redirect(url_for("homepage.html"))
+        return render_template("homepage.html")
 
 
 # ---------------------------------------------------------------
@@ -1134,15 +1135,15 @@ def export_csv():
         # Log that the User wants to download a table.
         logger.info('User has elected to download the table on the UI in CSV format.')
 
+        # Retrieve the name of the database that the information in the table derives from so that the User can be
+        # redirected back to the query page and query the same database again.
+        db_name = request.form.get("db_name")
+
         # Check if the values can be parsed from the table.
         try:
             # Parses the headers and rows from the table into 'columns' and 'rows' Python objects, respectively.
             columns = json.loads(request.form["columns"])
             rows = json.loads(request.form["rows"])
-
-            # Retrieve the name of the database that the information in the table derives from so that the User can be
-            # redirected back to the query page and query the same database again.
-            db_name = request.form.get("db_name")
 
             logger.info(f'Preparing CSV export from {db_name}: {len(columns)} columns x {len(rows)} rows')
 
@@ -1152,7 +1153,7 @@ def export_csv():
             logger.error(f'CSV Export Error: Failed to decode JSON: {e}')
             # Notify the User of the error.
             flash(f'❌ CSV Export Error: Failed to parse values from the table for CSV export.')
-            return redirect(url_for("query_page"))
+            return render_template("db_query_page.html", db_name=db_name)
 
         try:
             # The 'io' buffer saves text to the Random-Access Memory (RAM) using 'StringIo()'.
@@ -1181,7 +1182,7 @@ def export_csv():
             logger.error(f'CSV Export Error: Failed to write values into CSV: {e}')
             # Notify the User of the error.
             flash(f'❌ CSV Export Error: Failed to write values into CSV. CSV cannot be exported.')
-            return redirect(url_for("query_page"))
+            return render_template("db_query_page.html", db_name=db_name)
 
         # 'BytesIO()' converts the 'io' buffer from text data into bytes. This will allow the send_file() function to
         # download the data into a .CSV file on the client's computer.
@@ -1214,7 +1215,7 @@ def export_csv():
         logger.error(f'CSV Export Error: Something went wrong: {e}')
         # Notify the User of the error.
         flash(f'❌ CSV Export Error: Failed to prepare CSV. CSV cannot be exported.')
-        return redirect(url_for("query_page", db_name=db_name))
+        return render_template("db_query_page.html", db_name=db_name)
 
 # ---------------------------------------------------------------
 # Initialise flask app
