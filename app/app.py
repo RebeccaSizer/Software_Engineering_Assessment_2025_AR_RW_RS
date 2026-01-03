@@ -984,7 +984,7 @@ def display_database(db_name):
 
 
 # ---------------------------------------------------------------
-# JSON API for dropdowns on query page (still available if needed)
+# JSON API for dropdowns on query page.
 # ---------------------------------------------------------------
 @app.route("/api/dropdown/<db_name>")
 def dropdown_data(db_name):
@@ -1022,7 +1022,7 @@ def dropdown_data(db_name):
         # Notify the User that the database was not found in the database folder.
         flash(f"⚠ {db_name} database not found. Please select a database to query on the homepage.")
         # Redirect the User back to the homepage.
-        return redirect(url_for("choose_create_or_add"))
+        return render_template("homepage.html")
 
     # Check that the information from the sqlite3 database can be accessed.
     try:
