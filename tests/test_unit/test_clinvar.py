@@ -93,15 +93,16 @@ def make_fake_clinvar_gz_bytes():
 
 class FakeResponse:
     """
-    This class simulates a fake response object to the requests.get python module. In effect, it is meant to simulate
-    the download of the variant summary records from ClinVar.
+    This class simulates a fake response object to the requests.get python module. The request.get is used in the
+    clinvar_vs_download function, from clinvar_functions.py to download the variant summary records from ClinVar
+    In effect, this class simulates the download of the variant summary records from ClinVar.
     """
     def __init__(self, content_bytes):
         """
         This function simulates fake content and a fake header. clinvar_vs_download() pareses information from both of
         these objects when pulling information into clinvar.db.
 
-        :param content_bytes: The content of the response is represented as bytes, not a string.
+        :param content_bytes: The fake content of the response is represented as bytes, not a string.
         """
         # Fake content.
         self._content = content_bytes
@@ -162,10 +163,26 @@ class FakeHeadResponse:
 )
 def test_clinvar_annotations_success(tmp_path, monkeypatch, Review_Status, expected_stars):
     """
-    Unit test for clinvar_annotations:
-    - Create a temporary clinvar.db
-    - Monkeypatch the path logic so the function finds that DB
-    - Verify the returned dict contents.
+    This function tests if the clinvar_annotations function from clinvar_functions.py can successfully return a variant
+    summary record from clinvar.db. A fake record is inserted into a fake version of clinvar.db.
+
+    The tmp_path and monkeypatch pytest fixtures are used to simulate the path logic so the function finds the fake
+    version of clinvar.db.
+
+    Assertion are made to test the content and arrangement of data in the variant summary records returned from
+    clinvar.db by checking the expected output. The star ratings are checked using the provided input in the
+    parameterize pytest fixture above this function.
+
+    :param: tmp_path: a fake path used to simulate the path to the clinvar directory where the clinvar.db file is made
+                      and stored.
+
+         monkeypatch: An in-built pytest fixture that allows attributes and variables used in a software to be altered
+                      without changing the original attributes and variables being used.
+
+       Review_Status: The review status from the pytest.mark.parametrize fixture used to test the expected star rating.
+
+      expected_stars: The expected star rating from the provided review statuses used in the pytest.mark.parametrize
+                      fixture.
     """
     # Build temporary directory structure from within the fake pytest fixture, tmp_path, that simulates a real filepath.
     # <tmp>/app/clinvar/clinvar.db
@@ -253,8 +270,22 @@ def test_clinvar_annotations_success(tmp_path, monkeypatch, Review_Status, expec
 
 def test_clinvar_annotations_not_found(tmp_path, monkeypatch):
     """
-    Unit test for clinvar_annotations when no record is found:
-    should return a 'not found' string.
+    This function tests if the clinvar_annotations function from clinvar_functions.py can successfully handle a scenario
+    where the variant summary record from clinvar.db cannot be found. A fake record is NOT inserted into a fake version
+    of clinvar.db, thereby ensuring that no variant summary records can be found.
+
+    The tmp_path and monkeypatch pytest fixtures are used to simulate the path logic so the function finds the fake
+    version of clinvar.db.
+
+    Assertions are made to test that the expected error message for when a variant summary record cannot be found,
+    "Could not find {nc_variant} variant summary record in clinvar.db.", is returned. 'nc_variant' is the HGVS
+    transcript nomenclature argument used when calling the clinvar_annotations function.
+
+    :param: tmp_path: a fake path used to simulate the path to the clinvar directory where the clinvar.db file is made
+                      and stored.
+
+         monkeypatch: An in-built pytest fixture that allows attributes and variables used in a software to be altered
+                      without changing the original attributes and variables being used.
     """
     # Build temporary directory structure from within the fake pytest fixture, tmp_path, that simulates a real filepath.
     # <tmp>/app/clinvar/clinvar.db
@@ -322,7 +353,23 @@ def test_clinvar_annotations_not_found(tmp_path, monkeypatch):
 
 def test_clinvar_annotations_db_error(tmp_path, monkeypatch, caplog):
     """
-    Unit test: simulate a DB query error by monkeypatching sqlite3.connect.
+    This function tests if the clinvar_annotations function from clinvar_functions.py can successfully handle when an
+    sqlite3.OperationalError exception is raised as a result of trying to connect to the clinvar.db.
+
+    The tmp_path and monkeypatch pytest fixtures are used to simulate the path logic so the function finds the fake
+    version of clinvar.db. The caplog pytest fixture captured the logger error message.
+
+    Assertions are made to test that the logger and flash error messages for when an sqlite3.OperationalError exception
+    is raised,"sqlite3.OperationalError: clinvar.db is not working properly:" and "clinvar.db query error: Something
+    went wrong while accessing the database." are returned, respectively.
+
+    :param: tmp_path: a fake path used to simulate the path to the clinvar directory where the clinvar.db file is made
+                      and stored.
+
+         monkeypatch: An in-built pytest fixture that allows attributes and variables used in a software to be altered
+                      without changing the original attributes and variables being used.
+
+              caplog: An in-built pytest fixture that captures the logger error message.
     """
     # Create a fake filepath to a fake Python script.
     fake_file = tmp_path / "src" / "module.py"
@@ -471,12 +518,32 @@ def test_clinvar_annotations_db_error(tmp_path, monkeypatch, caplog):
 )
 def test_clinvar_download_and_annotation_integration(tmp_path, monkeypatch, Review_Status, expected_stars):
     """
-    Full integration test:
-    - Fake HTTP requests to provide a small gzipped ClinVar-like file.
-    - Monkeypatch path logic so files go under tmp_path.
-    - Run clinvar_vs_download() to generate clinvar.db.
-    - Use clinvar_annotations() to look up a variant and check the result.
-    - Check that the appropriate stars will be returned.
+    This function tests if the clinvar_annotations function from clinvar_functions.py can successfully return a variant
+    summary record from clinvar.db. A fake version of clinvar_db_summary.txt.gz is used by the clinvar_vs_download
+    function from clinvar_functions.py to create clinvar.db. Therefore, this function tests whether clinvar_annotations
+    can find the right variant summary records from a clinvar.db that was created as a result of clinvar_vs_download's
+    true functionality.
+
+    The fake content of the fake clinvar_db_summary.txt.gz file derives from the make_fake_clinvar_gz_bytes function.
+    The tmp_path and monkeypatch pytest fixtures are used to simulate the path logic and environment of a real
+    clinvar.db generated from the fake clinvar_db_summary.txt.gz. Therefore, the content of clinvar.db is fake but its
+    creation was real.
+
+    Assertions are made to test the content and arrangement of data in clinvar.db by checking the expected output.
+    The output from make_fake_clinvar_gz_bytes was specifically designed to simulate real-life challenges from parsing
+    information from the CSVs in clinvar_db_summary.txt.gz. The star ratings are checked using the provided input in the
+    parameterize pytest fixture above this function.
+
+    :param: tmp_path: a fake path used to simulate the path to the clinvar directory where the clinvar.db file is made
+                      and stored.
+
+         monkeypatch: An in-built pytest fixture that allows attributes and variables used in a software to be altered
+                      without changing the original attributes and variables being used.
+
+       Review_Status: The review status from the pytest.mark.parametrize fixture used to test the expected star rating.
+
+      expected_stars: The expected star rating from the provided review statuses used in the pytest.mark.parametrize
+                      fixture.
     """
     # Create a fake filepath to a fake Python script.
     fake_file = tmp_path / "src" / "module.py"
@@ -610,8 +677,25 @@ def test_clinvar_download_and_annotation_integration(tmp_path, monkeypatch, Revi
 
 def test_clinvar_vs_download_logs_error_on_http_failure(tmp_path, monkeypatch, caplog):
     """
-    Unit-style test: simulate HTTP error (raise_for_status fails) and ensure
-    an error is logged. We don't assert on side effects beyond logging.
+    This function tests if the clinvar_vs_download function from clinvar_functions.py can successfully handle when
+    requests.HTTPError exceptions are raised as a result of trying to download clinvar_db_summary.txt.gz.
+    requests.HTTPError exceptions generate different status code objects in the response, depending on the type of error
+    that has occurred. These status codes are processed by error_handler.py to generate bespoke logger and flash error
+    messages.
+
+    The tmp_path and monkeypatch pytest fixtures are used to simulate the path logic so the function finds the fake
+    version of clinvar_db_summary.txt.gz. The caplog pytest fixture captures the logger error message.
+
+    Assertions are made to test that the expected logger error message includes, "HTTPError {code}" when it is returned
+    as a result of the corresponding HTTPError exception being raised. 'code' is the status code of the response.
+
+    :param: tmp_path: a fake path used to simulate the path to the clinvar directory where the clinvar.db file is made
+                      and stored.
+
+         monkeypatch: An in-built pytest fixture that allows attributes and variables used in a software to be altered
+                      without changing the original attributes and variables being used.
+
+              caplog: An in-built pytest fixture that captures the logger error message.
     """
     # Create a fake filepath to a fake Python script.
     fake_file = tmp_path / "src" / "module.py"
@@ -723,6 +807,25 @@ def test_clinvar_vs_download_logs_error_on_http_failure(tmp_path, monkeypatch, c
         assert any(f"HTTPError {code}" in rec.message for rec in caplog.records)
 
 def test_bad_gzip_file(tmp_path, monkeypatch, caplog):
+    """
+    This function tests if the clinvar_vs_download function from clinvar_functions.py can successfully handle when a
+    gzip.BadGzipFile exception is raised as a result of the clinvar_db_summary.txt.gz file becoming corrupted when
+    trying to download Clinvar variant summary records.
+
+    The tmp_path and monkeypatch pytest fixtures are used to simulate the path logic so the function finds the fake
+    version of clinvar_db_summary.txt.gz. The caplog pytest fixture captures the logger error message.
+
+    Assertions are made to test that the expected logger error message, "clinvar_db_summary.txt.gz is corrupted", is
+    returned as a result of the gzip.BadGzipFile exception being raised.
+
+    :param: tmp_path: a fake path used to simulate the path to the clinvar directory where the clinvar.db file is made
+                      and stored.
+
+         monkeypatch: An in-built pytest fixture that allows attributes and variables used in a software to be altered
+                      without changing the original attributes and variables being used.
+
+              caplog: An in-built pytest fixture that captures the logger error message.
+    """
     # Create a fake filepath to a fake Python script.
     fake_file = tmp_path / "src" / "module.py"
     # Simulate the creation of the directories leading to the fake Python script.
@@ -807,6 +910,25 @@ def test_bad_gzip_file(tmp_path, monkeypatch, caplog):
     )
 
 def test_bad_csv(tmp_path, monkeypatch, caplog):
+    """
+    This function tests if the clinvar_vs_download function from clinvar_functions.py can successfully handle when a
+    csv.Error exception is raised as a result of an error occurring when reading the CSV compressed in the
+    clinvar_db_summary.txt.gz file downloaded form ClinVar.
+
+    The tmp_path and monkeypatch pytest fixtures are used to simulate the path logic so the function finds the fake
+    version of clinvar_db_summary.txt.gz. The caplog pytest fixture captures the logger error message.
+
+    Assertions are made to test that the expected logger error message, "The .CSV file compressed in
+    clinvar_db_summary.txt.gz is malformed", is returned as a result of the csv.Error exception being raised.
+
+    :param: tmp_path: a fake path used to simulate the path to the clinvar directory where the clinvar.db file is made
+                      and stored.
+
+         monkeypatch: An in-built pytest fixture that allows attributes and variables used in a software to be altered
+                      without changing the original attributes and variables being used.
+
+              caplog: An in-built pytest fixture that captures the logger error message.
+    """
     # Create a fake filepath to a fake Python script.
     fake_file = tmp_path / "src" / "module.py"
     # Simulate the creation of the directories leading to the fake Python script.
@@ -900,6 +1022,26 @@ def test_bad_csv(tmp_path, monkeypatch, caplog):
     )
 
 def test_no_disk_space(tmp_path, monkeypatch, caplog):
+    """
+    This function tests if the clinvar_vs_download function from clinvar_functions.py can successfully handle when a
+    errno.ENOSPC exception is raised as a result of an error occurring when trying to download the variant summary
+    records from ClinVar to the clinvar_db_summary.txt.gz file when there is not enough disk space.
+
+    The tmp_path and monkeypatch pytest fixtures are used to simulate the path logic so the function finds the fake
+    version of clinvar_db_summary.txt.gz. The caplog pytest fixture captures the logger error message.
+
+    Assertions are made to test that the expected logger error message, "Failed to create clinvar directory because
+    there is not enough disk space to store the variant summary records", is returned as a result of the errno.ENOSPC
+    exception being raised.
+
+    :param: tmp_path: a fake path used to simulate the path to the clinvar directory where the clinvar.db file is made
+                      and stored.
+
+         monkeypatch: An in-built pytest fixture that allows attributes and variables used in a software to be altered
+                      without changing the original attributes and variables being used.
+
+              caplog: An in-built pytest fixture that captures the logger error message.
+    """
     # Create a fake filepath to a fake Python script.
     fake_file = tmp_path / "src" / "module.py"
     # Simulate the creation of the directories leading to the fake Python script.
@@ -983,11 +1125,32 @@ def test_no_disk_space(tmp_path, monkeypatch, caplog):
 
     # Test that the logged error message captured by caplog, is as expected.
     assert any(
-        f"there is not enough disk space" in rec.message
+        f"Failed to create clinvar directory because there is not enough disk space to store the variant summary "
+        f"records" in rec.message
         for rec in caplog.records
     )
 
 def test_permission_error(tmp_path, monkeypatch, caplog):
+    """
+    This function tests if the clinvar_vs_download function from clinvar_functions.py can successfully handle when a
+    PermissionError exception is raised as a result of an error occurring when trying to download the variant summary
+    records from ClinVar when the User does not have permission to create the clinvar_db_summary.txt.gz.
+
+    The tmp_path and monkeypatch pytest fixtures are used to simulate the path logic so the function finds the fake
+    version of the 'clinvar' cirectory. The caplog pytest fixture captures the logger error message.
+
+    Assertions are made to test that the expected logger error message, "Failed to create clinvar directory to store the
+    variant summary records because the User lacks permissions", is returned as a result of the PermissionError
+    exception being raised.
+
+    :param: tmp_path: a fake path used to simulate the path to the clinvar directory where the clinvar.db file is made
+                      and stored.
+
+         monkeypatch: An in-built pytest fixture that allows attributes and variables used in a software to be altered
+                      without changing the original attributes and variables being used.
+
+              caplog: An in-built pytest fixture that captures the logger error message.
+    """
     # Create a fake filepath to a fake Python script.
     fake_file = tmp_path / "src" / "module.py"
     # Simulate the creation of the directories leading to the fake Python script.
@@ -1067,11 +1230,31 @@ def test_permission_error(tmp_path, monkeypatch, caplog):
 
     # Test that the logged error message captured by caplog, is as expected.
     assert any(
-        f"the User lacks permissions" in rec.message
+        f"Failed to create clinvar directory to store the variant summary records because the User lacks "
+        f"permissions" in rec.message
         for rec in caplog.records
     )
 
 def test_unexpected_exception(tmp_path, monkeypatch, caplog):
+    """
+    This function tests if the clinvar_vs_download function from clinvar_functions.py can successfully handle when a
+    Exception is raised as a result of an error occurring when trying to download the variant summary records from
+    ClinVar.
+
+    The tmp_path and monkeypatch pytest fixtures are used to simulate the path logic so the function finds the fake
+    version of the 'clinvar' directory. The caplog pytest fixture captures the logger error message.
+
+    Assertions are made to test that the expected logger error message, "ClinVar_Download: Failed to download variant
+    summary records from", is returned as a result of the Exception being raised.
+
+    :param: tmp_path: a fake path used to simulate the path to the clinvar directory where the clinvar.db file is made
+                      and stored.
+
+         monkeypatch: An in-built pytest fixture that allows attributes and variables used in a software to be altered
+                      without changing the original attributes and variables being used.
+
+              caplog: An in-built pytest fixture that captures the logger error message.
+    """
     # Create a fake filepath to a fake Python script.
     fake_file = tmp_path / "src" / "module.py"
     # Simulate the creation of the directories leading to the fake Python script.
@@ -1146,6 +1329,6 @@ def test_unexpected_exception(tmp_path, monkeypatch, caplog):
 
     # Test that the logged error message captured by caplog, is as expected.
     assert any(
-        f"Failed to download variant summary record" in rec.message
+        f"ClinVar_Download: Failed to download variant summary records from" in rec.message
         for rec in caplog.records
     )
