@@ -304,4 +304,4 @@ def test_sqlite_error_returns_generic_message(exception):
     # Assert that a message is returned
     assert msg is not None
     # Assert that the message indicates a database problem
-    assert "something wrong with the database" in msg.lower()
+    assert "something went wrong while accessing the database" in msg.lower()
