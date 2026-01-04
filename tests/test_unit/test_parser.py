@@ -110,11 +110,11 @@ def test_variant_parser_csv_basic(tmp_path):
     """
     # Define tab-delimited CSV content (VCF-like structure)
     csv_content = textwrap.dedent(
-        """\
-        #CHROM\tPOS\tID\tREF\tALT\tOTHER
-        chr17\t45983420\trs1\tG\tT\tfoo
-        chr4\t89822305\trs2\tC\tG\tbar
-        """
+    """\
+    #CHROM,POS,ID,REF,ALT,OTHER
+    chr17,45983420,rs1,G,T,foo
+    chr4,89822305,rs2,C,G,bar
+    """
     )
 
     # Write the CSV file to a temporary directory
@@ -147,8 +147,8 @@ def test_variant_parser_csv_uppercase_extension(tmp_path):
     # Define tab-delimited CSV content
     csv_content = textwrap.dedent(
         """\
-        #CHROM\tPOS\tID\tREF\tALT
-        chr1\t1000\t.\tA\tG
+        #CHROM,POS,ID,REF,ALT
+        chr1,1000,.,A,G
         """
     )
 
