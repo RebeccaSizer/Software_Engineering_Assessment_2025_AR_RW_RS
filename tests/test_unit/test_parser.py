@@ -1,3 +1,4 @@
+# these tests were written by ChatGPT and refined by the developer.
 # tests/test_unit/test_variant_parser.py
 
 import os

@@ -10,6 +10,7 @@ import pytest
 from tools.modules.vv_functions import get_mane_nc 
 import tools.modules.vv_functions as vv 
 
+
 def test_input_ENST_integration():
     """
     Integration test: uses real VariantValidator API.
@@ -69,9 +70,8 @@ def test_enst_without_c_notation(monkeypatch):
     assert any("must use c. notation" in m for m in flashed)
 
     def test_get_mane_nc_retries_on_408(monkeypatch):
-    import tools.modules.vv_functions as vv
-
-    calls = {"count": 0}
+      
+        calls = {"count": 0}
 
     class FakeResponse:
         def __init__(self, status_code=200):
@@ -113,10 +113,9 @@ def test_enst_without_c_notation(monkeypatch):
     assert calls["count"] == 2  # 1 failure + 1 retry
 
     def test_get_mane_nc_connection_error_no_internet(monkeypatch):
-    import tools.modules.vv_functions as vv
 
-    class Dummy(Exception):
-        pass
+        class Dummy(Exception):
+            pass
 
     def fake_get(url):
         # Simulate ConnectionError with OSError(errno=101) as __cause__
@@ -136,8 +135,8 @@ def test_enst_without_c_notation(monkeypatch):
     def test_fetch_vv_success(monkeypatch):
 
     # ---- Fake HTTP response ----
-    class FakeResponse:
-        status_code = 200
+        class FakeResponse:
+            status_code = 200
 
         def raise_for_status(self):
             pass

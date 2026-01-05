@@ -3,7 +3,7 @@
 import os
 import io
 import pytest
-from flask_app.flask_app import app  # Correct import: no quotes!
+from app.app import app  
 
 # -------------------------
 # Flask test client fixture
