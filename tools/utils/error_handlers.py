@@ -1,7 +1,33 @@
+"""
+error_handlers.py includes functions that support error handling
+the most common exceptions expected to occur in other scripts.
+
+The exceptions included in this script are:
+    - requests.exceptions.HTTPError
+        - status codes: - 400
+                        - 404
+                        - 408
+                        - 429
+                        - 500
+                        - 503
+                        - 504
+    - requests.exceptions.ConnectionError
+    - json.decoder.JSONDecodeError
+    - re.error
+    - sqlite3.OperationalError
+    - sqlite3.DatabaseError
+    - sqlite3.ProgrammingError
+
+The purpose of each function is to log the exception and
+provide Users of the flask app with messages to help them
+understand the nature of the error.
+
+No patient data is processed here.
+Some of the code used in this script derived from ChatGPT.
+"""
+
 import time
-import json
 import sqlite3
-import requests
 from tools.utils.logger import logger
 from http.client import RemoteDisconnected
 
@@ -368,53 +394,3 @@ def sqlite_error(e, db_name):
     # Return a message to be used in a flash message.
     return (f'Something went wrong while accessing the database. '
             f'Please report this to your friendly neighbourhood Clinical Bioinformatician.')
-
-
-
-
-
-
-
-
-
-"""
-for attempt in range(7):
-
-    try:
-        url = "http://example.com"
-        response = requests.get(url)
-        # response.raise_for_status()
-
-        data = response.json()
-
-    except ValueError as e:
-
-        error_message = json_decoder_error(e, 'test', 'test_api', url)
-        print(error_message)
-
-
-
-
-    # Catch any network or HTTP errors raised by 'requests'.
-    except requests.exceptions.HTTPError as e:
-
-        # Handle HTTP errors that need to be tried again.
-        if e.response.status_code in [408, 429]:
-            error_message = request_status_codes(e, 'test', url, 'test_API', attempt)
-
-            # Once received, return any flash messages to the function in database_functions.py, so that it can
-            # be appended to the file name. This will help the User where along the API request process failed.
-            if error_message:
-                print(error_message)
-
-            continue
-
-        # Handle HTTP errors that do not need to be tried again.
-        else:
-            error_message = request_status_codes(e, 'test', url, 'test_API', attempt)
-
-        # Return any flash messages to the function in database_functions.py, so that it can be appended to
-        # the file name. This will help the User where along the API request process failed.
-        print(error_message)
-
-"""

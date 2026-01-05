@@ -1,3 +1,20 @@
+"""
+SEA - Variant Database Query tool flask app.
+
+This script is responsible for:
+    - Configuring the flask app.
+    - Initialising modules and utilities to fulfill flask app functionality.
+    - Conducting backend processes on the homepage and rendering the results into the homepage.html template.
+    - Conducting backend processes on the query page and rendering the results into the db_query_page.html template.
+    - Conducting backend processes on the display page and rendering the results into the db_display_page.html template.
+    - Preparing the dropdown menus available on the query and display pages.
+    - Preparing the content in tables displayed on the query and display pages for exportation in CSV format.
+    - Displaying flash message to the User.
+    - Logging how the application is used.
+
+Some of the code used in this script derived from ChatGPT.
+"""
+
 import os
 import sys
 import io
@@ -1216,9 +1233,3 @@ def export_csv():
         # Notify the User of the error.
         flash(f'❌ CSV Export Error: Failed to prepare CSV. CSV cannot be exported.')
         return render_template("db_query_page.html", db_name=db_name)
-
-# ---------------------------------------------------------------
-# Initialise flask app
-# ---------------------------------------------------------------
-#if __name__ == '__main__':
-#    app.run(host='127.0.0.1', port=5000, debug=True)

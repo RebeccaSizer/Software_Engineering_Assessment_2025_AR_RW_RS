@@ -1,3 +1,53 @@
+"""
+database_functions.py includes all of the functions utilised by the
+SEA software package responsible for:
+    - building the SQL databases that store variant information
+    - checking the integrity of the databases uploaded through the
+      flask app
+    - Processing variant database queries.
+
+The functions included in this script are:
+    - patient_variant_table:
+        - Create the patient_variant table in the variant
+          database.
+        - Store each distinct variant from each patient's variant
+          file into the table, using the HGVS genomic description
+          from VariantValidator.
+        - Log the function's activity.
+        - Handle Errors related to building and adding to the
+          patient_variant table.
+
+    - variant_annotations_table:
+        - Create the variant_annotations table in the variant
+          database.
+        - Store the outputs from fetch_vv and clinvar_annotations
+          into the table, for each distinct variant in each
+          patient's variant file.
+        - Log the function's activity.
+        - Handle Errors related to building and adding to the
+          variant_annotations table.
+
+    - validate_database:
+        - Ensure that the databases uploaded by Users of the flask
+          app conform with the expected SQL schema that allow the
+          databases to be queried.
+        - Log the function's activity.
+        - Handle Errors related to validating variant databases.
+
+    -query_db:
+        - Query the variant database using the patient/variant/
+          gene queries entered by Users on the flask app and
+          formulated into SQL format through app.py.
+        - Convert the entries in the variant SQL databases returned
+          from the queries into objects that act like Python
+          dictionaries.
+        - Log the function's activity.
+        - Handle Errors related to querying variant databases.
+
+Patient and variant-level data are processed here.
+Some of the code used in this script derived from ChatGPT.
+"""
+
 import os
 import time
 import sqlite3

@@ -1,5 +1,31 @@
-# First install the requests module if you haven't already:
-# pip install requests
+"""
+variant_functions.py includes all of the functions utilised by the
+SEA software package that interact with the VariantValidator API.
+
+The functions included in this script are:
+    - fetch_vv:
+        - Takes in lists of variants described in VCF format:
+          {chromosome}-{position}-{ref}-{alt}
+        - Queries the VariantValidator API.
+        - Contextualises the variants within Human Genome Reference
+          Build GRCh38.
+        - Outputs the variant's HGVS nomenclatures, gene symbol and
+          HGNC ID.
+        - Logs the function's activity.
+        - Handles Errors related to querying VariantValidator API.
+
+    - get_mane_nc:
+        - Processes the variant queries made through the flask app.
+        - Queries the VariantValidator API.
+        - Contextualises the variant within the GRCh38 MANE select
+          transcript.
+        - Returns the HGVS transcript description of the variant.
+        - Logs the function's activity.
+        - Handles Errors related to querying VariantValidator API.
+
+No patient data is processed here.
+Some of the code used in this script derived from ChatGPT.
+"""
 
 import re
 import time
@@ -871,28 +897,3 @@ def get_mane_nc(variant: str):
             logger.debug(f'{variant}: Response from VariantValidator:\n{json.dumps(data, indent=4)}')
             flash('❌ {variant}: Error: There was a problem with the response from VariantValidator.')
             return
-
-
-
-#Example usage
-#if __name__ == "__main__":
- #   print(fetch_vv('11-2164285-C-T'))
- #   print(fetch_vv('11-2164285-C-T'))
-  #  variant = "PARK7:c.515T>A"
-   # output = get_mane_nc(variant)
-    #print("Final Output:")
-    #print(output)
-
-#######
-#tests:
-# - NM_007262.5:c.515T>A
-# - PARK7:g.7984999T>A (worked in script)
-# - PARK:c.515T>A 
-# -  "ENST00000338639.10:c.515T>A" - output: NC_000001.11:g.7984999T>A (correct) 
-# ENST does not work with g. 
-# - NC_000001.11:g.7984999T>A - output: NC_000001.11:g.7984999T>A
-# - NM_007262.5:c.515T>A - output: NC_000001.11:g.7984999T>A
-# NM does not work with g. 
-# PARK7:c.515T>A - output: NM_007262.5:c.515T>A
-# PARK7:g.7984999T>A - NC_000001.11:g.7984999T>A
-

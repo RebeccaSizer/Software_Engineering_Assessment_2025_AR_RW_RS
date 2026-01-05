@@ -8,7 +8,7 @@ This script is responsible for:
     - Logging the start of the application.
 
 No patient or variant-level data is processed here.
-Some of the code used in this script derives from ChatGPT.
+Some of the code used in this script derived from ChatGPT.
 """
 
 import os
