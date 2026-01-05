@@ -1,3 +1,18 @@
+"""
+timer.py: This script provides a decorator to other functions,
+that time how long those functions take to return a value.
+The time a function takes to complete is reported in a
+logger message.
+
+This is particularly helpful for timing functions that take
+longer to reach a return, such as those that download large
+amount of information from external resources:
+    - clinvar_vs_download downloads variant summary records
+      from ClinVar.
+    - fetch_vv and get_mane_nc queries the VariantValidator
+      API.
+"""
+
 import time
 from tools.utils.logger import logger
 

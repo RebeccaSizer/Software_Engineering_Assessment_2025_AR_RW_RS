@@ -1,3 +1,23 @@
+"""
+parser.py: This script parses the chromosome, genomic coordinate,
+reference nucleotide sequence and variant sequence from every line/
+row that describes a variant detected by NGS, in a VCF or CSV file
+uploaded to the SEA - Variant Database Query tool flask app.
+
+The variant_parser function is responsible for:
+    - Reading each variant reported in the file uploaded by User of
+      the flask_app
+    - Converting each variant into VCF format:
+      {chromosome}-{position}-{ref}-{alt}
+    - Storing the variants from a file, into a list that is most
+      likely fed to the fetch_vv function before being stored in a
+      variant database.
+
+This function has only been tested on Single Nucleotide Polymorphisms.
+We cannot confirm if it will work as well on other variant types such
+as Indels, CNVs and splice-site variants.
+"""
+
 import csv
 from flask import flash
 from tools.utils.logger import logger
@@ -206,8 +226,3 @@ def variant_parser(file):
 
     # Returns the patient ID and the list of variants from the input file.
     return variant_list
-
-
-
-
-#print(variantParser('/home/ubuntu/Desktop/ParkVCF/Patient1.vcf'))

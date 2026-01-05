@@ -1,3 +1,12 @@
+"""
+stringify.py: This script converts values returned from
+querying an SQL database into strings that can be easily
+encoded and downloaded in CSV format. This is particularly
+helpful when exporting tables that illustrate the content
+from variant databases in CSV format, so that they can be
+viewed as intended in Microsoft Excel.
+"""
+
 from tools.utils.logger import logger
 
 def stringify(value):

@@ -1,11 +1,44 @@
+"""
+clinvar_functions.py includes all of the functions utilised by the
+SEA software package that interact with the ClinVar API and
+clinvar.db.
+
+The functions included in this script are:
+    - clinvar_vs_download:
+        - Downloads the clinvar_db_summary.txt.gz file from ClinVar.
+        - Extracts the variant classification, associated
+          conditions, and review status of all variant summary
+          records whose name starts with 'NM_'.
+        - Generate a star-rating based on the review status.
+        - Stores the variant information in the SQL database,
+          'clinvar.db', in the app/clinvar subdirectory.
+        - Logs the function's activity.
+        - Handles Errors related to downloading and storing records
+          from ClinVar, into the clinvar.db SQL database.
+
+    - clinvar_annotations:
+        - Maps the variants in a variant database's
+          variant_annotations table to a variant summary record in
+          clinvar.db
+        - Extracts the variant classification, associated
+          conditions, star rating and review status for a variant
+          mapped to a record in clinvar.db.
+        - Results returned to variant_annotations_table function,
+          in database_functions.py.
+        - Logs the function's activity.
+        - Handles Errors related to querying SQL databases.
+
+No patient data is processed here.
+Some of the code used in this script derived from ChatGPT.
+"""
+
 import os
-import re
 import csv
 import gzip
 import errno
 import sqlite3
 import requests
-from ..utils.timer import timer
+from tools.utils.timer import timer
 from tools.utils.logger import logger
 from tools.utils.error_handlers import request_status_codes, connection_error, sqlite_error
 
@@ -373,7 +406,6 @@ def clinvar_vs_download():
     os.remove(clinvar_file_path)
 
 
-@timer
 def clinvar_annotations(nc_variant, nm_variant):
     '''
     This function retrieves variant information from the clinvar.db database. It uses the HGVS transcript description
@@ -470,11 +502,3 @@ def clinvar_annotations(nc_variant, nm_variant):
 
         # Returns the clinvar_output dictionary, even if length is 0.
         return clinvar_output
-'''
-# Example
-if __name__ == "__main__":
-    result = get_clinvar_full_info(('NC_000017.11:g.45983420G>T', 'NM_001377265.1:c.841G>T', 'NP_001364194.1:p.(Ala281Ser)', 'MAPT', '6893'))
-    print(result)
-'''
-
-#print(clinvar_annotations('NC_000011.10:g.2164285C>T', 'NM_000360.4:c.1442G>A'))

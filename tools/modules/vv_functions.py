@@ -30,11 +30,13 @@ Some of the code used in this script derived from ChatGPT.
 import re
 import time
 import json
-import requests  # Import the 'requests' library to handle HTTP requests to the VariantValidator API
+import requests 
 from flask import flash
+from tools.utils.timer import timer
 from tools.utils.logger import logger
 from tools.utils.error_handlers import request_status_codes, connection_error, json_decoder_error, regex_error
 
+@timer
 def fetch_vv(variant: str):
     """
     Using a variant in VCF format, query the VariantValidator REST API to retrieve genomic (NC_), transcript (NM_) and
@@ -369,7 +371,7 @@ def fetch_vv(variant: str):
         # name where the queried variant comes from. This will help the User.
         return f'{variant}: ❌ VariantValidator unavailable. Try again later.'
 
-
+@timer
 def get_mane_nc(variant: str):
     """
     Convert a variant search term in the flask app into its corresponding HGVS genomic description using the
