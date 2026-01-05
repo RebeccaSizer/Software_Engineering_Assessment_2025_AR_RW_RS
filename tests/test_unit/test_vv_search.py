@@ -1,7 +1,15 @@
-# tests/test_vv_functions_ordered.py
-# Reorganized test script for vv_functions
-# Original test functionality preserved
-# Grouped logically: Integration, Input validation, Exceptions, fetch_vv API/HTTP errors
+"""
+Unit tests for parser (tools/modules/vv_search.py).
+
+This module contains pytest-based tests that verify correct behaviour
+and error handling for functions in vv_search. Some external
+dependencies such as databases, files, and network requests are mocked
+using pytest fixtures (e.g. monkeypatch) to ensure deterministic and
+isolated testing. 
+
+Some tests were initially generated with assistance from ChatGPT and
+subsequently refined by the developer.
+"""
 
 import pytest
 import requests

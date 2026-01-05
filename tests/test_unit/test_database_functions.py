@@ -1,5 +1,16 @@
-# these tests were written by ChatGPT and refined by the developer
-# test_db_tools.py
+"""
+Unit tests for database_functions (tools/modules/database_functions.py).
+
+This module contains pytest-based tests that verify correct behaviour
+and error handling for functions in database_functions. Some external
+dependencies such as databases, files, and network requests are mocked
+using pytest fixtures (e.g. monkeypatch) to ensure deterministic and
+isolated testing.
+
+Some tests were initially generated with assistance from ChatGPT and
+subsequently refined by the developer.
+"""
+
 import os
 import sqlite3
 import pytest

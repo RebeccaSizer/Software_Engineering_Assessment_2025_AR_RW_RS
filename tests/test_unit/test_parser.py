@@ -1,4 +1,13 @@
-# tests/test_unit/test_variant_parser.py
+"""
+Unit tests for parser (tools/utils/parser.py).
+
+This module contains pytest-based tests that verify correct behaviour
+and error handling for functions in parser. 
+
+Some tests were initially generated with assistance from ChatGPT and
+subsequently refined by the developer.
+"""
+
 
 import os
 import textwrap

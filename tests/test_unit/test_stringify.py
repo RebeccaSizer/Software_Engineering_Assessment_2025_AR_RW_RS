@@ -1,3 +1,14 @@
+"""
+Unit tests for parser (tools/utils/stringify.py).
+
+This module contains pytest-based tests that verify correct behaviour
+and error handling for functions in stringify. 
+
+Some tests were initially generated with assistance from ChatGPT and
+subsequently refined by the developer.
+"""
+
+
 import pytest
 from tools.utils.stringify import stringify
 
