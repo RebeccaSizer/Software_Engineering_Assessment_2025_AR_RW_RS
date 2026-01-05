@@ -16,14 +16,12 @@ Some of the code used in this script derived from ChatGPT.
 """
 
 import os
-import sys
 import io
 import csv
 import json
 import errno
 import sqlite3
 from openpyxl import Workbook
-
 
 from flask import (
     Flask,
@@ -36,9 +34,6 @@ from flask import (
     send_file,
     session
 )
-
-# Add the project root to sys.path so Python can find 'tools'
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from tools.utils.logger import logger
 from tools.utils.stringify import stringify
