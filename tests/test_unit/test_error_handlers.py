@@ -1,3 +1,16 @@
+"""
+Unit tests for error_handlers (tools/utils/error_handlers.py).
+
+This module contains pytest-based tests that verify correct behaviour
+and error handling for functions in error_handlers. Some external
+dependencies such as databases, files, and network requests are mocked
+using pytest fixtures (e.g. monkeypatch) to ensure deterministic and
+isolated testing.
+
+Some tests were initially generated with assistance from ChatGPT and
+subsequently refined by the developer.
+"""
+
 import json
 import sqlite3
 import requests

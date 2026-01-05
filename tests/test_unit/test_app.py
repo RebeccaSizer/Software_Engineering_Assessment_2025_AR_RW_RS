@@ -1,6 +1,16 @@
-# tests/test_unit/test_flask_app.py
+"""
+Unit tests for app (app/app.py).
 
-import os
+This module contains pytest-based tests that verify correct behaviour
+and error handling for functions in app. Some external
+dependencies such as databases, files, and network requests are mocked
+using pytest fixtures (e.g. monkeypatch) to ensure deterministic and
+isolated testing.
+
+Some tests were initially generated with assistance from ChatGPT and
+subsequently refined by the developer.
+"""
+
 import csv
 import json
 import errno

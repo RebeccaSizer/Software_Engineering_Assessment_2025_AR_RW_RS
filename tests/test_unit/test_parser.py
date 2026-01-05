@@ -1,12 +1,18 @@
-# tests/test_unit/test_variant_parser.py
+"""
+Unit tests for parser (tools/utils/parser.py).
 
-import os
+This module contains pytest-based tests that verify correct behaviour
+and error handling for functions in parser. 
+
+Some tests were initially generated with assistance from ChatGPT and
+subsequently refined by the developer.
+"""
+
 import textwrap
 import pytest
 from flask import Flask
-
-from tools.utils.parser import variant_parser
 from unittest.mock import patch
+from tools.utils.parser import variant_parser
 
 def test_variant_parser_vcf_basic(tmp_path):
     """

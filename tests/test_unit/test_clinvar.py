@@ -1,5 +1,15 @@
-## these tests were written by ChatGPT and refined by the developer.
+"""
+Unit tests for clinvar_functions (tools/modules/clinvar_functions.py).
 
+This module contains pytest-based tests that verify correct behaviour
+and error handling for functions in clinvar_functions. Some external
+dependencies such as databases, files, and network requests are mocked
+using pytest fixtures (e.g. monkeypatch) to ensure deterministic and
+isolated testing.
+
+Some tests were initially generated with assistance from ChatGPT and
+subsequently refined by the developer.
+"""
 
 import io
 import os

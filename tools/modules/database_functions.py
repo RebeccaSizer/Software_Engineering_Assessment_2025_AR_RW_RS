@@ -133,7 +133,7 @@ def patient_variant_table(filepath, db_name):
 
     # Log the variant file names that will be processed.
     for file in variant_paths:
-        logger.debug(f"patient_variant_table: Uploaded files: {file.split('/')[-1]}")
+        logger.debug(f"patient_variant_table: Uploaded files: {file.split('/')[-1]}") 
 
     # Create (or connect to) the database file:
     # Get the filepath to the directory of this script
