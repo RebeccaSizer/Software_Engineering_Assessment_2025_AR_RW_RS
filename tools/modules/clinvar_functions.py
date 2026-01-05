@@ -372,6 +372,7 @@ def clinvar_vs_download():
     # Delete the ClinVar zip file.
     os.remove(clinvar_file_path)
 
+
 @timer
 def clinvar_annotations(nc_variant, nm_variant):
     '''

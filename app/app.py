@@ -288,8 +288,8 @@ def choose_create_or_add():
                 if e.errno == errno.ENOSPC:
                     # Log the error, explaining there isn't enough disk space, using the exception output.
                     logger.error(
-                        f"Failed to save {filename} to {app.config['db_upload_folder']} because there is a problem with "
-                        f"your disk space: {str(e)}")
+                        f"Failed to save {filename} to {app.config['db_upload_folder']} because there is a problem with"
+                        f" your disk space: {str(e)}")
                     # Notify the User that the file couldn't be saved to the 'database' folder because there is not
                     # enough disk.
                     flash(f'❌ Failed to save {filename}. There is a problem with your disk space.')
@@ -321,12 +321,14 @@ def choose_create_or_add():
             # validate_database() function ensures that the database conforms with the expected schema that allows the
             # database file to be queried.
             if not validate_database(filepath):
+                # Log that the database failed validation and cannot be queried.
+                logger.warning(f'{filename} does not conform with the required schema. Validation failed.')
                 # Remove the database file from the 'database' folder.
                 os.remove(filepath)
                 # Log that the database file was removed.
                 logger.info(f"Removed {filename} from 'database' folder.")
                 # Notify the User that the database cannot be queried.
-                flash(f'❌ Upload Error: {filename} cannot be queried. Please upload a different database.')
+                flash(f'❌ Upload Error: {filename} cannot be queried. Inappropriate tables or headers.')
             else:
                 # Log that the database was successfully uploaded and validated.
                 logger.info(f"Successfully uploaded and validated {filename} database.")
@@ -716,7 +718,7 @@ def query_page(db_name):
         # query page.
         flash(f'❌ Query Error: An error occurred while processing the query. It is not your fault. '
               f'Please contact your nearest friendly neighbourhood Bioinformatician')
-        return render_template("db_display_page.html", db_name=db_name)
+        return render_template("db_query_page.html", db_name=db_name)
 
     # Render the information extracted from 'data' into a table that is viewable on the query page.
     return render_template(
@@ -777,7 +779,7 @@ def display_database(db_name):
                                 | g.41985036A>C | c.875T>G	   | p.(Leu292Arg) |        |         |                |  encephalopathy 99          |       | criteria provided
     """
     # Log that the display page is being used.
-    logger.info('User has accessed the Query page.')
+    logger.info('User has accessed the Display page.')
 
     # Check that the filepath to the database file that was selected or uploaded on the homepage exists.
     # Assign the filepath to the selected databse to 'db_path' variable.
@@ -982,7 +984,7 @@ def display_database(db_name):
 
 
 # ---------------------------------------------------------------
-# JSON API for dropdowns on query page (still available if needed)
+# JSON API for dropdowns on query page.
 # ---------------------------------------------------------------
 @app.route("/api/dropdown/<db_name>")
 def dropdown_data(db_name):
@@ -1020,7 +1022,7 @@ def dropdown_data(db_name):
         # Notify the User that the database was not found in the database folder.
         flash(f"⚠ {db_name} database not found. Please select a database to query on the homepage.")
         # Redirect the User back to the homepage.
-        return redirect(url_for("choose_create_or_add"))
+        return render_template("homepage.html")
 
     # Check that the information from the sqlite3 database can be accessed.
     try:
@@ -1095,7 +1097,8 @@ def switch_db():
         logger.warning(f"Database could not be found.")
         # Notify the User that the database was not found in the database folder.
         flash(f"⚠ {db_name} database not found. Please select a database to query on the homepage.")
-        return redirect(url_for("homepage.html"))
+        # Redirect the User to the homepage so that they can select or upload a database.
+        return render_template("homepage.html")
 
     # Raise an exception if an error arose while selecting a different database to query.
     except Exception as e:
@@ -1104,7 +1107,7 @@ def switch_db():
         # Notify the User that the attempt to switch databases failed.
         flash(f'❌ Failed to select a different database to query.')
         # Redirect the User to the homepage so that they can select or upload a database.
-        return redirect(url_for("homepage.html"))
+        return render_template("homepage.html")
 
 
 # ---------------------------------------------------------------
@@ -1132,15 +1135,15 @@ def export_csv():
         # Log that the User wants to download a table.
         logger.info('User has elected to download the table on the UI in CSV format.')
 
+        # Retrieve the name of the database that the information in the table derives from so that the User can be
+        # redirected back to the query page and query the same database again.
+        db_name = request.form.get("db_name")
+
         # Check if the values can be parsed from the table.
         try:
             # Parses the headers and rows from the table into 'columns' and 'rows' Python objects, respectively.
             columns = json.loads(request.form["columns"])
             rows = json.loads(request.form["rows"])
-
-            # Retrieve the name of the database that the information in the table derives from so that the User can be
-            # redirected back to the query page and query the same database again.
-            db_name = request.form.get("db_name")
 
             logger.info(f'Preparing CSV export from {db_name}: {len(columns)} columns x {len(rows)} rows')
 
@@ -1150,7 +1153,7 @@ def export_csv():
             logger.error(f'CSV Export Error: Failed to decode JSON: {e}')
             # Notify the User of the error.
             flash(f'❌ CSV Export Error: Failed to parse values from the table for CSV export.')
-            return redirect(url_for("query_page"))
+            return render_template("db_query_page.html", db_name=db_name)
 
         try:
             # The 'io' buffer saves text to the Random-Access Memory (RAM) using 'StringIo()'.
@@ -1179,7 +1182,7 @@ def export_csv():
             logger.error(f'CSV Export Error: Failed to write values into CSV: {e}')
             # Notify the User of the error.
             flash(f'❌ CSV Export Error: Failed to write values into CSV. CSV cannot be exported.')
-            return redirect(url_for("query_page"))
+            return render_template("db_query_page.html", db_name=db_name)
 
         # 'BytesIO()' converts the 'io' buffer from text data into bytes. This will allow the send_file() function to
         # download the data into a .CSV file on the client's computer.
@@ -1212,7 +1215,7 @@ def export_csv():
         logger.error(f'CSV Export Error: Something went wrong: {e}')
         # Notify the User of the error.
         flash(f'❌ CSV Export Error: Failed to prepare CSV. CSV cannot be exported.')
-        return redirect(url_for("query_page", db_name=db_name))
+        return render_template("db_query_page.html", db_name=db_name)
 
 # ---------------------------------------------------------------
 # Initialise flask app
