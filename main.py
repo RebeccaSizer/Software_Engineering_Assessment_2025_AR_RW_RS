@@ -68,22 +68,24 @@ def run_app():
     launching the app.
     :return:
     """
-    # Run the clinvar_db_check
-    clinvar_db_check(clinvar_db_path)
-    # Timer module initiates the open_browser function above after 1 second, launching the flask app. App runs in debug
-    # mode when debug=True
-    Timer(1, open_browser).start()
-    app.run(debug=True)
-
-# Initialise this script from the commandline.
-if __name__ == "__main__":
     try:
-        run_app()
+        # Run the clinvar_db_check
+        clinvar_db_check(clinvar_db_path)
+        # Timer module initiates the open_browser function above after 1 second, launching the flask app. App runs in
+        # debug mode when debug=True
+        Timer(1, open_browser).start()
+        app.run(debug=True)
+
     # Raise a RuntimeError exception if an error occurs while checking for a local copy of the ClinVar database and log
     # the error.
     except RuntimeError as e:
         logger.critical(f"ClinVar database download check failed. Application cannot be started. {e}")
+        raise
     # If an error occurs while launching the flask app, log the error and exit the program cleanly.
     except Exception as e:
         logger.critical(f"Fatal error occurred during application startup: {e}")
         sys.exit(0)
+
+# Initialise this script from the commandline.
+if __name__ == "__main__":
+    run_app()
