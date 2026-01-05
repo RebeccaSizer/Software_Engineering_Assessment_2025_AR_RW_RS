@@ -6,9 +6,9 @@ name: Pytest + Codecov
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "tests_AR" ]
+    branches: [ "pre-production_test" ]
   pull_request:
-    branches: [ "tests_AR" ]
+    branches: [ "pre-production_test" ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -40,7 +40,7 @@ jobs:
       # Note that last two commands have been commented-out. This is because the command before them includes them in its pytest. 
       - name: Run tests
         run: |  
-          pytest -q tests/test_unit/test_app.py \
+          pytest -q tests/ \
             --cov=. \
             --cov-branch \
             --cov-report=xml \
