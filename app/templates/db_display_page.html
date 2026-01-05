@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Display Database - {{ db_name }}</title>
+    <style>
+        body {
+            background-color: #24bf96;
+            color: white;
+            font-family: "Nirmala UI", sans-serif;
+            padding: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background: white;
+            color: black;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px;
+        }
+        select, button {
+            font-family: "Nirmala UI", sans-serif;
+            padding: 6px;
+            margin: 5px;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Full Database: {{ db_name }}</h1>
+
+<a href="{{ url_for('query_page', db_name=db_name) }}">
+    <button type="button">Back to Search</button>
+</a>
+
+<hr>
+<h3>Sort / Filter Options</h3>
+
+<form method="POST">
+
+    <!-- FILTER COLUMN -->
+    <label><strong>Filter Column:</strong></label>
+    <select name="filter_column" id="filter_column">
+        <option value="">(none)</option>
+        {% for col in all_columns %}
+        <option value="{{ col }}" {% if col == selected_filter_column %}selected{% endif %}>
+            {{ col }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <!-- FILTER VALUE (populated dynamically via JS) -->
+    <label><strong>Filter Value:</strong></label>
+    <select name="filter_value" id="filter_value">
+        <option value="">(none)</option>
+        {# values will be filled by JS based on filter_values_json #}
+    </select>
+
+    <!-- SORT COLUMN -->
+    <label><strong>Sort By:</strong></label>
+    <select name="sort_column">
+        <option value="">(none)</option>
+        {% for col in all_columns %}
+        <option value="{{ col }}" {% if col == selected_sort_column %}selected{% endif %}>
+            {{ col }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <button type="submit">Apply</button>
+</form>
+
+<hr>
+
+{% if data %}
+<h2>Results</h2>
+
+<!-- EXPORT BUTTONS -->
+<form action="/export_csv" method="POST" style="display:inline;">
+    <input type="hidden" name="db_name" value="{{ db_name }}">
+    <input type="hidden" name="columns" value='{{ export_columns_json | safe }}'>
+    <input type="hidden" name="rows" value='{{ export_rows_json | safe }}'>
+    <button type="submit">Export CSV</button>
+</form>
+
+<table>
+    <tr>
+        {% for col in all_columns %}
+        <th>{{ col }}</th>
+        {% endfor %}
+    </tr>
+
+    {% for row in data %}
+    <tr>
+        {% for col in all_columns %}
+        <td>{{ row[col] }}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+
+{% else %}
+<p><em>No data found.</em></p>
+{% endif %}
+
+<!-- DYNAMIC FILTER VALUE LOADING (no extra API call, uses JSON passed from backend) -->
+<script>
+const FILTER_VALUES = {{ filter_values_json | safe }};
+const filterColumnSelect = document.getElementById("filter_column");
+const filterValueSelect = document.getElementById("filter_value");
+
+function populateFilterValues(column, selectedValue) {
+    filterValueSelect.innerHTML = "<option value=''> (none) </option>";
+    if (!column || !FILTER_VALUES[column]) return;
+
+    FILTER_VALUES[column].forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = v;
+        if (selectedValue && selectedValue == v) {
+            opt.selected = true;
+        }
+        filterValueSelect.appendChild(opt);
+    });
+}
+
+// When user changes the filter column
+filterColumnSelect.addEventListener("change", function () {
+    populateFilterValues(this.value, "");
+});
+
+// On page load, if a filter column/value is already selected, pre-populate
+window.addEventListener("DOMContentLoaded", function () {
+    const initialColumn = "{{ selected_filter_column or '' }}";
+    const initialValue = "{{ selected_filter_value or '' }}";
+    if (initialColumn) {
+        populateFilterValues(initialColumn, initialValue);
+    }
+});
+</script>
+
+</body>
+</html>

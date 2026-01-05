@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Query Database - {{ db_name }}</title>
+    <style>
+        /* Tiny 10px spinner */
+        .spinner-tiny {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #24bf96;  /* SAME as background */
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            animation: spin 0.6s linear infinite;
+            display: none;
+        }
+
+        .flash-messages li {
+            font-size: 14px;
+            color: #7A1F5C;
+            font-weight: bold;
+        }
+
+        body {
+            background-color: #24bf96;
+            color: white;
+            font-family: "Nirmala UI", sans-serif;
+            padding: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background: white;
+            color: black;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px;
+        }
+        input, select, button {
+            font-family: "Nirmala UI", sans-serif;
+            color: black;
+            margin: 5px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Database: {{ db_name }}</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flash-messages">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+
+    <!-- Switch database -->
+    <form id="dbForm" method="POST" action="/switch_db">
+        <label for="db_name"><strong>Select Database:</strong></label>
+        <select name="db_name" id="db_name" onchange="this.form.submit()">
+            {% for db in databases %}
+            <option value="{{ db }}" {% if db == db_name %}selected{% endif %}>{{ db }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    <!-- Link to display-all view -->
+    <a href="{{ url_for('display_database', db_name=db_name) }}">
+        <button type="button">Display Whole Database</button>
+    </a>
+
+    <hr>
+
+    <form id="query" method="POST">
+        <h3>Search by Patient ID</h3>
+        <input list="patient_list" name="patient_ID" placeholder="Enter or select Patient ID" autocomplete="off">
+        <datalist id="patient_list">
+            {% for p in patient_list %}
+            <option value="{{ p }}">
+            {% endfor %}
+        </datalist>
+
+        <h3>Search by Variant (gene/transcript:variant)</h3>
+        <input list="variant_list" name="variant_NC" placeholder="Enter or select Variant NC" autocomplete="off">
+        <datalist id="variant_list">
+            {% for v in variant_list %}
+            <option value="{{ v }}">
+            {% endfor %}
+        </datalist>
+
+        <h3>Search by Gene</h3>
+        <input list="gene_list" name="gene" placeholder="Enter or select Gene" autocomplete="off">
+        <datalist id="gene_list">
+            {% for g in gene_list %}
+            <option value="{{ g }}">
+            {% endfor %}
+        </datalist>
+
+        <br><br>
+        <button type="submit">
+            Run Query
+            <span id="buttonSpinner" class="spinner-tiny"></span>
+        </button>
+    </form>
+
+    <hr>
+
+    {% if data %}
+        {% if result_type == "patient" %}
+            <h2>Variants for this Patient:</h2>
+        {% elif result_type == "variant" %}
+            <h2>Variant Details:</h2>
+        {% elif result_type == "gene" %}
+            <h2>Variants Associated with Same HGNC_ID:</h2>
+        {% endif %}
+
+        <!-- EXPORT BUTTONS FOR QUERY RESULTS -->
+        <form action="/export_csv" method="POST" style="display:inline;">
+            <input type="hidden" name="db_name" value="{{ db_name }}">
+            <input type="hidden" name="columns" value='{{ export_columns_json | safe }}'>
+            <input type="hidden" name="rows" value='{{ export_rows_json | safe }}'>
+            <button type="submit">Export CSV</button>
+        </form>
+
+        <table>
+            <tr>
+                {% for col in data[0].keys() %}
+                <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+
+            {% for row in data %}
+            <tr>
+                {% for col in row.keys() %}
+                <td>{{ row[col] }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    <script>
+        const form = document.getElementById("query");
+        const buttonSpinner = document.getElementById("buttonSpinner")
+
+        form.addEventListener("submit", () => {
+            buttonSpinner.style.display = "inline-block"
+        });
+    </script>
+
+</body>
+</html>
