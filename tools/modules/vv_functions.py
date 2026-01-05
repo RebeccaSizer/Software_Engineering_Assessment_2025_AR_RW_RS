@@ -30,7 +30,7 @@ Some of the code used in this script derived from ChatGPT.
 import re
 import time
 import json
-import requests 
+import requests
 from flask import flash
 from tools.utils.timer import timer
 from tools.utils.logger import logger

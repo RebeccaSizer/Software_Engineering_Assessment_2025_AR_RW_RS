@@ -52,11 +52,12 @@ import os
 import time
 import sqlite3
 from flask import flash
-from .vv_functions import fetch_vv
 from tools.utils.logger import logger
-from ..utils.parser import variant_parser
-from .clinvar_functions import clinvar_annotations
+from tools.utils.parser import variant_parser
+from tools.modules.vv_functions import fetch_vv
 from tools.utils.error_handlers import sqlite_error
+from tools.modules.clinvar_functions import clinvar_annotations
+
 
 def patient_variant_table(filepath, db_name):
     """
