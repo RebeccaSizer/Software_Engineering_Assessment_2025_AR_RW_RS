@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!--
+    =============================================================================
+    Template: db_query_page.html
+
+    Purpose:
+    --------
+    User interface for querying a validated variant database for HGVS
+    descriptions, gene symbol, HGNC ID, ClinVar annotations and variant count.
+
+    Supports controlled lookup by:
+      - Patient ID
+      - Normalised variant nomenclature
+            E.g.: - NC_000005.10:g.150056311C>T
+                  - NM_001288705.3:c.2350G>A
+                  - ENST00000675795.1:c.2350G>A
+                  - CSF1R:c.301G>A
+      - Gene (HGNC-level aggregation)
+
+    Results from the query are presented in a table.
+    The table can be downloaded in CSV format to the User's local computer.
+
+    Intended users:
+    ---------------
+    Clinical Scientists / Clinical Bioinformaticians reviewing the cohort of
+    variants that have been sequenced.
+
+    Governance notes:
+    -----------------
+    - This interface is rendered by Flask and is read-only with respect to
+      variant content.
+    - The queried database is kept in the 'databases' directory:
+
+       Software_Engineering_Assessment_2025_AR_RW_RS/databases/<database>.db
+
+    - Server-side processes that interact this HTML file are handled primarily
+      within appy.py:
+
+             Software_Engineering_Assessment_2025_AR_RW_RS/app/app.py
+
+    =============================================================================
+    -->
+    <title>Query Database - {{ db_name }}</title>
+    <style>
+        /* ---------------------------------------------------------------------
+           Tiny spinner used inside the 'Run Query' button to indicate that the
+           app is processing the query. Processing can take several minutes
+           during which the User can mistake the app is dysfunctional. The
+           spinner deters this.
+           --------------------------------------------------------------------- */
+        .spinner-tiny {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #24bf96;  /* SAME as background */
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            animation: spin 0.6s linear infinite;
+            display: none;
+        }
+
+        /* Spinner animation */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ---------------------------------------------------------------------
+           Flash messages used by Flask to report success/failure states to
+           Users such as invalid queries, table generation errors, etc.
+           --------------------------------------------------------------------- */
+        .flash-messages li {
+            font-size: 14px;
+            color: #7A1F5C;
+            font-weight: bold;
+        }
+
+        /* ---------------------------------------------------------------------
+           Colour and design of general webpage components including
+           background, text and buttons .
+           --------------------------------------------------------------------- */
+        body {
+            background-color: #24bf96;
+            color: white;
+            font-family: "Nirmala UI", sans-serif;
+            padding: 20px;
+        }
+
+        /* ---------------------------------------------------------------------
+           Colour and design of the table returned by the query including
+           cells, background, text and buttons .
+           --------------------------------------------------------------------- */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background: white;
+            color: black;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px;
+        }
+        input, select, button {
+            font-family: "Nirmala UI", sans-serif;
+            color: black;
+            margin: 5px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ---------------------------------------------------------------------
+         Banner with the database being queried in it, notifying the User,
+         thereby reducing the risk of misinterpretation errors.
+         --------------------------------------------------------------------- -->
+    <h1>Database: {{ db_name }}</h1>
+
+    <!--
+    ---------------------------------------------------------------------
+    Flask flash messages:
+    Used to report errors, warnings and successful processes from
+    querying the database, to the Users.
+    ---------------------------------------------------------------------
+    -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flash-messages">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <!-- =====================================================================
+         SWITCH DATABASES
+         ===================================================================== -->
+
+    <!--
+    Database selection:
+    -------------------
+    Users are able to select an existing database from a dropdown menu.
+
+    Allows switching between validated databases without reloading the app.
+    Each switch is logged by app.py for traceability.
+
+    'db_name' represents the name of the database selected by the User which
+    is submitted to app.py.
+    -->
+    <form id="dbForm" method="POST" action="/switch_db">
+        <label for="db_name"><strong>Select Database:</strong></label>
+        <select name="db_name" id="db_name" onchange="this.form.submit()">
+            {% for db in databases %}
+            <option value="{{ db }}" {% if db == db_name %}selected{% endif %}>{{ db }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    <!--
+    'Display Whole Database' button redirects the User to the display page
+    where they can view the database in full. Intended for exploratory
+    purposes where the User can apply their own filters.
+    -->
+    <a href="{{ url_for('display_database', db_name=db_name) }}">
+        <button type="button">Display Whole Database</button>
+    </a>
+
+    <hr>
+
+    <!-- =====================================================================
+         QUERY INTERFACE
+         ===================================================================== -->
+
+    <form id="query" method="POST">
+
+        <!--
+        Patient ID Query:
+        -----------------
+        Users are able to retrieve the variants identified in a specific
+        patient by searching for that patient using their ID. The ID derives
+        from the filename used to upload the variant into the database.
+
+        Users can either:
+        - Enter the Patient ID
+        - Select the Patient ID from a dropdown menu.
+
+        Autocomplete is used to narrow the options in the dropdown menu.
+
+        'patinet_ID' represents the patient ID selected/entered by the User
+        which is submitted to app.py.
+        -->
+        <h3>Search by Patient ID</h3>
+        <input list="patient_list" name="patient_ID" placeholder="Enter or select Patient ID" autocomplete="off">
+        <datalist id="patient_list">
+            {% for p in patient_list %}
+            <option value="{{ p }}">
+            {% endfor %}
+        </datalist>
+
+        <!--
+        Variant Query:
+        --------------
+        Users are able to search the selected database for a variant. The
+        query must consist of some sort of reference to a gene:
+        - Ensembl transcript number (including version number)
+        - RefSeq Accession number (including version number)
+        - Gene symbol
+
+        ...followed by a colon and then the variant described in HGVS
+        format. There should be no white space in the query.
+
+        A successful query will also return a count of the number of patients
+        in the database who also carry the queried variant.
+
+        Users can either:
+        - Enter the variant nomenclature
+        - Select the HGVS genomic description from a dropdown menu.
+
+        Autocomplete is used to narrow the options in the dropdown menu.
+
+        'variant_NC' represents the variant selected/entered by the User
+        which is submitted to app.py.
+        -->
+        <h3>Search by Variant (gene/transcript:variant)</h3>
+        <input list="variant_list" name="variant_NC" placeholder="Enter or select Variant NC" autocomplete="off">
+        <datalist id="variant_list">
+            {% for v in variant_list %}
+            <option value="{{ v }}">
+            {% endfor %}
+        </datalist>
+
+        <!--
+        Gene Query:
+        -----------
+        Users are able to retrieve the variants in the database that derive
+        from the same gene by querying the database using its gene symbol.
+        The query finds an entry with that gene symbol and uses the
+        associated HGNC ID to search the database for every variant with
+        that HGNC ID.
+
+        Users can either:
+        - Enter the gene symbol
+        - Select the gene symbol from a dropdown menu.
+
+        Autocomplete is used to narrow the options in the dropdown menu.
+
+        'gene' represents the gene symbol selected/entered by the User
+        which is submitted to app.py.
+        -->
+        <h3>Search by Gene</h3>
+        <input list="gene_list" name="gene" placeholder="Enter or select Gene" autocomplete="off">
+        <datalist id="gene_list">
+            {% for g in gene_list %}
+            <option value="{{ g }}">
+            {% endfor %}
+        </datalist>
+
+        <!-- 'Run Query' button with inline spinner -->
+        <br><br>
+        <button type="submit">
+            Run Query
+            <span id="buttonSpinner" class="spinner-tiny"></span>
+        </button>
+    </form>
+
+    <hr>
+
+    <!-- =====================================================================
+         QUERY RESULTS
+         ===================================================================== -->
+    <!--
+        Headers:
+        --------
+        app.py returns the variable 'result_type' which can include
+        one of the following values:
+        - 'patient'
+        - 'variant'
+        - 'gene'
+
+        'result_type' is returned and a corresponding header appears
+        above the table of results.
+        -->
+    {% if data %}
+        {% if result_type == "patient" %}
+            <h2>Variants for this Patient:</h2>
+        {% elif result_type == "variant" %}
+            <h2>Variant Details:</h2>
+        {% elif result_type == "gene" %}
+            <h2>Variants Associated with Same HGNC_ID:</h2>
+        {% endif %}
+
+        <!--
+        CSV Export:
+        -----------
+        'Export CSV'  button allows Users to export query results in
+        CSV format.
+
+        Headers and row data are passed as JSON objects into a CSV
+        before being converted into bytes, by app.py. A pop-up window
+        will appear, enabling Users to specify where on their computer
+        to save the CSV file.
+        -->
+        <form action="/export_csv" method="POST" style="display:inline;">
+            <input type="hidden" name="db_name" value="{{ db_name }}">
+            <input type="hidden" name="columns" value='{{ export_columns_json | safe }}'>
+            <input type="hidden" name="rows" value='{{ export_rows_json | safe }}'>
+            <button type="submit">Export CSV</button>
+        </form>
+
+        <!--
+        Results table:
+        --------------
+        This table renders the output from the SQLite3 query returned
+        by app.py into 'data'. The variable 'data' is a list of
+        dictionaries. Every dictionary has the same keys. Each key is
+        converted into a header, assigned to 'col'. The set of values
+        from a dictionary occupy a row in the table. Each value appears
+        under the header named after it's key.
+        -->
+        <table>
+            <tr>
+                {% for col in data[0].keys() %}
+                <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+
+            {% for row in data %}
+            <tr>
+                {% for col in row.keys() %}
+                <td>{{ row[col] }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    <!--
+    This script provides a spinner that spins while the User's
+    query is being processed and the table is being compiled.
+    This notifies the User so that they are aware that their
+    query is being processed during the interim.
+    -->
+    <script>
+        const form = document.getElementById("query");
+        const buttonSpinner = document.getElementById("buttonSpinner")
+
+        form.addEventListener("submit", () => {
+            buttonSpinner.style.display = "inline-block"
+        });
+    </script>
+
+</body>
+</html>
