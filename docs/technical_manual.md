@@ -150,6 +150,22 @@ To run all tests:
 ```bash
 pytest
 ```
+SEA_2025 also uses Jenkins for continuous integration testing to check that a branch can:
+
+- Be checked out from the repository
+
+- Create a Python execution environment
+
+- Install all required dependencies defined in pyproject.toml
+
+- Execute the automated test suite
+
+The Jenkins platform will run these CI tests on any branch that includes a Jenkinsfile (which must be so named) in its root.  A Jenkinsfile is included in the main branch of this repo.
+
+To run Jenkins first download the Jenkin app from https://www.jenkins.io/ and navigate to the Jenkins GUI at http://<IP_ADDRESS>:8080.  Select "New Item" then "Multibranch Pipeline" Then under behaviours select 'add' then Discover branches
+Strategy: Build all branches. Then click 'Save' and Jenkins will run - it will check all branches and if it finds one with a Jenkinsfile it will attempt to build it and report the outcome.
+
+The success or failure of the CI attempt will be set out in the terminal.  Full details may be found in the Console Output.
 ---
 
 ## 7. Logging and Error Handling
