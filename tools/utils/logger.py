@@ -36,9 +36,10 @@ def create_logger():
     exists.
     """
 
-    # Get the base directory file path
+    # Make the 'logs' directory to store log files.
     base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
-    print(base_dir)
+    logs_dir = os.path.join(base_dir, "logs")
+    os.makedirs(logs_dir, exist_ok=True)
 
     # Create logger
     logger = logging.getLogger('SEA_logger')
@@ -51,7 +52,7 @@ def create_logger():
     stream_handler.setFormatter(stream_formatter)
 
     # File handler with ERROR level and rotating file configuration
-    file_handler = RotatingFileHandler(base_dir + '/logs/SEA.log',
+    file_handler = RotatingFileHandler(os.path.join(logs_dir, "SEA.log"),
                                        maxBytes=500000,  # 500 KB
                                        backupCount=5)   # 5 files are on rotation
     file_handler.setLevel(logging.ERROR)

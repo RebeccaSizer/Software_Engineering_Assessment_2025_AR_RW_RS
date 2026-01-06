@@ -1218,7 +1218,7 @@ def export_csv():
             mem,
             mimetype="text/csv",
             as_attachment=True,
-            download_name=f"{db_name}_query.csv",
+            download_name=f"{db_name}.csv",
         )
 
     # Raise and exception if there is an error generating the CSV.

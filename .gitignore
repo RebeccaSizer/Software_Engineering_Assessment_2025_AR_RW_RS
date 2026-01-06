@@ -2,7 +2,7 @@
 *.vcf
 *.csv
 *.db
-logs/*
+logs/
 
 # Unecessary files
 test.py
