@@ -127,12 +127,8 @@ Once an existing database has been selected, it is possible to query the databas
 - **Search by Gene Symbol:** Select the gene symbol from the dropdown menu or type it into the gene symbol search bar, then click **Run Query**.  
 
 - If the query runs successfully, a results table similar to the following will appear:
-```
- E.g.:  patient_ID | variant_NC	   | variant_NM   | variant_NP	  | gene   | HGNC_ID | Classification | Conditions	| Stars | Review_status
-       ------------|---------------|--------------|---------------|--------|---------|----------------|-------------|-------|-------------------
-        Patient1   | NC_000019.10: | NM_152296.5: | NP_689509.1:  | ATP1A3 | 801     | Pathogenic     | Dystonia 12 | ★    | criteria provided,
-                   | g.41968837C>G | c.2767G>C    | p.(Asp923His) |        |         |                |             | 	    | single submitter
-```
+<img src="images/Query_Example.png" width="1050" height="800" />
+
 ---
 
 ### 6.4 Filtering Existing Database page
