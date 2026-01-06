@@ -63,7 +63,7 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 ├── main.py
 ├── pyproject.toml
 ├── README.md
-└──  requirements.txt 
+└── requirements.txt 
 ```
 ---
 
@@ -122,8 +122,8 @@ The data stored in the following objects are parsed from each record for annotat
 - ReviewStatus
 Note: Information from the ReviewStatus object is used to determine the star rating.
 
-This VSR information is stored in clinvar.db, in a table with the following headers:
-clinvar:
+Information from VSRs is stored in clinvar.db, in a table with the following headers:
+- clinvar:
   - `nc_accession`  
   - `nm_hgvs`  
   - `clinical_significance`  
@@ -132,8 +132,8 @@ clinvar:
   - `review_status`
 
 Variant Summary Records are updated by ClinVar during the first Thursday of every month.
-The date that the VSRs were last modified is stored in clinvar.db, in the following table and header"
-download
+The date that the VSRs were last modified is stored in clinvar.db, in the following table and header:
+- download
   - `last_updated`
 
 ### 4.2 Variant databases (`databases/<variant database>.db`)
@@ -167,15 +167,15 @@ Databases can be created, updated, queried, and exported via the web interface.
 Once created or uploaded, databases are stored in the **databases/** subdirectory.
 
 
-Note: Variants not found in clinvar.db are not added to the respective variant dataabase.
+**Note: Variants not found in clinvar.db are not added to the respective variant dataabase.**
 
 ---
 
 ## 5. External APIs
 
-SEA_2025 integrates with two external APIs:
+SEA_2025 integrates with one external API:
 
-### 5.1 Variant Validator REST API
+### 5.1 VariantValidator REST API
 
 - Used to validate and normalise variant representations.
 - Supports multiple formats including NC, NM, ENST, and gene-based nomenclature.
@@ -189,34 +189,53 @@ SEA_2025 integrates with two external APIs:
 
 SEA_2025 includes a comprehensive suite of unit and integration tests to ensure reliability and correctness.
 
-`pytest` is installed as part of the environment setup.
+### 6.1 Pytest unit testing (`tests/`)
 
-To run all tests:
+`pytest` and `pytest-cov` are installed as part of the environment setup. Pytest conducts unit tests while pytest-cov calculates the percentage of code that is being tested by the pytests.
+
+To run all tests with coverage:
 
 ```bash
-pytest
+pytest tests --cov=.
 ```
-SEA_2025 also uses Jenkins for continuous integration testing to check that a branch can:
+### 6.2 Jenkins Continuous Integration testing (`Jenkinsfile`)
+
+Jenkins performs continuous integration (CI) testing to check that our GitHub respository branches can:
 
 - Be checked out from the repository
-
 - Create a Python execution environment
-
-- Install all required dependencies defined in pyproject.toml
-
+- Install all required software and dependencies in pyproject.toml
 - Execute the automated test suite
 
-The Jenkins platform will run these CI tests on any branch that includes a Jenkinsfile (which must be so named) in its root.  A Jenkinsfile is included in the main branch of this repo.
+The Jenkins platform will run these CI tests on any branch that has a "**Jenkinsfile**" in the base directory. A Jenkinsfile is included in the main branch of this repo.
 
-To run Jenkins first download the Jenkin app from https://www.jenkins.io/ and navigate to the Jenkins GUI at http://<IP_ADDRESS>:8080.  Select "New Item" then "Multibranch Pipeline" Then under behaviours select 'add' then Discover branches
-Strategy: Build all branches. Then click 'Save' and Jenkins will run - it will check all branches and if it finds one with a Jenkinsfile it will attempt to build it and report the outcome.
+To run Jenkins first download the Jenkins app from:
+```
+https://www.jenkins.io/download/
+```
 
-The success or failure of the CI attempt will be set out in the terminal.  Full details may be found in the Console Output.
+The installation guide can be found here:
+```
+https://www.jenkins.io/doc/book/installing/
+```
+
+All integration tests were carried out through the Jenkins GUI at: 
+```
+http://<IP_ADDRESS>:8080
+```
+
+For more information on how to use Jenkins, please refer to their online User Handbook:
+```
+https://www.jenkins.io/doc/book/using/
+```
+**Note: The success or failure of the CI attempt will be described in the terminal stdout. Full details may be found in the console output.**
+
 ---
 
 ## 7. Logging and Error Handling
 
-- Application logs are written to the `logs/` directory.
+- All application logs are displayed in the terminal stdout.
+- Errors and severer logs are also written to **SEA.log** files in the `logs/` directory.
 - Errors are captured and presented to the user in a clear, user-friendly format within the web interface.
 - Detailed stack traces and debugging information are retained in the log files to support troubleshooting and development.
 
