@@ -109,9 +109,7 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 
 ## 4. Database Design
 
-SEA_2025 uses **SQLite3** to create variant databases that contain two tables:
-- patient_variant
-- variant_annotations
+### 4.2 Variant databases (`databases/`)
 
 SEA_2025 uses a local **SQLite3 database** to store:
 
@@ -120,7 +118,26 @@ SEA_2025 uses a local **SQLite3 database** to store:
 - Gene symbols and associated HGNC IDs  
 - ClinVar variant classification, conditions/phenotypes, star ratings, andreview status
 
+SEA_2025 creates two tables in the variant databases that contain the following headers:
+- patient_variant
+  - `No`  
+  - `patient_ID`  
+  - `variant`
+
+- variant_annotations
+  - `No`  
+  - `variant_NC`  
+  - `variant_NM`  
+  - `variant_NP`  
+  - `gene`  
+  - `HGNC_ID`  
+  - `Classification`  
+  - `Conditions`  
+  - `Stars`  
+  - `Review_status`
+
 Databases can be created, updated, queried, and exported via the web interface.
+Once creates or uploaded, databases are stored in the **databases/** subdirectory.
 
 ---
 
