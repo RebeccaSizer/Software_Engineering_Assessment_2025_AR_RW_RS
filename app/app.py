@@ -21,7 +21,6 @@ import csv
 import json
 import errno
 import sqlite3
-from openpyxl import Workbook
 
 from flask import (
     Flask,
@@ -82,10 +81,19 @@ def choose_create_or_add():
     # used. This will cause the database functions in this script to run slower. If the uploaded files are not
     # variant files, the functions will raise an exception. Therefore, the contents of the 'temp' folder are purged
     # from the folder before the homepage is loaded.
-    for variant_file in os.listdir(app.config['variant_files_upload_folder']):
-        os.remove(os.path.join(app.config['variant_files_upload_folder'], variant_file))
-        # Log which files were deleted from the 'temp' folder.
-        logger.info(f"{variant_file} removed from 'temp' folder.")
+    try:
+        for variant_file in os.listdir(app.config['variant_files_upload_folder']):
+            os.remove(os.path.join(app.config['variant_files_upload_folder'], variant_file))
+            # Log which files were deleted from the 'temp' folder.
+            logger.info(f"{variant_file} removed from 'temp' folder.")
+
+    # If a file in the temp folder is open, os.remove might raise an OSError exception (500).
+    # Handle the error with the following logger and flash messages.
+    except OSError as e:
+        logger.warning(f"Failed to clean temp folder: {e}")
+        flash("⚠ Failed to delete files from temp folder. "
+              "Please consider closing and removing them before uploading new variant files.")
+        return render_template("homepage.html")
 
     # Create an empty list to iterate through the databases.
     databases = []
@@ -380,7 +388,7 @@ def query_page(db_name):
                           star-rating; Clinvar review status.
 
                     E.g.:  patient_ID	       | variant_NC	                 | variant_NM	            | variant_NP	               | gene  | HGNC_ID | Classification	 | Conditions	                                                                                                        | Stars | Review_status
-                          ---------------------|-----------------------------|----------------------- --|-------|----------------------|-------|---------|-------------------|----------------------------------------------------------------------------------------------------------------------|-------|--------------------------------------
+                          ---------------------|-----------------------------|----------------------- --|------------------------------|-------|---------|-------------------|----------------------------------------------------------------------------------------------------------------------|-------|--------------------------------------
                            Patient_X	       | NC_000005.10:g.150056311C>T | NM_001288705.3:c.2350G>A | NP_001275634.1:p.(Val784Met) | CSF1R | 2433    | Likely pathogenic | Hereditary diffuse leukoencephalopathy with spheroids; Brain abnormalities, neurodegeneration, and dysosteosclerosis | ★	    | criteria provided, single submitter
 
     :query input: Variant: HGVS genomic descriptions, HGVS transcript descriptions, Ensembl transcript description and
@@ -794,7 +802,7 @@ def display_database(db_name):
     logger.info('User has accessed the Display page.')
 
     # Check that the filepath to the database file that was selected or uploaded on the homepage exists.
-    # Assign the filepath to the selected databse to 'db_path' variable.
+    # Assign the filepath to the selected database to 'db_path' variable.
     db_path = os.path.join(app.config["db_upload_folder"], db_name)
     # If the filepath to the database file does not exist...
     if not os.path.exists(db_path):
