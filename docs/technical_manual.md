@@ -36,15 +36,15 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 |   ├── installation.md  
 |   |── technical_manual.md
 |   └── user_manual.md
-├── tests
-|   |── tests_integrate
-|   |   └── user_manual.md  
-|   └── tests_unit
-|       ├── test_clinvar.py  
-|       |── test_db_tools.py
-|       |── test_flask_app.py
-|       |── test_parser.py
-|       └── test_vv_search.py
+├── tests 
+|   ├── test_app.py  
+|   |── test_clinvar.py
+|   |── test_database_functions.py
+|   |── test_error_handlers.py
+|   |── test_main.py
+|   |── test_parser.py
+|   |── test_stringify.py
+|   └── test_vv_search.py
 ├── tools
 |   |── modules
 |   |   ├── clinvar_functions.py  
@@ -58,9 +58,9 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 |       └── timer.py
 ├── Dockerfile
 ├── environment.yml
+├── Jenkinsfile
 ├── LICENSE
 ├── main.py
-├── mkdocs.yaml
 ├── pyproject.toml
 ├── README.md
 └──  requirements.txt 
@@ -77,27 +77,30 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 - `templates/`  
   HTML templates rendered by Flask to provide the user interface.
 
-### 3.2 Backend Modules (`tools/`)
+### 3.2 Backend Modules (`tools/modules/`)
 
 - `clinvar_functions.py`  
-  Handles querying of the ClinVar API and processing of returned annotation data.
+  Handles querying ClinVar Variant Summary Records and processing returned annotation data.
 
 - `vv_functions.py`  
-  Interfaces with the Variant Validator REST API to validate and normalise variant representations.
+  Interfaces with the VariantValidator REST API to validate and normalise variant representations.
 
 - `database_functions.py`  
   Manages SQLite database creation, updating, querying, and exporting.
 
 ### 3.3 Utilities (`tools/utils/`)
 
-- `parser.py`  
-  Parses uploaded VCF and CSV files into a standard internal format.
+- `error_handlers.py`  
+  Provides consistent error handling across the application.
 
 - `logger.py`  
   Centralised logging for application events and errors.
 
-- `error_handlers.py`  
-  Provides consistent error handling across the application.
+- `parser.py`  
+  Parses uploaded VCF and CSV files into a standard internal format.
+
+- `stringify.py`  
+  Converts data into strings for safe exportation in CSV files.
 
 - `timer.py`  
   Used to measure and log processing times for long-running operations.
@@ -106,12 +109,16 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 
 ## 4. Database Design
 
-SEA_2025 uses a local **SQLite database** to store:
+SEA_2025 uses **SQLite3** to create variant databases that contain two tables:
+- patient_variant
+- variant_annotations
+
+SEA_2025 uses a local **SQLite3 database** to store:
 
 - Patient identifiers  
 - Variant representations (NC, NM, NP)
-- Gene symbols and HGNC IDs  
-- ClinVar classification, conditions, review status, and star ratings
+- Gene symbols and associated HGNC IDs  
+- ClinVar variant classification, conditions/phenotypes, star ratings, andreview status
 
 Databases can be created, updated, queried, and exported via the web interface.
 
@@ -121,12 +128,7 @@ Databases can be created, updated, queried, and exported via the web interface.
 
 SEA_2025 integrates with two external APIs:
 
-### 5.1 ClinVar API
-
-- Used to retrieve clinical significance, conditions, review status, and star ratings for variants.
-- Variants not present in ClinVar are flagged accordingly.
-
-### 5.2 Variant Validator REST API
+### 5.1 Variant Validator REST API
 
 - Used to validate and normalise variant representations.
 - Supports multiple formats including NC, NM, ENST, and gene-based nomenclature.
