@@ -478,7 +478,7 @@ def query_page(db_name):
     # Error handler executed when exceptions related to sqlite3 are raised.
     except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
         # sqlite_error function logs the errors appropriately and returns an error message which can be implemented
-        # into a flash message, on the query page.
+        # into a flash message, on the homepage.
         error_message = sqlite_error(e, db_name)
         flash(f'❌ {db_name} SQLite3 Error: Failed to prepare {db_name} to be queried: {error_message}')
         return redirect(url_for("choose_create_or_add"))
@@ -487,7 +487,7 @@ def query_page(db_name):
     except Exception as e:
         # Log the error, describing why clinvar.db could not be queried, using the exception output.
         logger.error(f'Database Error: Failed to prepare {db_name} to be queried: {str(e)}')
-        # Return a flash message to the User, notifying them of the error, on the query page.
+        # Return a flash message to the User, notifying them of the error, on the homepage.
         flash(f'❌ {db_name} Error: Failed to prepare {db_name} to be queried: {str(e)}')
         return redirect(url_for("choose_create_or_add"))
 
