@@ -4,7 +4,7 @@
 ---
 
 ## 1. Overview
-SEA_2025 is a web application designed to annotate VCF files with ClinVar variant information.  
+SEA_2025 is a web application designed to annotate VCF and CSV files with ClinVar variant information.  
 This guide explains how to install SEA_2025 using **Docker (recommended)** or **locally on your machine**.
 
 ### Operating System:
