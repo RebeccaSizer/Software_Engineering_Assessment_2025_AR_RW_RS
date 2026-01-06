@@ -111,8 +111,8 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 
 ### 4.1 ClinVar Variant Summary Records database (`app/clinvar/clinvar.db`)
 
-clinvar.db holds the Variant Summary Records (VSRs) from ClinVar in an **SQLite3 database**. 
-Only records with 'NM_' at the beginning of their name are stored in clinvar.db. 
+```clinvar.db``` holds the Variant Summary Records (VSRs) from ClinVar in an **SQLite3 database**. 
+Only records with 'NM_' at the beginning of their name are stored in ```clinvar.db```. 
 
 The data stored in the following objects are parsed from each record for annotating variants:
 - ChromosomeAccession
@@ -120,7 +120,8 @@ The data stored in the following objects are parsed from each record for annotat
 - ClinicalSignificance
 - PhenotypeList
 - ReviewStatus
-Note: Information from the ReviewStatus object is used to determine the star rating.
+
+**Note: Information from the ReviewStatus object is used to determine the star rating.**
 
 Information from VSRs is stored in clinvar.db, in a table with the following headers:
 - clinvar:
@@ -214,20 +215,15 @@ To run Jenkins first download the Jenkins app from:
 https://www.jenkins.io/download/
 ```
 
-The installation guide can be found here:
-```
-https://www.jenkins.io/doc/book/installing/
-```
+The installation guide can be found here: https://www.jenkins.io/doc/book/installing/
 
 All integration tests were carried out through the Jenkins GUI at: 
 ```
 http://<IP_ADDRESS>:8080
 ```
 
-For more information on how to use Jenkins, please refer to their online User Handbook:
-```
-https://www.jenkins.io/doc/book/using/
-```
+For more information on how to use Jenkins, please refer to their online User Handbook: https://www.jenkins.io/doc/book/using/
+
 **Note: The success or failure of the CI attempt will be described in the terminal stdout. Full details may be found in the console output.**
 
 ---
