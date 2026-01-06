@@ -1066,7 +1066,7 @@ def dropdown_data(db_name):
         # into a flash message, on the query page.
         error_message = sqlite_error(e, db_name)
         flash(f'❌ Dropdown Menu Error: {error_message}. Dropdown menus do not work.')
-        return render_template("db_query_page.html", db_name=db_name)
+        return render_template("homepage.html")
 
     # Raise an exception if there was an error while trying to generate the dropdown menus.
     except Exception as e:
@@ -1074,7 +1074,7 @@ def dropdown_data(db_name):
         logger.error(f'Dropdown Menu Error: Could not access {db_name} to generate dropdown menus: {str(e)}')
         # Return a flash message to the User, notifying them of the error, on the display page.
         flash(f'❌ Dropdown Menu Error: Dropdown menus do not work.')
-        return render_template("db_query_page.html", db_name=db_name)
+        return render_template("homepage.html")
 
     # Return a JSON dictionary with a list of the Patient IDs, HGVS genomic descriptions and gene symbols.
     return jsonify(
