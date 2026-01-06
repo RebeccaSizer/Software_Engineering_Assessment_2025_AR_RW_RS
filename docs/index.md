@@ -2,9 +2,11 @@
 
 <img src="images/SEA_logo.png" width="200" height="227" />
 
-**Notice: This piece of software is in development as a university project and as yet is not a fully functioning or tested product. Additionally, ongoing maintenance and contributions to this code by the original developers will cease after 08/01/2026. Use of this software is at your own risk.**
+Notice: This software was developed as a part of a university project and is not currently a fully functioning and tested product. Additionally, ongoing maintenance and contributions to this code by the original developers will cease after 08/01/2026. This application was intended for clinical use. Data Protection of patient sensitive information cannot be assured. User discretion is advised.
 
-SEA is a webapp prototype tool for annotating germline variant data using information from ClinVar. It uses API queries to get up to date information regarding NGS panels for alzheimers disease. It is designed to support clinical researchers (not bioinformaticians) working with experimental variant data from the Parkinson’s disease panel.
+SEA is a webapp prototype tool for annotating germline variants detected by Next-Generation Sequencing (NGS) with information from ClinVar variant summary records. Variants and annotations are stored in an SQLite3 variant database which can be viewed and queried through our flask app. It is designed to support Clinical Researchers (not Bioinformaticians) working with experimental variant data from the Parkinson’s disease panel from Genomics England's PanelApp. Variant summary records are downloaded from the most recently modified versions from ClinVar, upon initialisation of this software package. Updated variant summary records are released on the first Thursday of every month.
+
+WARNING: Variants that are not annotated, are not added to the SQLite3 variant database.
 
 ## Overview of Features
 
