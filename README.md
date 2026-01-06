@@ -27,6 +27,7 @@ WARNING: Variants that are not annotated, are not added to the SQLite3 variant d
     - patient/sample ID
     - variant (using the gene symbol/RefSeq/Ensembl trasncripts)
     - gene symbol
+- Count the number of times a variant appears in the database.
 - View variant database content in a table through the web interface.
 - Apply filters and 'sort by' values to the table.
 - Export the table as it exists on the web interface, in CSV format, to your local machine.
