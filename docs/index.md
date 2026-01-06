@@ -13,9 +13,9 @@ WARNING: Variants that are not annotated, are not added to the SQLite3 variant d
 - Upload single or multiple variant files in VCF or CSV format through the flask app on your local web browser.
 - Parse and store variants into a User-defined SQLite3 variant database.
 - Describe variants by their true HGVS nomenclature by querying the VariantValidator REST API.
-  Note: - Gene symbols and HGNC IDs are also provided by VariantValidator.
-        - Variants are mapped to the GRCh38 Human Genome Reference build. 
-        - HGVS transcript descriptions are provided with regard to the RefSeq MANE select transcripts.
+  - Gene symbols and HGNC IDs are also provided by VariantValidator.
+  - Variants are mapped to the GRCh38 Human Genome Reference build. 
+  - HGVS transcript descriptions are provided with regard to the RefSeq MANE select transcripts.
 - Annotate each varaint with the following information from ClinVar:
     - Summated variant classification
     - Associated conditions
