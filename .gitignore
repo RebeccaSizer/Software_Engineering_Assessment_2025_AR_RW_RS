@@ -1,3 +1,15 @@
+# Sensitive information
+*.vcf
+*.csv
+*.db
+logs/
+
+# Unecessary files
+test.py
+
+# Downloaded databases
+app/clinvar/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -25,6 +37,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.github/
+
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
