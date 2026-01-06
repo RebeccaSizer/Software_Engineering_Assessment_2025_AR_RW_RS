@@ -29,8 +29,7 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 |       ├── db_display_page.html
 |       ├── db_query_page.html   
 |       └── homepage.html
-├── assets
-│   └── logo.jpg
+├── databases 
 ├── docs
 |   |── images
 |   |   └── SEA_logo.png
