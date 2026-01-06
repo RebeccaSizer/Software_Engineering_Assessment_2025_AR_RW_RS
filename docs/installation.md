@@ -51,7 +51,7 @@ If Docker prints a version number, installation was successful.
 ### 4.2 Build the docker image:
 This can take a few minutes.
 
-```
+```bash
 docker build -t sea_app .
 ```
 Note on Docker permissions:
@@ -62,7 +62,7 @@ to the Docker daemon" error, prefix Docker commands with `sudo`.
 If you do not have permission to use `sudo`, please contact your system administrator.
 ### 4.3 Run the docker container:
 
-```
+```bash
 docker run -p 5000:5000 sea_app
 ```
 
