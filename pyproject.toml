@@ -32,7 +32,6 @@ dependencies = [
     "requests==2.32.5",
     "Werkzeug==3.1.3",
     "Bio==1.8.1",
-    "Flask==3.1.2",
     "pytest==8.4.2",
     "openpyxl==3.1.5",
     "coverage==7.13.0",
@@ -46,8 +45,14 @@ test = ["pytest==8.4.2"]
 Homepage = "https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS"
 Repository = "https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS"
 Issues = "https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS/issues"
-
+Actions = "https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS/actions"
 
 [tool.setuptools.packages.find]
 include = ["Software_Engineering_Assessment_2025_AR_RW_RS*"]
 exclude = ["tmp*", "assets*", "logging*"]
+
+[tool.coverage.run]
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+omit = ["*/__init__.py"]
