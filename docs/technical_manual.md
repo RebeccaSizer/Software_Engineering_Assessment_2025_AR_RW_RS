@@ -28,8 +28,7 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 │   └── templates
 |       ├── db_display_page.html
 |       ├── db_query_page.html   
-|       └── homepage.html
-├── databases 
+|       └── homepage.html 
 ├── docs
 |   |── images
 |   |   └── SEA_logo.png
@@ -37,7 +36,6 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 |   ├── installation.md  
 |   |── technical_manual.md
 |   └── user_manual.md
-├── logs
 ├── tests
 |   |── tests_integrate
 |   |   └── user_manual.md  
