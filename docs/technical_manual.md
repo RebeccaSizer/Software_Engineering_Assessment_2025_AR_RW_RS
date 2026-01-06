@@ -1,7 +1,7 @@
 # Technical Manual
 
 This document provides the technical manual for **SEA_2025 – Variant Database Query Tool**.  
-The intended audience is **clinical scientists and developers** who wish to understand, maintain, or extend the application.
+The intended audience are **Clinical Scientists** and **Developers** who wish to understand, maintain, or extend the application.
 
 ---
 
@@ -28,9 +28,7 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 │   └── templates
 |       ├── db_display_page.html
 |       ├── db_query_page.html   
-|       └── homepage.html
-├── assets
-│   └── logo.jpg
+|       └── homepage.html 
 ├── docs
 |   |── images
 |   |   └── SEA_logo.png
@@ -38,16 +36,15 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 |   ├── installation.md  
 |   |── technical_manual.md
 |   └── user_manual.md
-├── logs
-├── tests
-|   |── tests_integrate
-|   |   └── user_manual.md  
-|   └── tests_unit
-|       ├── test_clinvar.py  
-|       |── test_db_tools.py
-|       |── test_flask_app.py
-|       |── test_parser.py
-|       └── test_vv_search.py
+├── tests 
+|   ├── test_app.py  
+|   |── test_clinvar.py
+|   |── test_database_functions.py
+|   |── test_error_handlers.py
+|   |── test_main.py
+|   |── test_parser.py
+|   |── test_stringify.py
+|   └── test_vv_search.py
 ├── tools
 |   |── modules
 |   |   ├── clinvar_functions.py  
@@ -61,9 +58,9 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 |       └── timer.py
 ├── Dockerfile
 ├── environment.yml
+├── Jenkinsfile
 ├── LICENSE
 ├── main.py
-├── mkdocs.yaml
 ├── pyproject.toml
 ├── README.md
 └──  requirements.txt 
@@ -80,27 +77,30 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 - `templates/`  
   HTML templates rendered by Flask to provide the user interface.
 
-### 3.2 Backend Modules (`tools/`)
+### 3.2 Backend Modules (`tools/modules/`)
 
 - `clinvar_functions.py`  
-  Handles querying of the ClinVar API and processing of returned annotation data.
+  Handles querying ClinVar Variant Summary Records and processing returned annotation data.
 
 - `vv_functions.py`  
-  Interfaces with the Variant Validator REST API to validate and normalise variant representations.
+  Interfaces with the VariantValidator REST API to validate and normalise variant representations.
 
 - `database_functions.py`  
   Manages SQLite database creation, updating, querying, and exporting.
 
 ### 3.3 Utilities (`tools/utils/`)
 
-- `parser.py`  
-  Parses uploaded VCF and CSV files into a standard internal format.
+- `error_handlers.py`  
+  Provides consistent error handling across the application.
 
 - `logger.py`  
   Centralised logging for application events and errors.
 
-- `error_handlers.py`  
-  Provides consistent error handling across the application.
+- `parser.py`  
+  Parses uploaded VCF and CSV files into a standard internal format.
+
+- `stringify.py`  
+  Converts data into strings for safe exportation in CSV files.
 
 - `timer.py`  
   Used to measure and log processing times for long-running operations.
@@ -109,14 +109,35 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 
 ## 4. Database Design
 
-SEA_2025 uses a local **SQLite database** to store:
+### 4.2 Variant databases (`databases/`)
+
+SEA_2025 uses a local **SQLite3 database** to store:
 
 - Patient identifiers  
 - Variant representations (NC, NM, NP)
-- Gene symbols and HGNC IDs  
-- ClinVar classification, conditions, review status, and star ratings
+- Gene symbols and associated HGNC IDs  
+- ClinVar variant classification, conditions/phenotypes, star ratings, andreview status
+
+SEA_2025 creates two tables in the variant databases that contain the following headers:
+- patient_variant
+  - `No`  
+  - `patient_ID`  
+  - `variant`
+
+- variant_annotations
+  - `No`  
+  - `variant_NC`  
+  - `variant_NM`  
+  - `variant_NP`  
+  - `gene`  
+  - `HGNC_ID`  
+  - `Classification`  
+  - `Conditions`  
+  - `Stars`  
+  - `Review_status`
 
 Databases can be created, updated, queried, and exported via the web interface.
+Once creates or uploaded, databases are stored in the **databases/** subdirectory.
 
 ---
 
@@ -124,12 +145,7 @@ Databases can be created, updated, queried, and exported via the web interface.
 
 SEA_2025 integrates with two external APIs:
 
-### 5.1 ClinVar API
-
-- Used to retrieve clinical significance, conditions, review status, and star ratings for variants.
-- Variants not present in ClinVar are flagged accordingly.
-
-### 5.2 Variant Validator REST API
+### 5.1 Variant Validator REST API
 
 - Used to validate and normalise variant representations.
 - Supports multiple formats including NC, NM, ENST, and gene-based nomenclature.
@@ -150,6 +166,22 @@ To run all tests:
 ```bash
 pytest
 ```
+SEA_2025 also uses Jenkins for continuous integration testing to check that a branch can:
+
+- Be checked out from the repository
+
+- Create a Python execution environment
+
+- Install all required dependencies defined in pyproject.toml
+
+- Execute the automated test suite
+
+The Jenkins platform will run these CI tests on any branch that includes a Jenkinsfile (which must be so named) in its root.  A Jenkinsfile is included in the main branch of this repo.
+
+To run Jenkins first download the Jenkin app from https://www.jenkins.io/ and navigate to the Jenkins GUI at http://<IP_ADDRESS>:8080.  Select "New Item" then "Multibranch Pipeline" Then under behaviours select 'add' then Discover branches
+Strategy: Build all branches. Then click 'Save' and Jenkins will run - it will check all branches and if it finds one with a Jenkinsfile it will attempt to build it and report the outcome.
+
+The success or failure of the CI attempt will be set out in the terminal.  Full details may be found in the Console Output.
 ---
 
 ## 7. Logging and Error Handling
