@@ -174,12 +174,12 @@ Once created or uploaded, databases are stored in the **databases/** subdirector
 
 ## 5. External APIs
 
-SEA_2025 integrates with one external API:
+SEA_2025 interacts with one external API:
 
 ### 5.1 VariantValidator REST API
 
 - Used to validate and normalise variant representations.
-- Supports multiple formats including NC, NM, ENST, and gene-based nomenclature.
+- Supports multiple formats including VCF format and RefSeq/Ensembl/gene symbol-based nomenclature.
 
 - REST API: https://rest.variantvalidator.org/  
 - GitHub repository: https://github.com/openvar/rest_variantValidator
@@ -210,21 +210,17 @@ Jenkins performs continuous integration (CI) testing to check that our GitHub re
 
 The Jenkins platform will run these CI tests on any branch that has a "**Jenkinsfile**" in the base directory. A Jenkinsfile is included in the main branch of this repo.
 
-To run Jenkins first download the Jenkins app from:
-```
-https://www.jenkins.io/download/
-```
+To run Jenkins first download the Jenkins app from: https://www.jenkins.io/download/
 
 The installation guide can be found here: https://www.jenkins.io/doc/book/installing/
 
 All integration tests were carried out through the Jenkins GUI at: 
-```
-http://<IP_ADDRESS>:8080
-```
+
+http://localhost:8080
 
 For more information on how to use Jenkins, please refer to their online User Handbook: https://www.jenkins.io/doc/book/using/
 
-**Note: The success or failure of the CI attempt will be described in the terminal stdout. Full details may be found in the console output.**
+**Note: The success or failure of the CI attempt will be described in the terminal stdout. Full details can be found in the console output.**
 
 ---
 
