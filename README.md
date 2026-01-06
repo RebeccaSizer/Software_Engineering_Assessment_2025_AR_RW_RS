@@ -1,7 +1,7 @@
 # Software_Engineering_Assessment_2025_AR_RW_RS
 
 # SEA_2025
-<img src="assets/SEA_logo.png" width="200" height="227" />
+<img src="docs/images/SEA_logo.png" width="200" height="227" />
 
 **Notice: This software was developed as a part of a university project and is not currently a fully functioning and tested product. Additionally, ongoing maintenance and contributions to this code by the original developers will cease after 08/01/2026. This application was intended for research and educational purposes. Data Protection of patient sensitive information cannot be assured. User discretion is advised.**
 
