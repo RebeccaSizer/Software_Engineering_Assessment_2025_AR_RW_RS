@@ -1,7 +1,7 @@
 # Technical Manual
 
 This document provides the technical manual for **SEA_2025 – Variant Database Query Tool**.  
-The intended audience are **Clinical Scientists and Developers** who wish to understand, maintain, or extend the application.
+The intended audience are **Clinical Scientists** and **Developers** who wish to understand, maintain, or extend the application.
 
 ---
 
