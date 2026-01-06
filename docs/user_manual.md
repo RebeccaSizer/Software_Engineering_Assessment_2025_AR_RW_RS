@@ -6,7 +6,7 @@
 ### 1.1 What is SEA – Variant Database Query Tool?
 SEA (Software Engineering Assessment 2025) is a web-based application designed to annotate variants with variant information from ClinVar Variant Summary Records (VSRs). 
 
-The tool provides a simple interface for uploading variants into an SQLite3 database along with annotations from ClinVar and subsequently querying, filtering and sorting data into a display table.
+The tool provides a simple interface for uploading variants into an SQLite3 database along with annotations from ClinVar and subsequently querying, filtering and sorting data into a display table. Tables can be exported in CSV format.
 
 ### 1.2 Who is this manual for?
 - Clinical scientists  
