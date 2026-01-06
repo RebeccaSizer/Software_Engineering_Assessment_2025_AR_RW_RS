@@ -76,7 +76,7 @@ If Docker runs successfully, you will see the following printout in the terminal
    |                                                 |
    *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 ```
-The application will now be available at:
+Once `clinvar.db` has been loaded into `app/clinvar/` the application will be available at:
 http://127.0.0.1:5000
 
 ### 4.5 Start using SEA_2025
@@ -105,11 +105,7 @@ From the root folder of the repository:
 conda env create -f environment.yml
 ```
 
-This will create an environment named:
-
-```
-sea_venv
-```
+This will create an environment named: ```sea_venv```
 
 ### 5.3 Activate the environment
 
@@ -126,13 +122,22 @@ dependencies using pip:
 pip install .
 ```
 
-*(This installs the local package defined by your `pyproject.toml`.)*
+*(This installs the local package defined by our `pyproject.toml`.)*
 
 ### 5.5 Run the application locally
 
 ```bash
 python main.py
 ```
+You will see the following printout in the terminal: 
+```
+   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+   |                                                 |
+   *   Welcome to the Variant Database Query Tool!   *
+   |                                                 |
+   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+```
+If Variant Summary Records from ClinVar are not available, they will be downloaded into `app/clinvar/clinvar.db`.
 
 ### 5.6 Access the web app
 
@@ -142,6 +147,6 @@ By default, the app will run on:
 http://localhost:5000
 ```
 
-You can now begin using SEA_2025 to annotate VCF files locally.
+You can now begin using SEA_2025 locally. Enjoy!
 
 ---
