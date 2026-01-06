@@ -9,18 +9,18 @@ SEA (Software Engineering Assessment 2025) is a web-based application designed t
 The tool provides a simple interface for uploading variants into an SQLite3 database along with annotations from ClinVar and subsequently querying, filtering and sorting data into a display table. Tables can be exported in CSV format.
 
 ### 1.2 Who is this manual for?
-- Clinical scientists  
-- Trainees using SEA_2025 as part of genomic data interpretation  
-- Anyone installing or using the SEA_2025 application (Docker or local)
+- Clinical Scientists  
+- Trainees using SEA as part of their genomic data interpretation workflow
+- Anyone installing or using the SEA application (Docker or local)
 
 ---
 
 ## 2. Key Features
 
-- Upload VCF files through a web interface  
-- Automated retrieval of ClinVar annotation  
-- Download annotated outputs in .csv format
-- Query and filter database of annotated variants 
+- Upload VCF or CSV files through the flask app web interface  
+- Automated retrieval of ClinVar annotations  
+- Upload, query and filter SQLite3 databases of annotated variants
+- Download annotated outputs in CSV format 
 - Runs via Docker or directly on a local machine  
 
 ---
@@ -31,7 +31,8 @@ The tool provides a simple interface for uploading variants into an SQLite3 data
 - Git  
 - Conda (for local installation)  
 - Docker (optional but recommended)  
-- Internet connection 
+- Internet connection
+- 2 GB of diskspace (recommended)
 ---
 
 ## 4. Installation Options
