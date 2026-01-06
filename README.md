@@ -61,3 +61,4 @@ We welcome contributions to improve SEA_2025! Here's how you can get involved:
     - Submit a pull request with a clear description of your changes
 3. **Provide Feedback or Ask Questions**
     - For questions or feedback, please email [Rebecca.Sizer@postgrad.manchester.ac.uk](mailto:Rebecca.Sizer@postgrad.manchester.ac.uk).
+</p>
