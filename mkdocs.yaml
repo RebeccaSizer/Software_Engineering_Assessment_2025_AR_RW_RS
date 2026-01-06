@@ -1,0 +1,15 @@
+site_name: SEA_2025 Documentation
+site_description: Web-based VCF annotation and SQL database management
+site_author: Arjun Ryatt, Rebecca Sizer, and Rachel Wellman
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: blue
+
+nav:
+  - Home: index.md
+  - Installation Guide: installation.md
+  - User Manual: user_manual.md
+  - Technical Manual: technical_manual.md
