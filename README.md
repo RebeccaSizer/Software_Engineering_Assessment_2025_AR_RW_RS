@@ -3,6 +3,7 @@
 # SEA_2025
 <img src="assets/SEA_logo.png" width="200" height="227" />
 
+<p style="text-align: justify;">
 **Notice: This software was developed as a part of a university project and is not currently a fully functioning and tested product. Additionally, ongoing maintenance and contributions to this code by the original developers will cease after 08/01/2026. This application was intended for clinical use. Data Protection of patient sensitive information cannot be assured. User discretion is advised.**
 
 SEA is a webapp prototype tool for annotating germline variants detected by Next-Generation Sequencing (NGS) with information from ClinVar variant summary records. Variants and annotations are stored in an SQLite3 variant database which can be viewed and queried through our flask app.  It is designed to support Clinical Researchers (not Bioinformaticians) working with experimental variant data from the Parkinson’s disease panel from Genomics England's PanelApp. Variant summary records are downloaded from the most recently modified version from ClinVars, upon initialisation of this software package. Updated variant summary records are released on the first Thursday of every month.
