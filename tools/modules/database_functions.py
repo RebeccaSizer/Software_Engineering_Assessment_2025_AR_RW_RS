@@ -642,7 +642,7 @@ def variant_annotations_table(filepath, db_name):
                     continue
 
                 # If the response received from fetch_vv is a string and not the tuple, log the error and notify the
-                # User through the flask app. Then move onto the next varaiant.
+                # User through the flask app. Then move onto the next variant.
                 elif type(clinvar_response) == str:
                     logger.warning(f'variant_annotations_table: {file}: {clinvar_response}.')
                     flash(f'{file}: {clinvar_response}. Variant not added to {db_name}.db')
@@ -974,7 +974,5 @@ def query_db(db_path, query, args=(), one=False):
         logger.error(f"Database Query Error: Failed to apply the User's query to {db_name}: {e}")
         # Notify the User that there was an error while preparing the database.
         flash(f'❌ Database Query Error: Failed to query {db_name}')
-        # Close the connection to the database.
-        conn.close()
         # Return None. None type returns will be processed in a particular way in app.py.
         return None

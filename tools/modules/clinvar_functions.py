@@ -52,7 +52,7 @@ def clinvar_vs_download():
     :outputs: clinvar.db: a sqlite database containing the variant summaries from ClinVar.
 
               Last-Modified: When the ClinVar variant summaries database was last updated.
-                       E.g.: "ClinVar database last modified: Sun, 16 Nov 2025 22:54:32 GMT
+                       E.g.: "ClinVar database last modified: Sun, 16 Nov 2025 22:54:32 GMT"
 
     :command: clinvar_vs_download()
     '''
@@ -290,72 +290,80 @@ def clinvar_vs_download():
                 # exists in the name, so that the database is more easily queryable using the NM_ HGVS nomenclature
                 # (from the variant validator output). Not all records are named after the RefSeq NM_ accession number
                 # so this specifies the ones that are.
-                if record['Name'].startswith('NM'):
+                try:
+                    if record['Name'].startswith('NM'):
 
-                    if '(' in record['Name']:
-                        record_nm_hgvs = f"{record['Name'].split('(')[0]}{record['Name'].split(')')[1].split(' ')[0]}"
+                        if '(' in record['Name']:
+                            record_nm_hgvs = f"{record['Name'].split('(')[0]}{record['Name'].split(')')[1].split(' ')[0]}"
 
+                        else:
+                            record_nm_hgvs = record['Name']
+
+                        # Some of the conditions in a variant's summary record contain 'not provided' or 'not specified'
+                        # even if conditions are provided by other submitters. This removes 'not provided' and
+                        # 'not specified' from the conditions stored in the database and converts the | character into a
+                        # semicolon.
+                        raw_conditions = (
+                            record['PhenotypeList']
+                            .replace('not provided', '')
+                            .replace('not specified', '')
+                            .replace('|', ';')
+                        )
+
+                        # Conditions are separated into separate values and added to a list, after any white space has been
+                        # removed before and after.
+                        conditions_list = []
+                        for condition in raw_conditions.split(';'):
+                            if condition.strip() != '':
+                                conditions_list.append(condition.strip())
+
+                        # Assign 'None provided' to the 'record_conditions' variable if no disorders/conditions were
+                        # provided in the variant summary record so that there are no empty fields in the database. This
+                        # will help the user to filter in/out any variants which are not associated with a specific
+                        # condition.
+                        if not conditions_list:
+                            record_conditions = 'None provided'
+                        # Otherwise join the conditions in the list back together in a string, separated by a semicolon and
+                        # space.
+                        else:
+                            # Sort the condition into alphabetical order before putting them back into a string.
+                            conditions_list.sort()
+                            record_conditions = '; '.join(conditions_list)
+
+                        # Ascertain the ClinVar star-rating from the key phrases used in the record's review status, as
+                        # described in ClinVar's documentation (https://www.ncbi.nlm.nih.gov/clinvar/docs/review_status/).
+                        if 'practice guideline' in record['ReviewStatus']:
+                            stars = '★★★★'
+                        elif 'reviewed by expert panel' in record['ReviewStatus']:
+                            stars = '★★★'
+                        elif 'multiple submitters' in record['ReviewStatus']:
+                            stars = '★★'
+                        elif 'single submitter' in record['ReviewStatus']:
+                            stars = '★'
+                        else:
+                            stars = '0★'
+
+                        # Consolidate the information that the user wants from the variant summary record into a list.
+                        variant_info.append((record['ChromosomeAccession'],
+                                        record_nm_hgvs,
+                                        record['ClinicalSignificance'],
+                                        record_conditions,
+                                        stars,
+                                        record['ReviewStatus']
+                        ))
+
+                        record_counter += 1
+
+                    # Ignore the record if its name does not start with NM_.
                     else:
-                        record_nm_hgvs = record['Name']
+                        continue
 
-                    # Some of the conditions in a variant's summary record contain 'not provided' or 'not specified'
-                    # even if conditions are provided by other submitters. This removes 'not provided' and
-                    # 'not specified' from the conditions stored in the database and converts the | character into a
-                    # semicolon.
-                    raw_conditions = (
-                        record['PhenotypeList']
-                        .replace('not provided', '')
-                        .replace('not specified', '')
-                        .replace('|', ';')
-                    )
-
-                    # Conditions are separated into separate values and added to a list, after any white space has been
-                    # removed before and after.
-                    conditions_list = []
-                    for condition in raw_conditions.split(';'):
-                        if condition.strip() != '':
-                            conditions_list.append(condition.strip())
-
-                    # Assign 'None provided' to the 'record_conditions' variable if no disorders/conditions were
-                    # provided in the variant summary record so that there are no empty fields in the database. This
-                    # will help the user to filter in/out any variants which are not associated with a specific
-                    # condition.
-                    if not conditions_list:
-                        record_conditions = 'None provided'
-                    # Otherwise join the conditions in the list back together in a string, separated by a semicolon and
-                    # space.
-                    else:
-                        # Sort the condition into alphabetical order before putting them back into a string.
-                        conditions_list.sort()
-                        record_conditions = '; '.join(conditions_list)
-
-                    # Ascertain the ClinVar star-rating from the key phrases used in the record's review status, as
-                    # described in ClinVar's documentation (https://www.ncbi.nlm.nih.gov/clinvar/docs/review_status/).
-                    if 'practice guideline' in record['ReviewStatus']:
-                        stars = '★★★★'
-                    elif 'reviewed by expert panel' in record['ReviewStatus']:
-                        stars = '★★★'
-                    elif 'multiple submitters' in record['ReviewStatus']:
-                        stars = '★★'
-                    elif 'single submitter' in record['ReviewStatus']:
-                        stars = '★'
-                    else:
-                        stars = '0★'
-
-                    # Consolidate the information that the user wants from the variant summary record into a list.
-                    variant_info.append((record['ChromosomeAccession'],
-                                    record_nm_hgvs,
-                                    record['ClinicalSignificance'],
-                                    record_conditions,
-                                    stars,
-                                    record['ReviewStatus']
-                    ))
-
-                    record_counter += 1
-
-                # Ignore the record if its name does not start with NM_.
-                else:
-                    continue
+                # Information is being extracted from a lot of objects in the record. An KeyError exception error
+                # handler is used to respond to any objects that might be missing in the record.
+                except KeyError as e:
+                    # Log an error if the record does not contain the expected objects.
+                    logger.warning(f'Record does not contain the expected objects: {e}')
+                    return
 
     # Raise an exception if clinvar_db_summary.txt.gz is corrupted.
     except gzip.BadGzipFile as e:
@@ -413,7 +421,7 @@ def clinvar_annotations(nc_variant, nm_variant):
     returns a dictionary containing the variant classification, associated conditions, star-rating and Review status
     from that record.
 
-    :params: nc_variant: The HGVS genomic description, using the RefSeq NC_ accession number.
+    :param: nc_variant: The HGVS genomic description, using the RefSeq NC_ accession number.
                    E.g.: 'NC_000011.10:g.2164285C>T'
 
              nm_variant: The HGVS transcript description, using the RefSeq NM_ accession number.
@@ -429,7 +437,7 @@ def clinvar_annotations(nc_variant, nm_variant):
                                 'reviewstatus': 'criteria provided, conflicting classifications'
                              }
 
-    :command: clinvarAnnotations('NC_000011.10:g.2164285C>T', 'NM_000360.4:c.1442G>A')
+    :command: clinvar_annotations('NC_000011.10:g.2164285C>T', 'NM_000360.4:c.1442G>A')
     '''
 
     # Isolate the NC_ accession number from the NC_ HGVS nomenclature to find the corresponding variant summary record.

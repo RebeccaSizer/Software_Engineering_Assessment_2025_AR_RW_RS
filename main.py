@@ -56,8 +56,8 @@ def open_browser():
         # Open the http://127.0.0.1:5000 webpage in a local browser.
         if os.environ.get("RUNNING_IN_DOCKER") != "1":
             webbrowser.open("http://127.0.0.1:5000")
-        # Log the address where the flask app was launched.
-        logger.info("Launching flask app @ http://127.0.0.1:5000")
+            # Log the address where the flask app was launched.
+            logger.info("Launching flask app @ http://127.0.0.1:5000")
 
     # If an error occurs while launching the flask app in a web browser, log the error.
     except Exception as e:
@@ -67,7 +67,6 @@ def run_app():
     """
     This function first runs the clinvar_db_check function to check if a clinvar database already exists before
     launching the app.
-    :return:
     """
     try:
         # Run the clinvar_db_check
@@ -75,7 +74,7 @@ def run_app():
         # Timer module initiates the open_browser function above after 1 second, launching the flask app. App runs in
         # debug mode when debug=True
         Timer(1, open_browser).start()
-        app.run(debug=True, host="0.0.0.0", port=5000)
+        app.run(debug=False, host="0.0.0.0", port=5000)
 
     # Raise a RuntimeError exception if an error occurs while checking for a local copy of the ClinVar database and log
     # the error.
