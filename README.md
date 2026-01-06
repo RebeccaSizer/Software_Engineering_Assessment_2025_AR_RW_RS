@@ -3,30 +3,31 @@
 # SEA_2025
 <img src="assets/SEA_logo.png" width="200" height="227" />
 
-**Notice: This piece of software is in development as a university project and as yet is not a fully functioning or tested product. Additionally, ongoing maintenance and contributions to this code by the original developers will cease after 08/01/2026. Use of this software is at your own risk.**
+**Notice: This software was developed as a part of a university project and is not currently a fully functioning and tested product. Additionally, ongoing maintenance and contributions to this code by the original developers will cease after 08/01/2026. This application was intended for clinical use. Data Protection of patient sensitive information cannot be assured. User discretion is advised.**
 
-SEA is a webapp prototype tool for annotating germline variant data using information from ClinVar. It uses API queries to get up to date information regarding NGS panels for alzheimers disease. It is designed to support clinical researchers (not bioinformaticians) working with experimental variant data from the Parkinson’s disease panel.
+SEA is a webapp prototype tool for annotating germline variants detected by Next-Generation Sequencing (NGS) with information from ClinVar variant summary records. Variants and annotations are stored into an SQLite3 variant database which can be viewed and queried through our flask app.  It is designed to support Clinical Researchers (not Bioinformaticians) working with experimental variant data from the Parkinson’s disease panel from Genomics England's PanelApp. Variant summary records are downloaded from the most recently modified version from ClinVar, upon initialisation of this software package. Updated variant summary records are released on the first Thursday of every month.
 
 ## Overview of Features
 
-- Upload single or multiple VCF files through the web app
-- Extract all variants from the uploaded VCFs
-- Send variants to the Variant Validator API to:
-    - normalise the variant
-    - generate the correct RefSeq NC_ accession numbers
-- Use the NC_ numbers to query ClinVar for:
-    - clinical significance
-    - associated conditions
-    - review status and supporting evidence
-- Annotate each variant with the returned ClinVar data
-- Store all annotated variants in an SQL database
-- Avoid re-querying ClinVar by checking if a variant already exists in the database
-- Search the database by:
-    - variant
+- Upload single or multiple variant files in VCF or CSV format through the flask app on your local web browser.
+- Parse and store variants into a User-defined SQLite3 variant database.
+- Describe variants by their true HGVS nomenclature by querying the VariantValidator REST API.
+  Note: - Gene symbols and HGNC IDs are also provided by VariantValidator.
+        - Variants are mapped to the GRCh38 Human Genome Reference build. 
+        - HGVS transcript descriptions are provided with regard to the RefSeq MANE select transcripts.
+- Annotate each varaint with the following information from ClinVar:
+    - Summated variant classification
+    - Associated conditions
+    - Star rating
+    - Review status
+- Upload SQLite3 variant databases that conform with with our schema.
+- Search an SQLite3 variant database by ONE of the following criteria:
     - patient/sample ID
-    - gene symbol 
-    - transcript
-- View all matching variants and their annotations through the web interface
+    - variant (using the gene symbol/RefSeq/Ensembl trasncripts)
+    - gene symbol
+- View variant database content in a table through the web interface.
+- Apply filters and 'sort by' values to the table.
+- Export the table as it exists on the web interface, in CSV format, to your local machine.
 
 ## Quick Start
 1. [Index](https://rebeccasizer.github.io/Software_Engineering_Assessment_2025_AR_RW_RS/)
