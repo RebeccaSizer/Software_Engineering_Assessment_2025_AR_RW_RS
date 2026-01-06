@@ -111,7 +111,10 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 
 ### 4.1 ClinVar Variant Summary Records database (`app/clinvar/clinvar.db`)
 
-clinvar.db holds the Variant Summary Records (VSRs) from ClinVar in an **SQLite3 database**. Only records with 'NM_' at the beginning of their name are stored in clinvar.db. The data stored in the following objects are parsed from each record for annotating variants:
+clinvar.db holds the Variant Summary Records (VSRs) from ClinVar in an **SQLite3 database**. 
+Only records with 'NM_' at the beginning of their name are stored in clinvar.db. 
+
+The data stored in the following objects are parsed from each record for annotating variants:
 - ChromosomeAccession
 - Name
 - ClinicalSignificance
@@ -119,14 +122,19 @@ clinvar.db holds the Variant Summary Records (VSRs) from ClinVar in an **SQLite3
 - ReviewStatus
 Note: Information from the ReviewStatus object is used to determine the star rating.
 
-This information is stored in clinvar.db, in a table with the following headers:
+This VSR information is stored in clinvar.db, in a table with the following headers:
 clinvar:
   - `nc_accession`  
   - `nm_hgvs`  
   - `clinical_significance`  
   - `conditions`  
   - `stars`  
-  - `review_status`  
+  - `review_status`
+
+Variant Summary Records are updated by ClinVar during the first Thursday of every month.
+The date that the VSRs were last modified is stored in clinvar.db, in the following table and header"
+download
+  - `last_updated`
 
 ### 4.2 Variant databases (`databases/<variant database>.db`)
 
@@ -157,6 +165,9 @@ SEA_2025 creates two tables in the variant databases that contain the following 
 
 Databases can be created, updated, queried, and exported via the web interface.
 Once created or uploaded, databases are stored in the **databases/** subdirectory.
+
+
+Note: Variants not found in clinvar.db are not added to the respective variant dataabase.
 
 ---
 
