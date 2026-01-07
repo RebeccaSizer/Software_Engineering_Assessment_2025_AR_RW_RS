@@ -58,9 +58,11 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 |       └── timer.py
 ├── Dockerfile
 ├── environment.yml
+├── Jenkins_output.txt
 ├── Jenkinsfile
 ├── LICENSE
 ├── main.py
+├── mkdocs.yaml
 ├── pyproject.toml
 ├── README.md
 └── requirements.txt 
