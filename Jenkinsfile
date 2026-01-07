@@ -26,6 +26,14 @@ pipeline {
      */
     agent any
 
+
+    /*
+     * Creat a directory for the virtual environment.
+     */
+    environment {
+        VENV_DIR = ".venv"
+    }
+
     /**
      * Stages represent logical steps in the CI process.
      * Each stage is displayed separately in the Jenkins UI.
@@ -54,19 +62,20 @@ pipeline {
         stage('Set up Python env') {
             steps {
                 sh '''
+                    # Check the version of Python in use
+                    python3.13 --version
+
                     # Create a Python virtual environment in the workspace
-                    python3 -m venv .venv
+                    python3.13 -m venv ${VENV_DIR}
 
                     # Activate the virtual environment
-                    . .venv/bin/activate
+                    . ${VENV_DIR}/bin/activate
 
                     # Upgrade pip to the latest version
-                    pip install --upgrade pip
+                    pip install --upgrade pip setuptools wheel
 
                     # Install project dependencies
-                    # Attempts to install development dependencies if available,
-                    # otherwise falls back to a standard installation
-                    pip install ".[dev]" || pip install .
+                    pip install .
                 '''
             }
         }
@@ -82,12 +91,23 @@ pipeline {
             steps {
                 sh '''
                     # Activate the virtual environment
-                    . .venv/bin/activate
+                    . ${VENV_DIR}/bin/activate
 
                     # Run the test suite in quiet mode
-                    pytest -q
+                    pytest tests --cov=. --cov-report=xml
                 '''
             }
+        }
+    }
+    post {
+        always {
+            echo 'CI pipeline finished.'
+        }
+        success {
+            echo 'All tests passed.'
+        }
+        failure {
+            echo 'CI failed.'
         }
     }
 }
