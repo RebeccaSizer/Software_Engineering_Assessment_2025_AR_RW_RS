@@ -29,6 +29,7 @@ pipeline {
      * Creat a directory for the virtual environment.
      */
     environment {
+        PYTHON = "/opt/homebrew/bin/python3.13"
         VENV_DIR = ".venv"
     }
 
@@ -61,10 +62,10 @@ pipeline {
             steps {
                 sh '''
                     # Check the version of Python in use
-                    python3 --version
+                    ${PYTHON} --version
 
                     # Create a Python virtual environment in the workspace
-                    python3 -m venv ${VENV_DIR}
+                    ${PYTHON} -m venv ${VENV_DIR}
 
                     # Activate the virtual environment
                     . ${VENV_DIR}/bin/activate
