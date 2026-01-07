@@ -24,11 +24,7 @@ pipeline {
      * Specifies where the pipeline should run.
      * 'any' allows Jenkins to run this job on any available agent.
      */
-    agent {
-        dockerContainer {
-            image 'python:3.13'
-        }
-    }
+    agent any
     /*
      * Creat a directory for the virtual environment.
      */
