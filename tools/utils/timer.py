@@ -35,7 +35,7 @@ def timer(func):
         This function creates a wrapper around a function to apply the timer.
         It replaces the function that it is supposed to time, extracts the arguments of that function and uses them in
         the original function, within the wrapper's script.
-        The time if logged.
+        The time is logged.
 
         :params: *args: Arguments to pass to the function.
                   E.g.: variable_x, variable_y

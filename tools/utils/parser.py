@@ -144,7 +144,6 @@ def variant_parser(file):
 
                 # Ignores row that begin with '#', usually the header.
                 if row[0].startswith('#'):
-                    line_number = line_number + 1
                     continue
 
                 # Identifies variant lines without at least CHROMOSOME; POSITION; ID; REF; ALT values and skips them.
