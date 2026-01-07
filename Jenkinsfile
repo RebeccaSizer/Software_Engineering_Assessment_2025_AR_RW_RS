@@ -25,7 +25,7 @@ pipeline {
      * 'any' allows Jenkins to run this job on any available agent.
      */
     agent {
-        docker {
+        dockerContainer {
             image 'python:3.13'
         }
     }
