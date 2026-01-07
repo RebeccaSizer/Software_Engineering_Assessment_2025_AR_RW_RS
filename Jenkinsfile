@@ -63,7 +63,7 @@ pipeline {
             steps {
                 sh '''
                     # Check the version of Python in use
-                    python3. --version
+                    python3 --version
 
                     # Create a Python virtual environment in the workspace
                     python3 -m venv ${VENV_DIR}
