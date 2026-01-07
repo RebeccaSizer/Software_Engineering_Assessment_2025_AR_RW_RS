@@ -550,7 +550,7 @@ def query_page(db_name):
                 if not data:
                     logger.warning(f'{patient_ID} could not be found in {db_name} database.')
                     flash(f'⚠ Patient Query: {patient_ID} could not be found in {db_name} database.')
-                    return render_template("db_query_page.html", db_name=db_name)
+                    return redirect(url_for("query_page", db_name=db_name))
 
 
             # If the User is performing a variant query...
@@ -603,7 +603,7 @@ def query_page(db_name):
                 if not data:
                     logger.warning(f'{variant_nc} could not be found in {db_name} database.')
                     flash(f'⚠ Variant Query: {variant_nc} could not be found in {db_name} database.')
-                    return render_template("db_query_page.html", db_name=db_name)
+                    return redirect(url_for("query_page", db_name=db_name))
 
             # If the User is performing a gene query...
             elif gene:
@@ -665,7 +665,7 @@ def query_page(db_name):
                 else:
                     logger.warning(f"User's gene query could not be found in {db_name} database: {gene}")
                     flash(f"⚠ Gene Query: {gene} could not be found in {db_name} database.")
-                    return render_template("db_query_page.html", db_name=db_name)
+                    return redirect(url_for("query_page", db_name=db_name))
 
         # Error handler executed when exceptions related to sqlite3 are raised.
         except (sqlite3.OperationalError, sqlite3.DatabaseError, sqlite3.ProgrammingError) as e:
@@ -673,7 +673,7 @@ def query_page(db_name):
             # into a flash message, on the query page.
             error_message = sqlite_error(e, db_name)
             flash(f'❌ {db_name} Query Error: Failed to prepare {result_type} query. {error_message}')
-            return render_template("db_query_page.html", db_name=db_name)
+            return redirect(url_for("query_page", db_name=db_name))
 
         # Raise an exception if the there was an issue querying clinvar.db.
         except Exception as e:
@@ -681,7 +681,7 @@ def query_page(db_name):
             logger.error(f'Database Query Error: Failed to prepare {db_name} query string: {str(e)}')
             # Return a flash message to the User, notifying them of the error, on the query page.
             flash(f'❌ {db_name} Query Error: Failed to prepare {result_type} query.')
-            return render_template("db_query_page.html", db_name=db_name)
+            return redirect(url_for("query_page", db_name=db_name))
 
     # Prepare JSON to export query results into a table that can be viewed by the User through the user interface.
     try:
@@ -702,7 +702,7 @@ def query_page(db_name):
         # Return a flash message to help the User understand why they have not received the expected response, on the
         # query page.
         flash(f'❌ Query Error: Query did not work.')
-        return render_template("db_query_page.html", db_name=db_name)
+        return redirect(url_for("query_page", db_name=db_name))
 
     # Raise an exception if the keys in the 'data' are not iterable (specific to 'cols' variable).
     except IndexError as e:
@@ -712,7 +712,7 @@ def query_page(db_name):
         # query page.
         flash(f'❌ Query Error: An error occurred while processing the query. It is not your fault. '
               f'Please contact your nearest friendly neighbourhood Bioinformatician')
-        return render_template("db_query_page.html", db_name=db_name)
+        return redirect(url_for("query_page", db_name=db_name))
 
     # Raise an exception if any of the keys in 'data' are missing.
     except KeyError as e:
@@ -725,7 +725,7 @@ def query_page(db_name):
         # query page.
         flash(f'❌ Query Error: An error occurred while processing the query. It is not your fault. '
               f'Please contact your nearest friendly neighbourhood Bioinformatician')
-        return render_template("db_query_page.html", db_name=db_name)
+        return redirect(url_for("query_page", db_name=db_name))
 
     # Raise an exception if an error occurs while extracting information from 'data'.
     except Exception as e:
