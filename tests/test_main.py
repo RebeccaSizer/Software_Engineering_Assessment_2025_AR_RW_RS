@@ -86,14 +86,12 @@ def test_clinvar_db_missing_triggers_download(monkeypatch, mock_logger):
         "ClinVar database successfully downloaded."
     )
 
-def test_open_browser_success(monkeypatch, mock_logger):
+def test_open_browser_success(monkeypatch):
     """
     This function tests if the open_browser() function from main.py can successfully open the url,
     "http://127.0.0.1:5000", in a web browser.
     monkeypatch pytest fixture simulates the activation of open_browser() by trigger a fake function called
     "fake_open()", which adds the url to the 'opened' Python dictionary.
-    mock_logger is used to test that the expected logger message, "Launching flask app @ http://127.0.0.1:5000" is
-    returned. This message is logged if the open_browser() function was successful.
     """
     from main import open_browser
     # Adding the url to the 'openeed' Python dictionary indicates that open_browser() has been called.
@@ -115,10 +113,7 @@ def test_open_browser_success(monkeypatch, mock_logger):
     # If open_browser() was successful, the 'opened' Python dictionary should have been been populated by:
     # {"url": "http://127.0.0.1:5000"}.
     assert opened["url"] == "http://127.0.0.1:5000"
-    # Also open_browser() should have logged the message, "Launching flask app @ http://127.0.0.1:5000".
-    mock_logger.info.assert_called_with(
-        "Launching flask app @ http://127.0.0.1:5000"
-    )
+
 
 def test_open_browser_failure(monkeypatch, mock_logger):
     """
@@ -151,7 +146,7 @@ def test_open_browser_failure(monkeypatch, mock_logger):
     mock_logger.warning.assert_called_with("Could not launch flask app @ http://127.0.0.1:5000 in web browser. "
                                            "Browser error")
 
-def test_main_startup_success(monkeypatch):
+def test_main_startup_success(monkeypatch, mock_logger):
     """
     This function tests if the run_app() function from main.py can successfully start the flask app in a web browser.
 
@@ -163,6 +158,9 @@ def test_main_startup_success(monkeypatch):
     flask app in the URL defined in the open_browser() function but instead triggers a fake function called "fake_run",
     which changes the value in the 'run_called' Python dictionary from False to True, indicating that app.run() was
     called successfully.
+
+    mock_logger is used to test that the expected logger message, "Launching flask app @ http://localhost:5000" is
+    returned. This message is logged if the run_app() function was successful.
     """
 
     import main
@@ -213,6 +211,10 @@ def test_main_startup_success(monkeypatch):
     assert timer_started["called"] is True
     # If app.run() was successful, the value in the 'run_called' Python dictionary should change from False to True.
     assert run_called["called"] is True
+    # Also run_app() should have logged the message, "Launching flask app @ http://127.0.0.1:5000".
+    mock_logger.info.assert_called_with(
+        "Launching flask app @ http://localhost:5000"
+    )
 
 def test_main_clinvar_failure_exits(monkeypatch):
     """
