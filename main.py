@@ -4,7 +4,7 @@ SEA - Variant Database Query tool entry point.
 This script is responsible for:
     - Initialising the Flask app.
     - Launching the app in a web browser.
-    - Checking if a copy of clinvar.db exists in the app/clinver subirectory.
+    - Checking if a copy of clinvar.db exists in the app/clinvar subdirectory.
     - Logging the start of the application.
 
 No patient or variant-level data is processed here.
@@ -56,8 +56,6 @@ def open_browser():
         # Open the http://127.0.0.1:5000 webpage in a local browser.
         if os.environ.get("RUNNING_IN_DOCKER") != "1":
             webbrowser.open("http://127.0.0.1:5000")
-            # Log the address where the flask app was launched.
-            logger.info("Launching flask app @ http://127.0.0.1:5000")
 
     # If an error occurs while launching the flask app in a web browser, log the error.
     except Exception as e:
@@ -74,6 +72,8 @@ def run_app():
         # Timer module initiates the open_browser function above after 1 second, launching the flask app. App runs in
         # debug mode when debug=True
         Timer(1, open_browser).start()
+        # Log the address where the flask app was launched.
+        logger.info("Launching flask app @ http://localhost:5000")
         app.run(debug=False, host="0.0.0.0", port=5000)
 
     # Raise a RuntimeError exception if an error occurs while checking for a local copy of the ClinVar database and log
@@ -84,7 +84,7 @@ def run_app():
     # If an error occurs while launching the flask app, log the error and exit the program cleanly.
     except Exception as e:
         logger.critical(f"Fatal error occurred during application startup: {e}")
-        sys.exit(0)
+        sys.exit(1)
 
 # Initialise this script from the commandline.
 if __name__ == "__main__":
