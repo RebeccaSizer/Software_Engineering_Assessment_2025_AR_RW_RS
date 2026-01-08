@@ -511,6 +511,11 @@ def test_upload_db_validation_failure(monkeypatch, client):
     monkeypatch.setattr("app.app.validate_database", lambda path: False)
     # Monkeypatch also simulates os.remove without deleting any real files.
     monkeypatch.setattr("app.app.os.remove", lambda path: None)
+    # Monkey patch prevents the fake database about to be made from saving to the 'databases' directory.
+    monkeypatch.setattr(
+        "werkzeug.datastructures.FileStorage.save",
+        lambda self, dst: None
+    )
 
     # Create a dict variable which stores the parameters required to test what happens if the wrong type of database
     # file is uploaded.
@@ -519,7 +524,7 @@ def test_upload_db_validation_failure(monkeypatch, client):
         "form_type": "upload_db",
         # A fake database is provided. This should not work as it does not conform with the schema used by the
         # validate_database() function.
-        "database_file": (BytesIO(b"fake"), "bad.db")
+        "database_file": (BytesIO(b"fake"), "test.db")
     }
 
     # Use request POST to submit an invalid database to the app and retrieve the simulated response.
@@ -560,6 +565,11 @@ def test_upload_db_success(monkeypatch, client):
     # Monkeypatch creates a fake environment to initialise the validate_database() database function to validate the
     # database's schema.
     monkeypatch.setattr("app.app.validate_database", lambda path: True)
+    # Monkey patch prevents the fake database about to be made from saving to the 'databases' directory.
+    monkeypatch.setattr(
+        "werkzeug.datastructures.FileStorage.save",
+        lambda self, dst: None
+    )
 
     # Create a dict variable which stores the parameters required to test what happens if the database is successfully
     # uploaded.
@@ -567,7 +577,7 @@ def test_upload_db_success(monkeypatch, client):
         # This form-type tests the 'Upload a Database to Query' functionality in app.py.
         "form_type": "upload_db",
         # A fake database is provided.
-        "database_file": (BytesIO(b"fake"), "good.db")
+        "database_file": (BytesIO(b"fake"), "test.db")
     }
 
     # Use request POST to submit a database file to the app and retrieve the simulated response.

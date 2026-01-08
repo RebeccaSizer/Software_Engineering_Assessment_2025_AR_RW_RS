@@ -3,6 +3,7 @@
 *.csv
 *.db
 logs/
+databases/
 
 # Unecessary files
 test.py
