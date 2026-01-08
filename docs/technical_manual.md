@@ -28,7 +28,7 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 │   └── templates
 |       ├── db_display_page.html
 |       ├── db_query_page.html   
-|       └── homepage.html 
+|       └── homepage.html
 ├── docs
 |   |── images
 |   |   └── SEA_logo.png
@@ -36,15 +36,17 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 |   ├── installation.md  
 |   |── technical_manual.md
 |   └── user_manual.md
+├── logs
 ├── tests 
-|   ├── test_app.py  
-|   |── test_clinvar.py
-|   |── test_database_functions.py
-|   |── test_error_handlers.py
-|   |── test_main.py
-|   |── test_parser.py
-|   |── test_stringify.py
-|   └── test_vv_search.py
+|   └── tests_unit
+|       ├── test_app.py
+|       ├── test_clinvar.py  
+|       |── test_database_functions.py
+|       |── test_error_handlers.py
+|       |── test_main.py
+|       |── test_stringify.py
+|       |── test_parser.py
+|       └── test_vv_search.py
 ├── tools
 |   |── modules
 |   |   ├── clinvar_functions.py  
@@ -58,14 +60,12 @@ Software_Engineering_Assessment_2025_AR_RW_RS
 |       └── timer.py
 ├── Dockerfile
 ├── environment.yml
-├── Jenkins_output.txt
-├── Jenkinsfile
 ├── LICENSE
 ├── main.py
 ├── mkdocs.yaml
 ├── pyproject.toml
 ├── README.md
-└── requirements.txt 
+└──  requirements.txt 
 ```
 ---
 
