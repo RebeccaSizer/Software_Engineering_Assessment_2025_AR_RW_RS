@@ -216,8 +216,7 @@ To run Jenkins first download the Jenkins app from: https://www.jenkins.io/downl
 
 The installation guide can be found here: https://www.jenkins.io/doc/book/installing/
 
-All integration tests were carried out through the Jenkins GUI at: 
-
+All integration tests were carried out through the Jenkins GUI at:
 http://localhost:8080
 
 For more information on how to use Jenkins, please refer to their online User Handbook: https://www.jenkins.io/doc/book/using/
