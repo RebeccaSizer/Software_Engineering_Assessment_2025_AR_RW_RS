@@ -943,7 +943,7 @@ def test_patient_query_not_found(monkeypatch, client):
     # function from app.py.
     monkeypatch.setattr("app.app.os.path.exists", lambda *_: True)
     # Use request POST to render the output from the unsuccessful patient query into the query page.
-    response = client.post("/query/test.db", data={"patient_ID": "X"})
+    response = client.post("/query/test.db", data={"patient_ID": "X"}, follow_redirects=True)
     # Test that predetermined message from an unsuccessful patient query is returned in the response.
     assert b"Patient Query: X could not be found in test.db database." in response.data
 
@@ -1013,7 +1013,7 @@ def test_gene_query_not_found(monkeypatch, client):
     # function from app.py.
     monkeypatch.setattr("app.app.os.path.exists", lambda *_: True)
     # Use request POST to render the output from the unsuccessful gene query into the query page.
-    response = client.post("/query/test.db", data={"gene": "FAKE"})
+    response = client.post("/query/test.db", data={"gene": "FAKE"}, follow_redirects=True)
     # Test that the predetermined message from an unsuccessful gene query is returned in the response.
     assert b"Gene Query: FAKE could not be found in test.db database." in response.data
 
@@ -1048,7 +1048,7 @@ def test_query_sqlite_error(monkeypatch, client):
     # function from app.py.
     monkeypatch.setattr("app.app.os.path.exists", lambda *_: True)
     # Use request POST to submit a query to the app so that the sqlite3.DatabaseError exception can be raised.
-    response = client.post("/query/test.db", data={"patient_ID": "P1"})
+    response = client.post("/query/test.db", data={"patient_ID": "P1"}, follow_redirects=True)
     # Test that the predetermined message from an sqlite3.DatabaseError is returned in the response.
     assert (b"Something went wrong while accessing the database. Please report this to your friendly neighbourhood "
             b"Clinical Bioinformatician.") in response.data
@@ -1124,7 +1124,7 @@ def test_export_key_error(monkeypatch, client):
     # function from app.py.
     monkeypatch.setattr("app.app.os.path.exists", lambda *_: True)
     # Use request POST to submit a query to the app so that the KeyError exception can be raised.
-    response = client.post("/query/test.db", data={"variant_NC": "NM_1.1:c.1A>T"})
+    response = client.post("/query/test.db", data={"variant_NC": "NM_1.1:c.1A>T"}, follow_redirects=True)
     # Test that the predetermined message from an KeyError is returned in the response.
     assert (b"Query Error: An error occurred while processing the query. It is not your fault. Please contact your "
             b"nearest friendly neighbourhood Bioinformatician") in response.data
