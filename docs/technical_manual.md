@@ -216,11 +216,21 @@ To run Jenkins first download the Jenkins app from: https://www.jenkins.io/downl
 
 The installation guide can be found here: https://www.jenkins.io/doc/book/installing/
 
-All integration tests were carried out through the Jenkins GUI at: 
-
-http://localhost:8080
+All integration tests were carried out through the Jenkins GUI at: http://localhost:8080
 
 For more information on how to use Jenkins, please refer to their online User Handbook: https://www.jenkins.io/doc/book/using/
+
+Jenkinsfile requires Python-3.13 to be installed locally. We installed Python-3.13 via Homebrew on Linux.
+
+The Homebrew installation guide can be found here: https://docs.brew.sh/Installation
+
+To install Python-3.13 via homebrew:
+
+```bash
+brew install python@3.13
+```
+
+Alternatively, you can change the filepath on line 33 of the Jenkinsfile to the location of Python-3.13 on your local machine. (Don't forget the quotation marks!!) 
 
 **Note: The success or failure of the CI attempt will be described in the terminal stdout. Full details can be found in the console output.**
 
