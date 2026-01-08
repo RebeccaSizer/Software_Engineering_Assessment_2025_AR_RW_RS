@@ -170,7 +170,7 @@ Databases can be created, updated, queried, and exported via the web interface.
 Once created or uploaded, databases are stored in the **databases/** subdirectory.
 
 
-**Note: Variants not found in clinvar.db are not added to the respective variant dataabase.**
+**Note: Variants not found in clinvar.db are not added to the respective variant database.**
 
 ---
 
