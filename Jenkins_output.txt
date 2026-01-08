@@ -1,0 +1,311 @@
+Started by user Arjun Ryatt
+Connecting to https://api.github.com with no credentials, anonymous access
+Jenkins-Imposed API Limiter: Current quota for Github API usage has 48 remaining (1 over budget). Next quota of 60 in 53 min. Sleeping for 5 min 9 sec.
+Jenkins is attempting to evenly distribute GitHub API requests. To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to "GitHub API usage" under "Configure System" in the Jenkins settings.
+Jenkins-Imposed API Limiter: Still sleeping, now only 2 min 6 sec remaining.
+Jenkins-Imposed API Limiter: Current quota for Github API usage has 44 remaining (2 over budget). Next quota of 60 in 48 min. Sleeping for 6 min 7 sec.
+Jenkins is attempting to evenly distribute GitHub API requests. To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to "GitHub API usage" under "Configure System" in the Jenkins settings.
+Jenkins-Imposed API Limiter: Still sleeping, now only 3 min 5 sec remaining.
+Jenkins-Imposed API Limiter: Still sleeping, now only 3.6 sec remaining.
+Jenkins-Imposed API Limiter: Current quota for Github API usage has 41 remaining (1 over budget). Next quota of 60 in 42 min. Sleeping for 4 min 36 sec.
+Jenkins is attempting to evenly distribute GitHub API requests. To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to "GitHub API usage" under "Configure System" in the Jenkins settings.
+Jenkins-Imposed API Limiter: Still sleeping, now only 1 min 33 sec remaining.
+Obtained Jenkinsfile from 539a4d65a792b960cc61e2188dc034526e831bc7
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins in /Users/arjun/.jenkins/workspace/SEA_2025_pre-production_test
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Declarative: Checkout SCM)
+[Pipeline] checkout
+The recommended git tool is: NONE
+No credentials specified
+ > git rev-parse --resolve-git-dir /Users/arjun/.jenkins/workspace/SEA_2025_pre-production_test/.git # timeout=10
+Fetching changes from the remote Git repository
+ > git config remote.origin.url https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS.git # timeout=10
+Fetching without tags
+Fetching upstream changes from https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.39.3 (Apple Git-146)'
+ > git fetch --no-tags --force --progress -- https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS.git +refs/heads/pre-production_test:refs/remotes/origin/pre-production_test # timeout=10
+Checking out Revision 539a4d65a792b960cc61e2188dc034526e831bc7 (pre-production_test)
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f 539a4d65a792b960cc61e2188dc034526e831bc7 # timeout=10
+Commit message: "fixed tests in test_main.py."
+ > git rev-list --no-walk 604ad0e0d1a92fa7429bd593b16b35d8dbb27d2e # timeout=10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Checkout)
+[Pipeline] checkout
+The recommended git tool is: NONE
+No credentials specified
+ > git rev-parse --resolve-git-dir /Users/arjun/.jenkins/workspace/SEA_2025_pre-production_test/.git # timeout=10
+Fetching changes from the remote Git repository
+ > git config remote.origin.url https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS.git # timeout=10
+Fetching without tags
+Fetching upstream changes from https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.39.3 (Apple Git-146)'
+ > git fetch --no-tags --force --progress -- https://github.com/RebeccaSizer/Software_Engineering_Assessment_2025_AR_RW_RS.git +refs/heads/pre-production_test:refs/remotes/origin/pre-production_test # timeout=10
+Checking out Revision 539a4d65a792b960cc61e2188dc034526e831bc7 (pre-production_test)
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f 539a4d65a792b960cc61e2188dc034526e831bc7 # timeout=10
+Commit message: "fixed tests in test_main.py."
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Set up Python env)
+[Pipeline] sh
++ /opt/homebrew/bin/python3.13 --version
+Python 3.13.11
++ /opt/homebrew/bin/python3.13 -m venv .venv
++ . .venv/bin/activate
+++ deactivate nondestructive
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
+++ '[' -n '' ']'
+++ unset VIRTUAL_ENV
+++ unset VIRTUAL_ENV_PROMPT
+++ '[' '!' nondestructive = nondestructive ']'
+++ case "$(uname)" in
++++ uname
+++ export VIRTUAL_ENV=/Users/arjun/.jenkins/workspace/SEA_2025_pre-production_test/.venv
+++ VIRTUAL_ENV=/Users/arjun/.jenkins/workspace/SEA_2025_pre-production_test/.venv
+++ _OLD_VIRTUAL_PATH=/usr/bin:/bin:/usr/sbin:/sbin
+++ PATH=/Users/arjun/.jenkins/workspace/SEA_2025_pre-production_test/.venv/bin:/usr/bin:/bin:/usr/sbin:/sbin
+++ export PATH
+++ VIRTUAL_ENV_PROMPT=.venv
+++ export VIRTUAL_ENV_PROMPT
+++ '[' -n '' ']'
+++ '[' -z '' ']'
+++ _OLD_VIRTUAL_PS1=
+++ PS1='(.venv) '
+++ export PS1
+++ hash -r
++ pip install --upgrade pip setuptools wheel
+Requirement already satisfied: pip in ./.venv/lib/python3.13/site-packages (25.3)
+Requirement already satisfied: setuptools in ./.venv/lib/python3.13/site-packages (80.9.0)
+Requirement already satisfied: wheel in ./.venv/lib/python3.13/site-packages (0.45.1)
++ pip install .
+Processing /Users/arjun/.jenkins/workspace/SEA_2025_pre-production_test
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: pygments==2.19.2 in ./.venv/lib/python3.13/site-packages (from SoftwareEngineeringAssessment==0.0.1) (2.19.2)
+Requirement already satisfied: flask==3.1.2 in ./.venv/lib/python3.13/site-packages (from SoftwareEngineeringAssessment==0.0.1) (3.1.2)
+Requirement already satisfied: flask_restx==1.3.2 in ./.venv/lib/python3.13/site-packages (from SoftwareEngineeringAssessment==0.0.1) (1.3.2)
+Requirement already satisfied: requests==2.32.5 in ./.venv/lib/python3.13/site-packages (from SoftwareEngineeringAssessment==0.0.1) (2.32.5)
+Requirement already satisfied: Werkzeug==3.1.3 in ./.venv/lib/python3.13/site-packages (from SoftwareEngineeringAssessment==0.0.1) (3.1.3)
+Requirement already satisfied: Bio==1.8.1 in ./.venv/lib/python3.13/site-packages (from SoftwareEngineeringAssessment==0.0.1) (1.8.1)
+Requirement already satisfied: pytest==8.4.2 in ./.venv/lib/python3.13/site-packages (from SoftwareEngineeringAssessment==0.0.1) (8.4.2)
+Requirement already satisfied: openpyxl==3.1.5 in ./.venv/lib/python3.13/site-packages (from SoftwareEngineeringAssessment==0.0.1) (3.1.5)
+Requirement already satisfied: coverage==7.13.0 in ./.venv/lib/python3.13/site-packages (from SoftwareEngineeringAssessment==0.0.1) (7.13.0)
+Requirement already satisfied: pytest-cov==7.0.0 in ./.venv/lib/python3.13/site-packages (from SoftwareEngineeringAssessment==0.0.1) (7.0.0)
+Requirement already satisfied: biopython>=1.80 in ./.venv/lib/python3.13/site-packages (from Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (1.86)
+Requirement already satisfied: gprofiler-official in ./.venv/lib/python3.13/site-packages (from Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (1.0.0)
+Requirement already satisfied: mygene in ./.venv/lib/python3.13/site-packages (from Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (3.2.2)
+Requirement already satisfied: pandas in ./.venv/lib/python3.13/site-packages (from Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (2.3.3)
+Requirement already satisfied: pooch in ./.venv/lib/python3.13/site-packages (from Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (1.8.2)
+Requirement already satisfied: tqdm in ./.venv/lib/python3.13/site-packages (from Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (4.67.1)
+Requirement already satisfied: blinker>=1.9.0 in ./.venv/lib/python3.13/site-packages (from flask==3.1.2->SoftwareEngineeringAssessment==0.0.1) (1.9.0)
+Requirement already satisfied: click>=8.1.3 in ./.venv/lib/python3.13/site-packages (from flask==3.1.2->SoftwareEngineeringAssessment==0.0.1) (8.3.1)
+Requirement already satisfied: itsdangerous>=2.2.0 in ./.venv/lib/python3.13/site-packages (from flask==3.1.2->SoftwareEngineeringAssessment==0.0.1) (2.2.0)
+Requirement already satisfied: jinja2>=3.1.2 in ./.venv/lib/python3.13/site-packages (from flask==3.1.2->SoftwareEngineeringAssessment==0.0.1) (3.1.6)
+Requirement already satisfied: markupsafe>=2.1.1 in ./.venv/lib/python3.13/site-packages (from flask==3.1.2->SoftwareEngineeringAssessment==0.0.1) (3.0.3)
+Requirement already satisfied: aniso8601>=0.82 in ./.venv/lib/python3.13/site-packages (from flask_restx==1.3.2->SoftwareEngineeringAssessment==0.0.1) (10.0.1)
+Requirement already satisfied: jsonschema in ./.venv/lib/python3.13/site-packages (from flask_restx==1.3.2->SoftwareEngineeringAssessment==0.0.1) (4.26.0)
+Requirement already satisfied: referencing in ./.venv/lib/python3.13/site-packages (from flask_restx==1.3.2->SoftwareEngineeringAssessment==0.0.1) (0.37.0)
+Requirement already satisfied: importlib-resources in ./.venv/lib/python3.13/site-packages (from flask_restx==1.3.2->SoftwareEngineeringAssessment==0.0.1) (6.5.2)
+Requirement already satisfied: et-xmlfile in ./.venv/lib/python3.13/site-packages (from openpyxl==3.1.5->SoftwareEngineeringAssessment==0.0.1) (2.0.0)
+Requirement already satisfied: iniconfig>=1 in ./.venv/lib/python3.13/site-packages (from pytest==8.4.2->SoftwareEngineeringAssessment==0.0.1) (2.3.0)
+Requirement already satisfied: packaging>=20 in ./.venv/lib/python3.13/site-packages (from pytest==8.4.2->SoftwareEngineeringAssessment==0.0.1) (25.0)
+Requirement already satisfied: pluggy<2,>=1.5 in ./.venv/lib/python3.13/site-packages (from pytest==8.4.2->SoftwareEngineeringAssessment==0.0.1) (1.6.0)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./.venv/lib/python3.13/site-packages (from requests==2.32.5->SoftwareEngineeringAssessment==0.0.1) (3.4.4)
+Requirement already satisfied: idna<4,>=2.5 in ./.venv/lib/python3.13/site-packages (from requests==2.32.5->SoftwareEngineeringAssessment==0.0.1) (3.11)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./.venv/lib/python3.13/site-packages (from requests==2.32.5->SoftwareEngineeringAssessment==0.0.1) (2.6.2)
+Requirement already satisfied: certifi>=2017.4.17 in ./.venv/lib/python3.13/site-packages (from requests==2.32.5->SoftwareEngineeringAssessment==0.0.1) (2026.1.4)
+Requirement already satisfied: numpy in ./.venv/lib/python3.13/site-packages (from biopython>=1.80->Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (2.4.0)
+Requirement already satisfied: attrs>=22.2.0 in ./.venv/lib/python3.13/site-packages (from jsonschema->flask_restx==1.3.2->SoftwareEngineeringAssessment==0.0.1) (25.4.0)
+Requirement already satisfied: jsonschema-specifications>=2023.03.6 in ./.venv/lib/python3.13/site-packages (from jsonschema->flask_restx==1.3.2->SoftwareEngineeringAssessment==0.0.1) (2025.9.1)
+Requirement already satisfied: rpds-py>=0.25.0 in ./.venv/lib/python3.13/site-packages (from jsonschema->flask_restx==1.3.2->SoftwareEngineeringAssessment==0.0.1) (0.30.0)
+Requirement already satisfied: biothings-client>=0.2.6 in ./.venv/lib/python3.13/site-packages (from mygene->Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (0.4.1)
+Requirement already satisfied: httpx>=0.22.0 in ./.venv/lib/python3.13/site-packages (from biothings-client>=0.2.6->mygene->Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (0.28.1)
+Requirement already satisfied: anyio in ./.venv/lib/python3.13/site-packages (from httpx>=0.22.0->biothings-client>=0.2.6->mygene->Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (4.12.1)
+Requirement already satisfied: httpcore==1.* in ./.venv/lib/python3.13/site-packages (from httpx>=0.22.0->biothings-client>=0.2.6->mygene->Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (1.0.9)
+Requirement already satisfied: h11>=0.16 in ./.venv/lib/python3.13/site-packages (from httpcore==1.*->httpx>=0.22.0->biothings-client>=0.2.6->mygene->Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (0.16.0)
+Requirement already satisfied: python-dateutil>=2.8.2 in ./.venv/lib/python3.13/site-packages (from pandas->Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (2.9.0.post0)
+Requirement already satisfied: pytz>=2020.1 in ./.venv/lib/python3.13/site-packages (from pandas->Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (2025.2)
+Requirement already satisfied: tzdata>=2022.7 in ./.venv/lib/python3.13/site-packages (from pandas->Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (2025.3)
+Requirement already satisfied: six>=1.5 in ./.venv/lib/python3.13/site-packages (from python-dateutil>=2.8.2->pandas->Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (1.17.0)
+Requirement already satisfied: platformdirs>=2.5.0 in ./.venv/lib/python3.13/site-packages (from pooch->Bio==1.8.1->SoftwareEngineeringAssessment==0.0.1) (4.5.1)
+Building wheels for collected packages: SoftwareEngineeringAssessment
+  Building wheel for SoftwareEngineeringAssessment (pyproject.toml): started
+  Building wheel for SoftwareEngineeringAssessment (pyproject.toml): finished with status 'done'
+  Created wheel for SoftwareEngineeringAssessment: filename=softwareengineeringassessment-0.0.1-py3-none-any.whl size=4616 sha256=b214763c13c579f46a69dc55b791afd4a4a5e8a7b0ebdbc3c1bd92929f6a8607
+  Stored in directory: /Users/arjun/Library/Caches/pip/wheels/fc/44/d6/65e2f8b668f73b405f135928554dd9cd64803b3cc5da781373
+Successfully built SoftwareEngineeringAssessment
+Installing collected packages: SoftwareEngineeringAssessment
+  Attempting uninstall: SoftwareEngineeringAssessment
+    Found existing installation: SoftwareEngineeringAssessment 0.0.1
+    Uninstalling SoftwareEngineeringAssessment-0.0.1:
+      Successfully uninstalled SoftwareEngineeringAssessment-0.0.1
+Successfully installed SoftwareEngineeringAssessment-0.0.1
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Run tests)
+[Pipeline] sh
++ . .venv/bin/activate
+++ deactivate nondestructive
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
+++ '[' -n '' ']'
+++ unset VIRTUAL_ENV
+++ unset VIRTUAL_ENV_PROMPT
+++ '[' '!' nondestructive = nondestructive ']'
+++ case "$(uname)" in
++++ uname
+++ export VIRTUAL_ENV=/Users/arjun/.jenkins/workspace/SEA_2025_pre-production_test/.venv
+++ VIRTUAL_ENV=/Users/arjun/.jenkins/workspace/SEA_2025_pre-production_test/.venv
+++ _OLD_VIRTUAL_PATH=/usr/bin:/bin:/usr/sbin:/sbin
+++ PATH=/Users/arjun/.jenkins/workspace/SEA_2025_pre-production_test/.venv/bin:/usr/bin:/bin:/usr/sbin:/sbin
+++ export PATH
+++ VIRTUAL_ENV_PROMPT=.venv
+++ export VIRTUAL_ENV_PROMPT
+++ '[' -n '' ']'
+++ '[' -z '' ']'
+++ _OLD_VIRTUAL_PS1=
+++ PS1='(.venv) '
+++ export PS1
+++ hash -r
++ pytest tests --cov=. --cov-report=xml
+============================= test session starts ==============================
+platform darwin -- Python 3.13.11, pytest-8.4.2, pluggy-1.6.0
+rootdir: /Users/arjun/.jenkins/workspace/SEA_2025_pre-production_test
+configfile: pyproject.toml
+plugins: anyio-4.12.1, cov-7.0.0
+collected 181 items
+
+tests/test_app.py ......................................                 [ 20%]
+tests/test_clinvar.py ..................                                 [ 30%]
+tests/test_database_functions.py .................................       [ 49%]
+tests/test_error_handlers.py ...............                             [ 57%]
+tests/test_main.py ......                                                [ 60%]
+tests/test_parser.py .......                                             [ 64%]
+tests/test_stringify.py .........                                        [ 69%]
+tests/test_vv_search.py ................................................ [ 96%]
+.......                                                                  [100%]
+
+=============================== warnings summary ===============================
+tests/test_database_functions.py::test_variant_annotations_table_inserts_annotations
+  /opt/homebrew/Cellar/python@3.13/3.13.11/Frameworks/Python.framework/Versions/3.13/lib/python3.13/pathlib/_local.py:128: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x1079035b0>
+    path = os.fspath(arg)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_database_functions.py::test_variant_annotations_table_inserts_annotations
+  /opt/homebrew/Cellar/python@3.13/3.13.11/Frameworks/Python.framework/Versions/3.13/lib/python3.13/pathlib/_local.py:128: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x107902e30>
+    path = os.fspath(arg)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_database_functions.py::test_variant_annotations_table_inserts_annotations
+  /opt/homebrew/Cellar/python@3.13/3.13.11/Frameworks/Python.framework/Versions/3.13/lib/python3.13/pathlib/_local.py:128: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x107903a60>
+    path = os.fspath(arg)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_database_functions.py::test_variant_annotations_table_inserts_annotations
+  /opt/homebrew/Cellar/python@3.13/3.13.11/Frameworks/Python.framework/Versions/3.13/lib/python3.13/pathlib/_local.py:128: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x107901210>
+    path = os.fspath(arg)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_database_functions.py::test_variant_annotations_table_inserts_annotations
+  /opt/homebrew/Cellar/python@3.13/3.13.11/Frameworks/Python.framework/Versions/3.13/lib/python3.13/pathlib/_local.py:128: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x107903880>
+    path = os.fspath(arg)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_database_functions.py::test_variant_annotations_table_inserts_annotations
+  /opt/homebrew/Cellar/python@3.13/3.13.11/Frameworks/Python.framework/Versions/3.13/lib/python3.13/pathlib/_local.py:128: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x107903d30>
+    path = os.fspath(arg)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_database_functions.py::test_variant_annotations_table_inserts_annotations
+  /opt/homebrew/Cellar/python@3.13/3.13.11/Frameworks/Python.framework/Versions/3.13/lib/python3.13/pathlib/_local.py:128: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x107903f10>
+    path = os.fspath(arg)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_database_functions.py::test_variant_annotations_table_inserts_annotations
+  /opt/homebrew/Cellar/python@3.13/3.13.11/Frameworks/Python.framework/Versions/3.13/lib/python3.13/pathlib/_local.py:128: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x107903b50>
+    path = os.fspath(arg)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_database_functions.py::test_patient_variant_table_exceptions[exception_to_raise0-\u274c patient_variant_table SQLite3 Error:]
+  /opt/homebrew/Cellar/python@3.13/3.13.11/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x1079e4c70>
+    def __init__(self, name, parent):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_database_functions.py::test_patient_variant_table_exceptions[exception_to_raise0-\u274c patient_variant_table SQLite3 Error:]
+  /opt/homebrew/Cellar/python@3.13/3.13.11/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x1079e5120>
+    def __init__(self, name, parent):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_database_functions.py::test_patient_variant_table_exceptions[exception_to_raise0-\u274c patient_variant_table SQLite3 Error:]
+  /opt/homebrew/Cellar/python@3.13/3.13.11/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x1079e53f0>
+    def __init__(self, name, parent):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_database_functions.py::test_validate_database_generic_exception
+  /opt/homebrew/Cellar/python@3.13/3.13.11/Frameworks/Python.framework/Versions/3.13/lib/python3.13/typing.py:2383: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x1079e6a70>
+    def cast(typ, val):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_database_functions.py::test_validate_database_generic_exception
+  /opt/homebrew/Cellar/python@3.13/3.13.11/Frameworks/Python.framework/Versions/3.13/lib/python3.13/typing.py:2383: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x1079e7d30>
+    def cast(typ, val):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+______________ coverage: platform darwin, python 3.13.11-final-0 _______________
+
+Coverage XML written to file coverage.xml
+====================== 181 passed, 13 warnings in 41.83s =======================
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Declarative: Post Actions)
+[Pipeline] echo
+CI pipeline finished.
+[Pipeline] echo
+All tests passed.
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Finished: SUCCESS
