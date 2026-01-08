@@ -127,7 +127,7 @@ Once an existing database has been selected, it is possible to query the databas
 - **Search by Gene Symbol:** Select the gene symbol from the dropdown menu or type it into the gene symbol search bar, then click **Run Query**.  
 
 - If the query runs successfully, a results table similar to the following will appear:
-<img src="./images/Query_Example.png" width="1000" height="800" />
+![Query Example](/images/Query_Example.png)
 
 ---
 
