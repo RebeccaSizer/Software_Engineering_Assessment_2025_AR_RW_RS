@@ -1115,9 +1115,14 @@ Once created or uploaded, databases are stored in the <strong>databases/</strong
 <p>The Jenkins platform will run these CI tests on any branch that has a "<strong>Jenkinsfile</strong>" in the base directory. A Jenkinsfile is included in the main branch of this repo.</p>
 <p>To run Jenkins first download the Jenkins app from: https://www.jenkins.io/download/</p>
 <p>The installation guide can be found here: https://www.jenkins.io/doc/book/installing/</p>
-<p>All integration tests were carried out through the Jenkins GUI at: </p>
-<p>http://localhost:8080</p>
+<p>All integration tests were carried out through the Jenkins GUI at: http://localhost:8080</p>
 <p>For more information on how to use Jenkins, please refer to their online User Handbook: https://www.jenkins.io/doc/book/using/</p>
+<p>Jenkinsfile requires Python-3.13 to be installed locally. We installed Python-3.13 via Homebrew on Linux.</p>
+<p>The Homebrew installation guide can be found here: https://docs.brew.sh/Installation</p>
+<p>To install Python-3.13 via homebrew:</p>
+<pre><code class="language-bash">brew install python@3.13
+</code></pre>
+<p>Alternatively, you can change the filepath on line 33 of the Jenkinsfile to the location of Python-3.13 on your local machine. (Don't forget the quotation marks!!) </p>
 <p><strong>Note: The success or failure of the CI attempt will be described in the terminal stdout. Full details can be found in the console output.</strong></p>
 <hr />
 <h2 id="7-logging-and-error-handling">7. Logging and Error Handling</h2>
