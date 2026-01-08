@@ -74,7 +74,7 @@ def run_app():
         Timer(1, open_browser).start()
         # Log the address where the flask app was launched.
         logger.info("Launching flask app @ http://localhost:5000")
-        app.run(debug=True, host="0.0.0.0", port=5050)
+        app.run(debug=True, host="0.0.0.0", port=5000)
 
     # Raise a RuntimeError exception if an error occurs while checking for a local copy of the ClinVar database and log
     # the error.
