@@ -498,10 +498,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#61-pytest-unit-testing-tests" class="md-nav__link">
+  <a href="#61-unit-testing-tests" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6.1 Pytest unit testing (tests/)
+        6.1 Unit testing (tests/)
       
     </span>
   </a>
@@ -509,10 +509,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#62-jenkins-continuous-integration-testing-jenkinsfile" class="md-nav__link">
+  <a href="#62-continuous-integration-testing-jenkinsfile" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6.2 Jenkins Continuous Integration testing (Jenkinsfile)
+        6.2 Continuous Integration testing (Jenkinsfile)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#621-jenkins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2.1 Jenkins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#622-homebrew" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2.2 Homebrew
       
     </span>
   </a>
@@ -793,10 +815,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#61-pytest-unit-testing-tests" class="md-nav__link">
+  <a href="#61-unit-testing-tests" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6.1 Pytest unit testing (tests/)
+        6.1 Unit testing (tests/)
       
     </span>
   </a>
@@ -804,10 +826,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#62-jenkins-continuous-integration-testing-jenkinsfile" class="md-nav__link">
+  <a href="#62-continuous-integration-testing-jenkinsfile" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6.2 Jenkins Continuous Integration testing (Jenkinsfile)
+        6.2 Continuous Integration testing (Jenkinsfile)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#621-jenkins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2.1 Jenkins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#622-homebrew" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2.2 Homebrew
       
     </span>
   </a>
@@ -1099,12 +1143,12 @@ Once created or uploaded, databases are stored in the <strong>databases/</strong
 <hr />
 <h2 id="6-running-tests">6. Running Tests</h2>
 <p>SEA_2025 includes a comprehensive suite of unit and integration tests to ensure reliability and correctness.</p>
-<h3 id="61-pytest-unit-testing-tests">6.1 Pytest unit testing (<code>tests/</code>)</h3>
+<h3 id="61-unit-testing-tests">6.1 Unit testing (<code>tests/</code>)</h3>
 <p><code>pytest</code> and <code>pytest-cov</code> are installed as part of the environment setup. Pytest conducts unit tests while pytest-cov calculates the percentage of code that is being tested by the pytests.</p>
 <p>To run all tests with coverage:</p>
 <pre><code class="language-bash">pytest tests --cov=.
 </code></pre>
-<h3 id="62-jenkins-continuous-integration-testing-jenkinsfile">6.2 Jenkins Continuous Integration testing (<code>Jenkinsfile</code>)</h3>
+<h3 id="62-continuous-integration-testing-jenkinsfile">6.2 Continuous Integration testing (<code>Jenkinsfile</code>)</h3>
 <p>Jenkins performs continuous integration (CI) testing to check that our GitHub respository branches can:</p>
 <ul>
 <li>Be checked out from the repository</li>
@@ -1112,11 +1156,13 @@ Once created or uploaded, databases are stored in the <strong>databases/</strong
 <li>Install all required software and dependencies in pyproject.toml</li>
 <li>Execute the automated test suite</li>
 </ul>
+<h3 id="621-jenkins">6.2.1 Jenkins</h3>
 <p>The Jenkins platform will run these CI tests on any branch that has a "<strong>Jenkinsfile</strong>" in the base directory. A Jenkinsfile is included in the main branch of this repo.</p>
 <p>To run Jenkins first download the Jenkins app from: https://www.jenkins.io/download/</p>
 <p>The installation guide can be found here: https://www.jenkins.io/doc/book/installing/</p>
 <p>All integration tests were carried out through the Jenkins GUI at: http://localhost:8080</p>
 <p>For more information on how to use Jenkins, please refer to their online User Handbook: https://www.jenkins.io/doc/book/using/</p>
+<h3 id="622-homebrew">6.2.2 Homebrew</h3>
 <p>Jenkinsfile requires Python-3.13 to be installed locally. We installed Python-3.13 via Homebrew on Linux.</p>
 <p>The Homebrew installation guide can be found here: https://docs.brew.sh/Installation</p>
 <p>To install Python-3.13 via homebrew:</p>
