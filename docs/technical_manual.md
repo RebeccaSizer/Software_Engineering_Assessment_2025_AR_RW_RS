@@ -192,7 +192,7 @@ SEA_2025 interacts with one external API:
 
 SEA_2025 includes a comprehensive suite of unit and integration tests to ensure reliability and correctness.
 
-### 6.1 Pytest unit testing (`tests/`)
+### 6.1 Unit testing (`tests/`)
 
 `pytest` and `pytest-cov` are installed as part of the environment setup. Pytest conducts unit tests while pytest-cov calculates the percentage of code that is being tested by the pytests.
 
@@ -201,7 +201,7 @@ To run all tests with coverage:
 ```bash
 pytest tests --cov=.
 ```
-### 6.2 Jenkins Continuous Integration testing (`Jenkinsfile`)
+### 6.2 Continuous Integration testing (`Jenkinsfile`)
 
 Jenkins performs continuous integration (CI) testing to check that our GitHub respository branches can:
 
@@ -209,6 +209,8 @@ Jenkins performs continuous integration (CI) testing to check that our GitHub re
 - Create a Python execution environment
 - Install all required software and dependencies in pyproject.toml
 - Execute the automated test suite
+
+### 6.2.1 Jenkins
 
 The Jenkins platform will run these CI tests on any branch that has a "**Jenkinsfile**" in the base directory. A Jenkinsfile is included in the main branch of this repo.
 
@@ -219,6 +221,8 @@ The installation guide can be found here: https://www.jenkins.io/doc/book/instal
 All integration tests were carried out through the Jenkins GUI at: http://localhost:8080
 
 For more information on how to use Jenkins, please refer to their online User Handbook: https://www.jenkins.io/doc/book/using/
+
+### 6.2.2 Homebrew
 
 Jenkinsfile requires Python-3.13 to be installed locally. We installed Python-3.13 via Homebrew on Linux.
 
